@@ -10,6 +10,8 @@ func _ready() -> void:
 	if !DirAccess.dir_exists_absolute("user://screenshots"):
 		DirAccess.make_dir_absolute("user://screenshots")
 
+	MapExporter.export_all_maps_to_tmp()
+
 	var packages = {
 		"Index": "res://index.pck",
 		"Graphics": "res://graphics.pck",
