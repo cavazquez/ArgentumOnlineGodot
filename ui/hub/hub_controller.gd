@@ -48,6 +48,7 @@ var _options_window
 var _skills_window
 var _password_change_window
 var _guild_foundation_window
+var _trade_sequences := {}
 var _stats_window
 
 var _user_weapon_slot:int
@@ -642,3 +643,30 @@ func _on_console_gui_input(event: InputEvent) -> void:
 
 func _on_console_mouse_exited() -> void:
 	_console_blocked = false
+
+func ApplyTradeSnapshot(value: Dictionary) -> void:
+	if _trade_sequences.has(value.id):
+		var previous: Dictionary = _trade_sequences[value.id]
+		if previous.terminal or value.sequence <= previous.sequence:
+			return
+	_trade_sequences[value.id] = {"sequence": value.sequence, "terminal": value.state in ["completed", "cancelled"]}
+	if _trade_sequences.size() > 32:
+		_trade_sequences.erase(_trade_sequences.keys()[0])
+	if value.state in ["completed", "cancelled"]:
+		if _currentPanel is PlayerTradePanel and _currentPanel.snapshot.id == value.id:
+			_currentPanel.ApplySnapshot(value)
+		ShowConsoleMessage(value.reason)
+		return
+	if is_instance_valid(_currentPanel) and not _currentPanel is PlayerTradePanel:
+		GameProtocol.WriteTradeAction(value.id, int(value.revision), 5)
+		return
+	if not is_instance_valid(_currentPanel):
+		var panel := PlayerTradePanel.new()
+		_currentPanel = panel
+		panel.inventory = _gameContext.playerInventory
+		add_child(panel)
+		panel.finished.connect(_CloseCurrentPanel)
+		_RegisterModal(panel)
+		_gameContext.trading = true
+		panel.popup_centered()
+	_currentPanel.ApplySnapshot(value)

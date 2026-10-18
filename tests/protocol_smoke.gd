@@ -54,6 +54,7 @@ func _ready() -> void:
 	_verify_capabilities()
 	_verify_drag()
 	_verify_inventory()
+	_verify_trade()
 	_verify_ui()
 	_verify_screen_handoff()
 	print("PROTOCOL_SMOKE: ", "FAIL" if failed else "PASS")
@@ -180,7 +181,7 @@ func _verify_capabilities() -> void:
 	var extended := ClientCapabilities.new()
 	check(legacy.enabled == 0, "Se habilitaron funciones sin negociar")
 	var request := extended.begin()
-	check(request == PackedByteArray([250, 1, 255, 0, 0, 0]), "Solicitud de capacidades fuera del contrato")
+	check(request == PackedByteArray([250, 1, 129, 0, 0, 0]), "Solicitud de capacidades fuera del contrato")
 	check(extended.accept(PackedByteArray([250, 1, 1, 0, 0, 0])), "Respuesta válida rechazada")
 	check(extended.has_feature(ClientCapabilities.SKILLS_CATALOG) and legacy.enabled == 0, "Se mezclaron capacidades entre conexiones")
 	extended.clear()
@@ -370,3 +371,65 @@ func _verify_ui() -> void:
 	check(bank_reader.get_position() == 0, "BANK_INIT consume saldo inexistente")
 	game.free()
 	GameProtocol.Clear()
+
+func _trade_packet(value: Dictionary) -> TradeSnapshot:
+	var stream := StreamPeerBuffer.new()
+	stream.put_u8(1)
+	Utils.PutUnicodeString(stream, JSON.stringify(value))
+	stream.seek(0)
+	return TradeSnapshot.new(stream)
+
+func _verify_trade() -> void:
+	ClientInterface.capabilities.clear()
+	ClientInterface.capabilities.begin()
+	check(ClientInterface.capabilities.accept(PackedByteArray([250, 1, 129, 0, 0, 0])), "No habilita trade negociado")
+	GameProtocol.Clear()
+	var value := {"id": "a".repeat(32), "revision": 1, "sequence": 1, "state": "active", "viewer": 1, "players": [[1, "Alice", 0, false, [[30, 101, 2]]], [2, "Bob", 10, false, []]], "reason": ""}
+	check(_trade_packet(value).valid, "Snapshot válido de trade rechazado")
+	for field in ["revision", "viewer"]:
+		var invalid := value.duplicate(true)
+		invalid[field] = 1.5
+		check(not _trade_packet(invalid).valid, "Trade acepta entero fraccional")
+	var invalid := value.duplicate(true)
+	invalid.players[0][4].append([30, 202, 1])
+	check(not _trade_packet(invalid).valid, "Trade acepta slot repetido")
+	var panel := PlayerTradePanel.new()
+	var inventory := Inventory.new(30)
+	var item := Item.new()
+	item.index = 101
+	item.name = "Poción"
+	inventory.SetProtocolSlot(30, ItemStack.new(5, false, item))
+	panel.inventory = inventory
+	add_child(panel)
+	panel.ApplySnapshot(value)
+	check(panel.offers[0].text.contains("Poción") and panel.offers[1].text.contains("Bob"), "No representa ambos participantes")
+	panel.slot.value = 30
+	panel.quantity.value = 2
+	panel.item_button.pressed.emit()
+	panel.item_button.pressed.emit()
+	var output := GameProtocol.Flush()
+	check(output.size() == 46 and output[0] == 252 and output[41] == 30, "Editar envía duplicados o slot incorrecto")
+	check(inventory.GetSlot(29).quantity == 5 and panel.snapshot.players[0][4][0][2] == 2, "Trade modificó stacks antes del servidor")
+	value.sequence = 2
+	value.revision = 2
+	value.players[0][3] = true
+	panel.ApplySnapshot(value.duplicate(true))
+	check(panel.confirm_button.disabled and panel.offers[0].text.contains("Confirmado"), "Confirmación propia no se ve")
+	value.sequence = 3
+	value.revision = 3
+	value.players[0][3] = false
+	panel.ApplySnapshot(value.duplicate(true))
+	check(not panel.confirm_button.disabled and panel.offers[0].text.contains("Sin confirmar"), "Editar no borra confirmación visual")
+	panel.RequestClose()
+	panel.RequestClose()
+	output = GameProtocol.Flush()
+	check(output.size() == 46 and output[40] == 4 and not panel.is_queued_for_deletion(), "Cancelar se duplica o cierra antes del resultado")
+	var ended := {"count": 0}
+	panel.finished.connect(func(): ended.count += 1)
+	value.sequence = 4
+	value.state = "cancelled"
+	value.reason = "Desconectado"
+	panel.ApplySnapshot(value)
+	check(ended.count == 1 and inventory.GetSlot(29).quantity == 5, "Cancelación no conserva inventario")
+	panel.free()
+	ClientInterface.capabilities.clear()

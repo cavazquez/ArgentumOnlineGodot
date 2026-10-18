@@ -204,6 +204,12 @@ static func start_commerce(args:ChatCommandArgs) -> void:
 		args.hub_controller.ShowConsoleMessage("Ya estás comerciando", GameAssets.FontDataList[Enums.FontTypeNames.FontType_Info])
 		return
 	
+	if not args.parameters.is_empty():
+		if not ClientInterface.capabilities.has_feature(ClientCapabilities.TRADE_STATE):
+			args.hub_controller.ShowConsoleMessage("El servidor no habilitó el intercambio entre jugadores.")
+			return
+		GameProtocol.WriteTalk("/COMERCIAR " + " ".join(args.parameters))
+		return
 	GameProtocol.WriteCommerceStart()
 
 
