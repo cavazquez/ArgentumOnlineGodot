@@ -1,6 +1,8 @@
 extends TextureRect
 class_name SpellListPanel
 
+signal target_requested(slot: int)
+
 @onready var _item_list: ItemList = $ItemList
 var _spell_ids: Array[int] = []
 var _pending_move := {}
@@ -42,8 +44,7 @@ func _valid_selection() -> bool:
 func _on_btn_cast_pressed() -> void:
 	if not _valid_selection() or not _pending_move.is_empty():
 		return
-	GameProtocol.WriteCastSpell(get_selected_slot() + 1)
-	GameProtocol.WriteWork(Enums.Skill.Magia)
+	target_requested.emit(get_selected_slot() + 1)
 
 func _on_btn_info_pressed() -> void:
 	if _valid_selection():

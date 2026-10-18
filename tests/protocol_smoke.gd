@@ -59,6 +59,7 @@ func _ready() -> void:
 	_verify_clan_details(by_name)
 	_verify_minimap()
 	_verify_chat_text()
+	_verify_targeting(by_name)
 	_verify_spellbook_order()
 	_verify_trade()
 	_verify_ui()
@@ -187,7 +188,7 @@ func _verify_capabilities() -> void:
 	var extended := ClientCapabilities.new()
 	check(legacy.enabled == 0, "Se habilitaron funciones sin negociar")
 	var request := extended.begin()
-	check(request == PackedByteArray([250, 1, 141, 0, 0, 0]), "Solicitud de capacidades fuera del contrato")
+	check(request == PackedByteArray([250, 1, 143, 0, 0, 0]), "Solicitud de capacidades fuera del contrato")
 	check(extended.accept(PackedByteArray([250, 1, 1, 0, 0, 0])), "Respuesta válida rechazada")
 	check(extended.has_feature(ClientCapabilities.SKILLS_CATALOG) and legacy.enabled == 0, "Se mezclaron capacidades entre conexiones")
 	extended.clear()
@@ -621,7 +622,7 @@ func _password_fields(window, current: String = "cláve1", new_password: String 
 func _verify_password_change(fixtures: Dictionary) -> void:
 	ClientInterface.capabilities.clear()
 	ClientInterface.capabilities.begin()
-	check(ClientInterface.capabilities.accept(PackedByteArray([250, 1, 141, 0, 0, 0])), "No habilita cambio de contraseña")
+	check(ClientInterface.capabilities.accept(PackedByteArray([250, 1, 143, 0, 0, 0])), "No habilita cambio de contraseña")
 	var window = load("res://ui/hub/password_change_window.tscn").instantiate()
 	add_child(window)
 	GameProtocol.Clear()
@@ -665,3 +666,47 @@ func _verify_password_change(fixtures: Dictionary) -> void:
 	check(window.operation_id.is_empty() and window._pending_id.is_empty() and window.accept_button.disabled, "Desconexión conserva autorización de cambio")
 	window.free()
 	ClientInterface.capabilities.clear()
+
+func _verify_targeting(fixtures: Dictionary) -> void:
+	ClientInterface.capabilities.enabled = ClientCapabilities.TARGETED_CAST
+	var game = load("res://screens/game_screen.tscn").instantiate()
+	add_child(game)
+	game.set_process(false)
+	var hub: HubController = game._gameInput
+	game._gameContext.player_stats.hp = 100
+	GameProtocol.Clear()
+	hub.spell_list_panel.set_slot_text(0, "Dardo", 2)
+	hub.spell_list_panel._item_list.select(0)
+	hub.spell_list_panel._on_btn_cast_pressed()
+	check(hub._target_spell_slot == 1 and GameProtocol.IsEmpty(), "Elegir magia lanzó un cast antes del clic")
+	hub.RouteEscape()
+	check(hub._target_spell_slot == 0 and Input.get_current_cursor_shape() == Input.CURSOR_ARROW, "Escape no canceló magia")
+	hub.BeginSpellTarget(1)
+	var click := InputEventMouseButton.new()
+	click.pressed = true
+	click.button_index = MOUSE_BUTTON_RIGHT
+	hub._input(click)
+	check(hub._target_spell_slot == 0, "Clic derecho no canceló magia")
+	hub.BeginSpellTarget(1)
+	check(hub.TargetTile(Vector2(-1, 2)) == Vector2i.ZERO, "Target fuera del mundo se aceptó")
+	hub._consoleInputLineEdit.show()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.position = Vector2(64, 64)
+	hub._HandleMouseInput(click)
+	check(GameProtocol.IsEmpty() and hub._target_spell_slot == 1, "Modal permite castear")
+	hub._consoleInputLineEdit.hide()
+	GameProtocol.Clear()
+	check(GameProtocol.WriteCastTarget(1, Vector2i(55, 50)), "Cast válido no se serializa")
+	check(GameProtocol.Flush() == fixtures.cast_target, "Writer targeting difiere del contrato")
+	check(not GameProtocol.WriteCastTarget(0, Vector2i.ONE) and not GameProtocol.WriteCastTarget(1, Vector2i(101, 50)), "Cast con slot/coordenadas inválidas se envía")
+	var hp_reader := StreamPeerBuffer.new()
+	hp_reader.data_array = PackedByteArray([0, 0])
+	game._HandleUpdateHP(UpdateHP.new(hp_reader))
+	check(hub._target_spell_slot == 0, "Muerte no canceló magia")
+	game._gameContext.player_stats.hp = 100
+	hub.BeginSpellTarget(1)
+	hub._restore_default_cursor()
+	check(hub._target_spell_slot == 0, "Desconexión/mapa no limpian targeting")
+	ClientInterface.capabilities.clear()
+	check(not GameProtocol.WriteCastTarget(1, Vector2i.ONE), "Legacy recibió extensión de magia")
+	game.free()
