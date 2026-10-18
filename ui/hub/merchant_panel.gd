@@ -122,7 +122,7 @@ func _Quote() -> int:
 func _ValidSelection() -> bool:
 	var stack := _GetStack()
 	var quantity := int(_quantitySpinBox.value)
-	return not _closing and not _pending and _source in ["buy", "sell"] and stack != null and stack.item != null and stack.item.index > 0 and stack.item.index == _selected_item and quantity > 0 and quantity <= stack.quantity and _Quote() > 0
+	return not _closing and not _pending and _source in ["buy", "sell"] and stack != null and stack.item != null and stack.item.index > 0 and stack.item.index == _selected_item and quantity > 0 and quantity <= stack.quantity and _Quote() > 0 and not (_source == "sell" and stack.equipped)
 
 func _Refresh() -> void:
 	if _actionButton == null:
@@ -130,6 +130,7 @@ func _Refresh() -> void:
 	_actionButton.text = "Comprar" if _source == "buy" else ("Vender" if _source == "sell" else "Seleccioná un objeto")
 	_actionButton.disabled = not _ValidSelection()
 	var stack := _GetStack()
+	_actionButton.tooltip_text = "Desequipá el objeto antes de venderlo." if _source == "sell" and stack != null and stack.equipped else ""
 	_infoLabel.text = "%s · Total: %d oro" % [stack.item.name, _Quote()] if stack != null and stack.item != null and stack.item.index > 0 else "Seleccioná un objeto del mercader o de tu inventario."
 
 func _Submit() -> void:
