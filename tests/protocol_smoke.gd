@@ -52,6 +52,7 @@ func _ready() -> void:
 	_verify_skills(by_name)
 	_verify_text_policy()
 	_verify_capabilities()
+	_verify_drag()
 	_verify_inventory()
 	_verify_screen_handoff()
 	print("PROTOCOL_SMOKE: ", "FAIL" if failed else "PASS")
@@ -264,3 +265,39 @@ func _verify_skills(fixtures: Dictionary) -> void:
 	ClientInterface.connection_failed.disconnect(failed)
 	ClientInterface.dataReceived.disconnect(received)
 	ClientInterface._reset()
+
+func _verify_drag() -> void:
+	GameProtocol.Clear()
+	var inventory := Inventory.new(30)
+	var item := Item.new()
+	item.index = 42
+	inventory.SetProtocolSlot(1, ItemStack.new(3, false, item))
+	var original := inventory.GetSlot(0)
+	var grid = load("res://ui/hub/inventory_container.tscn").instantiate()
+	add_child(grid)
+	grid.allow_reorder = true
+	grid.SetInventory(inventory)
+	var data = grid.CreateDragData(0)
+	check(data != null and GameProtocol.IsEmpty(), "Empezar/cancelar un drag envió bytes")
+	check(grid.CreateDragData(29) == null, "Se inició drag de un slot vacío")
+	for destination in [-1, 0, 30]:
+		grid.DropItem(destination, data)
+		check(GameProtocol.IsEmpty(), "Soltar inválido/mismo slot envió bytes")
+	grid.GetInventorySlot(29)._drop_data(Vector2.ZERO, data)
+	check(GameProtocol.Flush() == PackedByteArray([129, 1, 30]), "MOVE_ITEM incluye un move_type o índices incorrectos")
+	check(inventory.GetSlot(0) == original and inventory.GetSlot(29).quantity == 0, "Drag mutó inventario antes de confirmar el servidor")
+	var merchant = load("res://ui/hub/inventory_container.tscn").instantiate()
+	add_child(merchant)
+	merchant.SetInventory(Inventory.new(20))
+	check(merchant.CreateDragData(0) == null and not merchant.CanDropItem(1, data), "Se habilitó reordenar stock o banco")
+	merchant.allow_reorder = true
+	check(not merchant.CanDropItem(1, data), "Drag cruzó inventarios distintos")
+	var selected := {"count": 0}
+	merchant.slotPressed.connect(func(_index): selected.count += 1)
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	merchant.GetInventorySlot(0)._gui_input(click)
+	check(selected.count == 1 and merchant.GetSelectedSlot() == 0 and GameProtocol.IsEmpty(), "Se perdió la selección propia de comerciantes/banco")
+	grid.free()
+	merchant.free()

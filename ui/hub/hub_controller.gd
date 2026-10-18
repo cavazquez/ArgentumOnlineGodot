@@ -72,6 +72,7 @@ func _ready() -> void:
 
 func Init(gameContext:GameContext) -> void:
 	_gameContext = gameContext
+	_inventoryContainer.allow_reorder = true
 	_inventoryContainer.SetInventory(_gameContext.playerInventory)
 	_inventoryContainer.slotPressed.connect(func(_v): 
 		_use_object(true))

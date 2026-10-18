@@ -766,3 +766,12 @@ static func _can_write(packet_id: int, subcommand: int = -1) -> bool:
 		return true
 	ClientInterface.serialization_failed.emit("Esta función no está disponible en el servidor conectado")
 	return false
+
+static func WriteMoveItem(source: int, destination: int) -> void:
+	if source < 1 or source > Consts.MaxInventorySlots or destination < 1 or destination > Consts.MaxInventorySlots or source == destination:
+		return
+	if not _can_write(Enums.ClientPacketID.MoveItem):
+		return
+	_writer.put_u8(Enums.ClientPacketID.MoveItem)
+	_writer.put_u8(source)
+	_writer.put_u8(destination)
