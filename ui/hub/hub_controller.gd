@@ -539,7 +539,7 @@ func _on_btn_password_change_pressed() -> void:
 		_password_change_window = PasswordChangeWindowScene.instantiate()
 		add_child(_password_change_window)
 		_RegisterModal(_password_change_window)
-	_password_change_window.show_window()
+	_password_change_window.show_window(self)
 
 var _waiting_for_skills_popup := false
 
@@ -708,3 +708,7 @@ func ApplySkillAllocation(state: SkillAllocationState) -> void:
 	if is_instance_valid(_skills_window):
 		_skills_window.ApplyAllocationState(state)
 	update_stats_skills(state.skills)
+
+func ApplyPasswordReply(reply: PasswordChangeReply) -> void:
+	if is_instance_valid(_password_change_window):
+		_password_change_window.ApplyReply(reply)

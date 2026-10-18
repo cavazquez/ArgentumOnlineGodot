@@ -168,6 +168,13 @@ var pcg:Array[String]
 
 func _HandleOnePacket(stream:StreamPeerBuffer) -> void:
 	var packetId = stream.get_u8()
+	if packetId == 253:
+		var password_result := PasswordChangeReply.new(stream)
+		if not password_result.valid:
+			ClientInterface._fail("Respuesta de contraseña inválida")
+			return
+		_gameInput.ApplyPasswordReply(password_result)
+		return
 	if packetId == 254:
 		var allocation := SkillAllocationState.new(stream)
 		if not allocation.valid:
