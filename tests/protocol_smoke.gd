@@ -54,6 +54,7 @@ func _ready() -> void:
 	_verify_capabilities()
 	_verify_drag()
 	_verify_inventory()
+	_verify_password_change(by_name)
 	_verify_allocation(by_name)
 	_verify_clan_details(by_name)
 	_verify_minimap()
@@ -186,7 +187,7 @@ func _verify_capabilities() -> void:
 	var extended := ClientCapabilities.new()
 	check(legacy.enabled == 0, "Se habilitaron funciones sin negociar")
 	var request := extended.begin()
-	check(request == PackedByteArray([250, 1, 133, 0, 0, 0]), "Solicitud de capacidades fuera del contrato")
+	check(request == PackedByteArray([250, 1, 141, 0, 0, 0]), "Solicitud de capacidades fuera del contrato")
 	check(extended.accept(PackedByteArray([250, 1, 1, 0, 0, 0])), "Respuesta válida rechazada")
 	check(extended.has_feature(ClientCapabilities.SKILLS_CATALOG) and legacy.enabled == 0, "Se mezclaron capacidades entre conexiones")
 	extended.clear()
@@ -602,5 +603,65 @@ func _verify_allocation(fixtures: Dictionary) -> void:
 	window._deadline = 0
 	window._process(0)
 	check(GameProtocol.Flush() == PackedByteArray([15]) and window.operation_id.is_empty(), "Timeout permite otro gasto sin consultar estado")
+	window.free()
+	ClientInterface.capabilities.clear()
+
+func _password_reply(bytes: PackedByteArray) -> PasswordChangeReply:
+	var stream := StreamPeerBuffer.new()
+	stream.data_array = bytes
+	stream.get_u8()
+	return PasswordChangeReply.new(stream)
+
+func _password_fields(window, current: String = "cláve1", new_password: String = "nueva42") -> void:
+	window.current_password_input.text = current
+	window.new_password_input.text = new_password
+	window.confirm_password_input.text = new_password
+	window._validate_fields()
+
+func _verify_password_change(fixtures: Dictionary) -> void:
+	ClientInterface.capabilities.clear()
+	ClientInterface.capabilities.begin()
+	check(ClientInterface.capabilities.accept(PackedByteArray([250, 1, 141, 0, 0, 0])), "No habilita cambio de contraseña")
+	var window = load("res://ui/hub/password_change_window.tscn").instantiate()
+	add_child(window)
+	GameProtocol.Clear()
+	window.show_window()
+	window.show_window()
+	check(GameProtocol.Flush() == fixtures.password_challenge, "La apertura duplica la solicitud o manda claves")
+	window.ApplyReply(_password_reply(fixtures.password_ready))
+	_password_fields(window, "corta")
+	check(window.accept_button.disabled, "Clave corta habilita cambio")
+	_password_fields(window)
+	window.confirm_password_input.text = "diferente"
+	window._validate_fields()
+	check(window.accept_button.disabled, "Confirmación distinta habilita cambio")
+	window.confirm_password_input.text = "nueva42"
+	window._validate_fields()
+	window._on_accept_pressed()
+	window._on_accept_pressed()
+	check(GameProtocol.Flush() == fixtures.password_change_request, "Cambio de clave duplicado o con codec distinto")
+	check(window.current_password_input.text.is_empty() and window.new_password_input.text.is_empty() and window.confirm_password_input.text.is_empty(), "Guardar retiene las contraseñas en el formulario")
+	check(not window._pending_id.is_empty() and not window.error_label.text.contains("actualizada"), "El formulario anuncia éxito sin ack")
+	window._deadline = 0
+	window._process(0)
+	check(GameProtocol.Flush() == fixtures.password_change_query, "Timeout vuelve a mandar claves o cambia el ID")
+	window.ApplyReply(_password_reply(fixtures.password_changed))
+	check(window._pending_id.is_empty() and window.error_label.text == "Contraseña actualizada.", "El éxito real no se confirma")
+	_password_fields(window)
+	window._on_accept_pressed()
+	GameProtocol.Clear()
+	window.ApplyReply(_password_reply(fixtures.password_rejected))
+	check(window._pending_id.is_empty() and window.error_label.text.contains("incorrecta") and window.current_password_input.text.is_empty(), "Rechazo no limpia campos o afirma éxito")
+	_password_fields(window)
+	window._on_accept_pressed()
+	GameProtocol.Clear()
+	window.ApplyReply(_password_reply(fixtures.password_unknown))
+	check(window._pending_id.is_empty() and window.error_label.text.contains("No hay resultado confirmado") and window.current_password_input.text.is_empty(), "Un resultado incierto se presenta como éxito")
+	_password_fields(window)
+	window.current_password_toggle.pressed.emit()
+	window.RequestClose()
+	check(window.current_password_input.secret and window.current_password_input.text.is_empty() and window.new_password_input.text.is_empty() and not window.visible, "Cerrar conserva una clave o su modo visible")
+	window._Disconnected()
+	check(window.operation_id.is_empty() and window._pending_id.is_empty() and window.accept_button.disabled, "Desconexión conserva autorización de cambio")
 	window.free()
 	ClientInterface.capabilities.clear()

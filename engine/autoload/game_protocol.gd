@@ -728,15 +728,23 @@ static func WriteDenounce(denounce_text:String) -> void:
 	Utils.PutUnicodeString(_writer, denounce_text)
 
 
-static func WriteChangePassword(current_password:String, new_password:String) -> void:
+static func WritePasswordRequest(operation_id: String, current_password: String, new_password: String) -> bool:
 	if not _can_write(Enums.ClientPacketID.ChangePassword):
-		return
-	if not _validate_text_fields([current_password, new_password]):
-		return
-	_log_outgoing_packet("ChangePassword", "current_password: [HIDDEN], new_password: [HIDDEN]")
+		return false
+	if not operation_id.is_empty() and not SkillAllocationState.valid_identity(operation_id):
+		return false
+	if not current_password.is_empty() or not new_password.is_empty():
+		if operation_id.is_empty() or not CredentialPolicy.validate("usr", current_password).is_empty() or not CredentialPolicy.validate("usr", new_password).is_empty():
+			return false
 	_writer.put_u8(Enums.ClientPacketID.ChangePassword)
+	_writer.put_u8(1)
+	Utils.PutUnicodeString(_writer, operation_id)
 	Utils.PutUnicodeString(_writer, current_password)
 	Utils.PutUnicodeString(_writer, new_password)
+	return true
+
+static func WriteChangePassword(current_password: String, new_password: String, operation_id: String = "") -> void:
+	WritePasswordRequest(operation_id, current_password, new_password)
 
 
 # ===== COMANDOS GM =====
