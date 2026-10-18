@@ -794,7 +794,7 @@ func _HandleChangeMap(p:ChangeMap) -> void:
 		
 		
 func _HandleChangeSpellSlot(p:ChangeSpellSlot) -> void:
-	_gameInput.spell_list_panel.set_slot_text(p.slot - 1, p.name) 
+	_gameInput.spell_list_panel.set_slot_text(p.slot - 1, p.name, p.spellId) 
 
 
 func _HandleChangeInventorySlot(p:ChangeInventorySlot) -> void:

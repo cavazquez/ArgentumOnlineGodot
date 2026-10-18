@@ -334,13 +334,15 @@ static func WriteCastSpell(slot:int) -> void:
 	_writer.put_u8(Enums.ClientPacketID.CastSpell) 
 	_writer.put_u8(slot) 
 	
-static func WriteMoveSpell(upwards:bool, slot:int) -> void:
-	if not _can_write(Enums.ClientPacketID.MoveSpell):
-		return
-	_log_outgoing_packet("MoveSpell", "upwards: " + str(upwards) + ", slot: " + str(slot))
-	_writer.put_u8(Enums.ClientPacketID.MoveSpell) 
-	_writer.put_u8(upwards) 
-	_writer.put_u8(slot) 
+static func WriteMoveSpell(downwards: bool, slot: int) -> bool:
+	if not _can_write(Enums.ClientPacketID.MoveSpell) or slot < 1 or slot > Consts.MaxUserHechizos:
+		return false
+	if (downwards and slot == Consts.MaxUserHechizos) or (not downwards and slot == 1):
+		return false
+	_writer.put_u8(Enums.ClientPacketID.MoveSpell)
+	_writer.put_u8(1 if downwards else 0)
+	_writer.put_u8(slot)
+	return true
 
 static func WriteWarpChar(username:String, map_id:int, x:int, y:int) -> void:
 	if not _can_write(Enums.ClientPacketID.GMCommands, Enums.EGMCommands.WARP_CHAR):
