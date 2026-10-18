@@ -59,3 +59,6 @@ miembros, alianzas, guerras, códice y descripción. Actualizar usa el paquete 6
 Abandonar pide confirmación, envía 72 y consulta nuevamente el estado; la ventana
 no anuncia éxito por su cuenta. Los comandos propios de clan y party se conservan.
 Las acciones de administración sin handler permanecen deshabilitadas.
+
+La distribución Linux como `pyao-client` se construye con la receta de
+[Snap](docs/SNAP.md), que incluye procedencia del commit y el motor fijado.

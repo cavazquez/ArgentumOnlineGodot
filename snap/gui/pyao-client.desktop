@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=PyAO Client
+Comment=Cliente de ProyectoAO
+Exec=pyao-client
+Icon=${SNAP}/meta/gui/pyao-client.svg
+Terminal=false
+Categories=Game;RolePlaying;
+StartupNotify=true
