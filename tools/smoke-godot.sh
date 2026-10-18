@@ -35,3 +35,6 @@ variants = [secret.decode(), secret.hex(), secret.hex(" ")]
 if any(value.lower() in log.lower() for value in variants):
     raise SystemExit("Una contraseña sintética o sus bytes llegaron a los logs")
 CHECK_LOG
+
+run_checked "$run_dir/protocol.log" "$godot_bin" --headless --path "$project_root" --quit-after 300 res://tests/protocol_smoke.tscn
+grep -q 'PROTOCOL_SMOKE: PASS' "$run_dir/protocol.log"
