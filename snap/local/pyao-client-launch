@@ -6,6 +6,13 @@ umask 077
 export XDG_DATA_HOME="$SNAP_USER_COMMON/data"
 export XDG_CONFIG_HOME="$SNAP_USER_COMMON/config"
 export XDG_CACHE_HOME="$SNAP_USER_COMMON/cache"
+export XKB_CONFIG_ROOT="$SNAP/usr/share/X11/xkb"
+export ALSA_CONFIG_DIR="$SNAP/usr/share/alsa"
+export ALSA_CONFIG_PATH="$SNAP/usr/share/alsa/alsa.conf"
+export LD_LIBRARY_PATH="$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+pyao_runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+pyao_runtime_dir=${pyao_runtime_dir%/snap.*}
+export PULSE_SERVER="${PULSE_SERVER:-unix:$pyao_runtime_dir/pulse/native}"
 mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME"
 cd "$SNAP"
 exec "$SNAP/bin/pyao-client" --rendering-method gl_compatibility --display-driver x11 "$@"
