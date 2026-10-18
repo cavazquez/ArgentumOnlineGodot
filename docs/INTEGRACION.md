@@ -105,6 +105,9 @@ un sink nulo. Luego actualiza el paquete y compara el hash de preferencias.
 Si el commit publicado en `latest/edge` coincide, CI instala desde la Store; de
 lo contrario usa el artefacto local y registra `snap_install_source=artifact`.
 La instalación desde la Store se repite después de publicar el commit integrado.
+El artefacto `godot-world-integration-N` identifica cada intento de CI. Reejecutar
+sólo `integration-world` permite verificar la instalación desde la Store con los
+exports y el Snap ya validados del mismo run, conservando la evidencia anterior.
 
 Para R01 a R09 se adjuntan también, en el mismo servidor candidato: suite completa,
 lint/tipos, dataset, distribución instalada, fixtures y framing del contrato,
