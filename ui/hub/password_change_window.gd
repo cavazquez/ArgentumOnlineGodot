@@ -55,6 +55,10 @@ func _on_text_changed(_text: String):
 	_validate_fields()
 
 func _validate_fields():
+	if not ClientInterface.capabilities.can_send(Enums.ClientPacketID.ChangePassword):
+		accept_button.disabled = true
+		error_label.text = "El servidor no ofrece cambio de contraseña"
+		return
 	var current_valid = current_password_input.text.length() > 0
 	var new_valid = new_password_input.text.length() > 0
 	var passwords_match = confirm_password_input.text == new_password_input.text
@@ -80,6 +84,9 @@ func _validate_fields():
 		error_label.text = ""
 
 func _on_accept_pressed():
+	if not ClientInterface.capabilities.can_send(Enums.ClientPacketID.ChangePassword):
+		_show_error("El servidor no ofrece cambio de contraseña")
+		return
 	var current_password = current_password_input.text
 	var new_password = new_password_input.text
 	var confirm_password = confirm_password_input.text

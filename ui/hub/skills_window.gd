@@ -34,6 +34,8 @@ func _ready():
 
 # Se llama cuando se presiona el botón + de un skill
 func _on_plus_pressed(skill_index: int):
+	if not ClientInterface.capabilities.can_send(Enums.ClientPacketID.ModifySkills):
+		return
 	if current_free_skills > 0 and skill_index < skill_values.size() and skill_values[skill_index] < 100:
 		skill_values[skill_index] += 1
 		skill_labels[skill_index].text = str(skill_values[skill_index])
@@ -44,6 +46,8 @@ func _on_plus_pressed(skill_index: int):
 
 # Se llama cuando se presiona el botón - de un skill
 func _on_minus_pressed(skill_index: int):
+	if not ClientInterface.capabilities.can_send(Enums.ClientPacketID.ModifySkills):
+		return
 	if (skill_index < skill_values.size() and 
 		skill_values[skill_index] > initial_skill_values[skill_index]):
 		skill_values[skill_index] -= 1
@@ -55,6 +59,8 @@ func _on_minus_pressed(skill_index: int):
 
 # Actualiza el estado de los botones + y - según las reglas
 func update_buttons_state():
+	var supported := ClientInterface.capabilities.can_send(Enums.ClientPacketID.ModifySkills)
+	accept_button.tooltip_text = "Asignación no disponible en este servidor" if not supported else "Guardar cambios"
 	for i in range(skills_container.get_child_count()):
 		var child = skills_container.get_child(i)
 		if child is HBoxContainer and child.get_child_count() > 3:
@@ -62,15 +68,17 @@ func update_buttons_state():
 			var plus_btn = child.get_child(3)
 			
 			if minus_btn is Button:
+				minus_btn.disabled = not supported
 				minus_btn.visible = !(i >= skill_values.size() or 
 					skill_values[i] <= initial_skill_values[i])
 			
 			if plus_btn is Button:
+				plus_btn.disabled = not supported
 				plus_btn.visible = !(i >= skill_values.size() or 
 					skill_values[i] >= 100 or current_free_skills <= 0)
 	
 	# Actualizar el estado del botón de aceptar
-	accept_button.disabled = !has_skill_changes()
+	accept_button.disabled = not supported or not has_skill_changes()
 
 func update_free_skills():
 	free_skills.text = str(current_free_skills)
@@ -98,6 +106,8 @@ func _on_cancel_pressed():
 	hide()
 
 func _on_accept_pressed():
+	if not ClientInterface.capabilities.can_send(Enums.ClientPacketID.ModifySkills):
+		return
 	# Aplicar los cambios al Global.skillPoints
 	Global.skillPoints = current_free_skills
 	
