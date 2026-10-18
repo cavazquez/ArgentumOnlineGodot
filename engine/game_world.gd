@@ -3,11 +3,14 @@ class_name GameWorld
 const CharacterScene = preload("uid://twhhld7du3lq")
 
 @export var _mapContainer:MapContainer
+var _recent_removed := {}
+const REMOVED_FX_WINDOW_MS := 1500
 
 func GetMapContainer() -> MapContainer:
 	return _mapContainer
 
 func CreateCharacter(data:CharacterCreate) -> Character:
+	_recent_removed.erase(data.charIndex)
 	_mapContainer.DeleteCharacter(data.charIndex)
 	
 	var character = CharacterScene.instantiate() as Character
@@ -49,7 +52,25 @@ func GetCharacterAt(x:int, y:int) -> Character:
 	return _mapContainer.GetCharacterAt(x, y)
 	
 func DeleteCharacter(instanceId:int) -> void:
+	var now := Time.get_ticks_msec()
+	for key in _recent_removed.keys():
+		if now - int(_recent_removed[key].tick) > REMOVED_FX_WINDOW_MS:
+			_recent_removed.erase(key)
+	var character := GetCharacter(instanceId)
+	if character:
+		_recent_removed[instanceId] = {"tick": now, "position": character.position}
+		if _recent_removed.size() > 256:
+			_recent_removed.erase(_recent_removed.keys()[0])
 	_mapContainer.DeleteCharacter(instanceId)
+
+func PlayCharacterEffect(instanceId: int, fx: int, loops: int) -> void:
+	var character := GetCharacter(instanceId)
+	if character:
+		character.effect.play_effect(fx, loops)
+	elif fx > 0 and loops >= 0 and _recent_removed.has(instanceId):
+		var removed: Dictionary = _recent_removed[instanceId]
+		if Time.get_ticks_msec() - int(removed.tick) <= REMOVED_FX_WINDOW_MS:
+			_mapContainer.PlayWorldEffect(removed.position, fx, loops)
 	
 func DeleteObject(x:int, y:int) -> void:
 	_mapContainer.DeleteObject(x, y)
@@ -59,6 +80,7 @@ func AddObject(grhId:int, x:int, y:int) -> void:
 	_mapContainer.AddObject(grhId, x, y)
 	
 func SwitchMap(id:int) -> void:
+	_recent_removed.clear()
 	_mapContainer.LoadMap(id)
 
 func _PlayerWalkSound(character:Character) -> void:

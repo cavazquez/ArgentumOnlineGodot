@@ -84,7 +84,7 @@ func _verify_framing(fixtures: Array) -> void:
 		for value in bytes:
 			count += bytewise.feed(PackedByteArray([value])).size()
 		check(count == 1 and bytewise.pending_size() == 0, "Reensamblado byte a byte " + fixture.name)
-	for invalid in [PackedByteArray([255]), PackedByteArray([24, 255, 255]), PackedByteArray([104, 255])]:
+	for invalid in [PackedByteArray([249]), PackedByteArray([24, 255, 255]), PackedByteArray([104, 255])]:
 		var framer := AOPacketFramer.new()
 		check(framer.feed(invalid).is_empty() and not framer.error.is_empty(), "Se aceptó ID, longitud o subtipo inválido")
 	var large := PackedByteArray()
@@ -193,7 +193,7 @@ func _verify_capabilities() -> void:
 	var extended := ClientCapabilities.new()
 	check(legacy.enabled == 0, "Se habilitaron funciones sin negociar")
 	var request := extended.begin()
-	check(request == PackedByteArray([250, 1, 143, 0, 0, 0]), "Solicitud de capacidades fuera del contrato")
+	check(request == PackedByteArray([250, 1, 143, 1, 0, 0]), "Solicitud de capacidades fuera del contrato")
 	check(extended.accept(PackedByteArray([250, 1, 1, 0, 0, 0])), "Respuesta válida rechazada")
 	check(extended.has_feature(ClientCapabilities.SKILLS_CATALOG) and legacy.enabled == 0, "Se mezclaron capacidades entre conexiones")
 	extended.clear()
@@ -609,7 +609,9 @@ func _verify_allocation(fixtures: Dictionary) -> void:
 	window.ApplyAllocationState(initial)
 	GameProtocol.Clear()
 	window._on_plus_pressed(1)
-	check(window.current_free_skills == 8, "Asigna una habilidad pendiente")
+	check(window.current_free_skills == 7 and window.skill_values[1] == 1, "Robar no admite asignación manual")
+	window._on_minus_pressed(1)
+	check(window.current_free_skills == 8, "Deshacer Robar no devuelve el punto del borrador")
 	window._on_plus_pressed(0)
 	check(window.current_free_skills == 7 and Global.skillPoints == 8, "Borrador cambia presupuesto global")
 	window._on_accept_pressed()

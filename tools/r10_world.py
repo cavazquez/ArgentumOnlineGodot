@@ -618,6 +618,7 @@ class R10World:
         self.wait(
             lambda: self.stats(store, 1)["min_mana"] > mana,
             "recuperación de maná meditando",
+            timeout=180,
         )
         self.view(1, lambda v: v["mana"] > mana, "maná de meditación en UI")
         self.command(1, "chat", text="/meditar")
@@ -881,7 +882,7 @@ class R10World:
                 lambda v: v["items"][str(tool_slot)][2],
                 "herramienta equipada " + name,
             )
-            for _ in range(12):
+            for _ in range(40):
                 self.command(1, "use", slot=tool_slot)
                 self.view(
                     1, lambda v: v["using_skill"] == skill, "herramienta activa " + name

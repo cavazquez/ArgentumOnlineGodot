@@ -66,7 +66,8 @@ func _ready() -> void:
 		return
 	print("INTEGRATION_WORLD: READY map=", game._gameContext.player_map, " slots=30 tls=true")
 	if not OS.get_environment("PYAO_TEST_CONTROL").is_empty():
-		var scenario = load("res://tests/r10_client.gd").new()
+		var controller_path := "res://tests/mechanics_client.gd" if OS.get_environment("PYAO_TEST_MECHANICS") == "1" else "res://tests/r10_client.gd"
+		var scenario = load(controller_path).new()
 		if not await scenario.run(self):
 			return
 		game = ScreenController.currentScreen as GameScreen

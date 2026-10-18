@@ -235,7 +235,16 @@ def worker(args):
     work = Path.cwd()
     output = args.output
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    from r10_world import R10World, acceptance, prepare_fixture
+    if args.scenario == "skills":
+        from skills_world import MechanicsWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "spells":
+        from mechanics_world import (
+            MechanicsWorld as R10World,
+            acceptance,
+            prepare_fixture,
+        )
+    else:
+        from r10_world import R10World, acceptance, prepare_fixture
 
     scenario_data, locations = prepare_fixture(work, output)
     certificate, key = work / "test-ca.crt", work / "test-key.pem"
@@ -278,8 +287,12 @@ def worker(args):
             PYAO_REDIS__PASSWORD_FILE=str(redis.password_file),
             PYAO_STATE_DIR=str(work / "server-state"),
             PYAO_DATA_DIR=str(scenario_data),
-            PYAO_SECURITY__AUTH_ATTEMPTS_PER_IP="120",
-            PYAO_SECURITY__AUTH_ATTEMPTS_PER_ACCOUNT="40",
+            PYAO_SECURITY__AUTH_ATTEMPTS_PER_IP="400"
+            if args.scenario != "r10"
+            else "120",
+            PYAO_SECURITY__AUTH_ATTEMPTS_PER_ACCOUNT="200"
+            if args.scenario != "r10"
+            else "40",
         )
         server_log = stack.enter_context((output / "server.log").open("wb"))
         entry = Path(sys.executable).parent / "pyao-server"
@@ -331,6 +344,7 @@ def worker(args):
                 PYAO_TEST_INDEX=str(index),
                 PYAO_TEST_PEER=str(3 - index),
                 PYAO_TEST_DURATION=str(args.seconds),
+                PYAO_TEST_MECHANICS="1" if args.scenario != "r10" else "0",
                 PYAO_TEST_RELEASED=str(reconnect_gates[index - 1]),
                 PYAO_TEST_CONTROL=str(work / f"control-{index}"),
                 PYAO_TEST_SCREENSHOT=str(output / f"godot-{index}.png"),
@@ -364,6 +378,33 @@ def worker(args):
             clients.append(client)
         started = time.monotonic()
         scenario = R10World(redis, work, output, names, clients, server)
+
+        def restart_server():
+            nonlocal server
+            arguments = server.args
+            stop(server)
+            server = subprocess.Popen(
+                arguments,
+                cwd=work,
+                env=environment,
+                stdout=server_log,
+                stderr=subprocess.STDOUT,
+            )
+            stack.callback(stop, server)
+            deadline = time.monotonic() + 60
+            while True:
+                if server.poll() is not None:
+                    raise RuntimeError("El servidor no volvió a iniciar")
+                try:
+                    with socket.create_connection(("127.0.0.1", endpoint), timeout=0.5):
+                        break
+                except ConnectionRefusedError:
+                    if time.monotonic() > deadline:
+                        raise TimeoutError("No reabrió el listener")
+                    time.sleep(0.1)
+            return server
+
+        scenario.restart_server = restart_server
         scenario_steps = scenario.run(locations)
         from src.utils.redis_config import RedisKeys
 
@@ -613,8 +654,16 @@ def worker(args):
             graphical=not args.headless,
             exported=bool(args.client_executable),
         )
-        if not proof["acceptance"]["functional_passed"]:
-            raise RuntimeError("La aceptación no cubre todos los escenarios R10")
+        criterion = (
+            "functional_passed" if args.scenario == "r10" else "test_execution_passed"
+        )
+        if not proof["acceptance"][criterion]:
+            raise RuntimeError(
+                "La regresión no cubre todos los escenarios: " + args.scenario
+            )
+        if args.scenario != "r10":
+            proof["scenario"] = args.scenario
+            proof["regression_passed"] = proof.pop("passed")
         (output / "result.json").write_text(json.dumps(proof, indent=2) + "\n")
         print(json.dumps(proof))
 
@@ -631,6 +680,12 @@ def main():
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--seconds", type=int, default=1800)
+    parser.add_argument(
+        "--scenario",
+        choices=("r10", "skills", "spells"),
+        default="r10",
+        help="Regresión que se ejecuta antes del período de observación",
+    )
     parser.add_argument("--headless", action="store_true")
     parser.add_argument("--redis-runtime", type=Path)
     parser.add_argument("--snap-installed", action="store_true")
@@ -783,6 +838,8 @@ def main():
             str(args.output),
             "--seconds",
             str(args.seconds),
+            "--scenario",
+            args.scenario,
         ]
         if args.headless:
             arguments.append("--headless")

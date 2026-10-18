@@ -8,15 +8,9 @@ const VALUE_COL_MIN_WIDTH := 56
 
 # Optional mapping from class id to name (adjust to your server mapping)
 const CLASS_NAMES := {
-	0: "-",
-	1: "Guerrero",
-	2: "Mago",
-	3: "Clérigo",
-	4: "Asesino",
-	5: "Bardo",
-	6: "Druida",
-	7: "Paladín",
-	8: "Cazador",
+	0: "-", 1: "Mago", 2: "Clérigo", 3: "Guerrero", 4: "Asesino",
+	5: "Ladrón", 6: "Bardo", 7: "Druida", 8: "Bandido", 9: "Paladín",
+	10: "Cazador", 11: "Trabajador", 12: "Pirata",
 }
 
 func _class_to_text(v) -> String:
@@ -56,8 +50,15 @@ func _ready() -> void:
 	close_button.pressed.connect(self.hide)
 	close_requested.connect(self.hide)
 	# Recalcular fuentes al cambiar tamaño de la ventana
-	self.connect("resized", Callable(self, "_update_font_scale"))
+	size_changed.connect(_update_font_scale)
 
+	var explanation := Label.new()
+	explanation.name = "ProgressionExplanation"
+	explanation.text = "Atributos: tirada inicial, raza, clase y efectos activos.\nLos puntos de nivel se asignan a habilidades, incluidas Robustez y Agilidad."
+	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	explanation.add_theme_font_size_override("font_size", 12)
+	$VBox.add_child(explanation)
+	$VBox.move_child(explanation, 0)
 	# Construir labels dinámicos
 	_build_attribute_labels()
 	_build_ministats_labels()

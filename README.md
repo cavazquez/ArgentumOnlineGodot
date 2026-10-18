@@ -36,6 +36,9 @@ del alcance. Un issue cerrado o un ensayo corto no sustituyen la aceptación R10
 
 Para repetir la comprobación del motor: `GODOT_BIN=/ruta/godot ./tools/smoke-godot.sh`. Para exportar Linux, seguir [docs/GODOT.md](docs/GODOT.md).
 
+Las acciones de las 22 habilidades, asignación, fabricación y pruebas gráficas
+de los 45 hechizos están documentadas en [docs/MECANICAS_AO.md](docs/MECANICAS_AO.md).
+
 El cliente sólo recuerda el nombre de usuario. Al abrir una instalación antigua migra `saved_credentials.dat` a `login_preferences.cfg` y elimina el archivo legado con contraseña. Los logs de autenticación conservan únicamente el tipo de operación.
 
 El formulario conecta por **TLS con verificación de certificado y hostname** de

@@ -1,5 +1,6 @@
 extends AnimatedSprite2D
 class_name CharacterEffect
+signal finished
 
 var effect_id:int
 var effect_loops:int
@@ -24,11 +25,14 @@ func play_effect(id:int, loops:int) -> void:
 		
 		
 func stop_effect() -> void:
+	var was_active := effect_id > 0
 	stop()
 	
 	effect_id = 0
 	effect_loops = 0
 	visible = false
+	if was_active:
+		finished.emit()
 	
 
 func _on_animation_finished() -> void:

@@ -41,3 +41,6 @@ grep -q 'PROTOCOL_SMOKE: PASS' "$run_dir/protocol.log"
 
 run_checked "$run_dir/r10-compile.log" "$godot_bin" --headless --path "$project_root" res://tests/r10_compile_smoke.tscn
 grep -q 'R10_COMPILE_SMOKE: PASS' "$run_dir/r10-compile.log"
+
+run_checked "$run_dir/mechanics.log" "$godot_bin" --headless --path "$project_root" --quit-after 400 res://tests/mechanics_smoke.tscn
+grep -q 'MECHANICS_SMOKE: PASS' "$run_dir/mechanics.log"

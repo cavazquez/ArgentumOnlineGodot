@@ -2,6 +2,7 @@ extends Window
 
 # Se emite cuando se actualiza un skill
 signal draft_changed(skill_index: int, new_value: int)
+signal action_requested(skill_id: int)
 
 # Lista de skills y sus nombres
 var SKILL_NAMES: Array[String] = SkillCatalog.names()
@@ -16,6 +17,7 @@ var _pending_id := ""
 var _deadline := 0
 var _status: Label
 var skill_values: Array[int] = []
+var skill_percentages: Array[int] = []
 var initial_free_skills: int 
 var current_free_skills: int  # Puntos de skills locales (no afectan Global hasta aceptar)
 var initial_skill_values: Array[int] = []
@@ -134,6 +136,12 @@ func ApplyAllocationState(state: SkillAllocationState) -> void:
 	set_skills(state.skills)
 	_status.text = state.message if state.status != 0 else "Estado confirmado por el servidor."
 
+func ApplyProgressUpdate(skills: Array) -> void:
+	if not _pending_id.is_empty() or has_skill_changes():
+		_status.text = "Hay progreso nuevo. El servidor validará los puntos al guardar."
+		return
+	set_skills(skills)
+
 func _process(_delta: float) -> void:
 	if not _pending_id.is_empty() and Time.get_ticks_msec() >= _deadline:
 		_pending_id = ""
@@ -145,6 +153,7 @@ func _process(_delta: float) -> void:
 func set_skills(skills:Array):
 	# Limpiar arrays
 	skill_values.clear()
+	skill_percentages.clear()
 	initial_skill_values.clear()
 	skill_labels.clear()
 	
@@ -153,19 +162,23 @@ func set_skills(skills:Array):
 		child.free()  # Usar free() en lugar de queue_free() para eliminación inmediata
 	
 	# Asegurarse de que la ventana tenga un tamaño adecuado y compacto
-	size = Vector2(300, 400)
+	size = Vector2(590, 460)
 	
 	# Inicializar valores de skills
 	for i in range(SKILL_NAMES.size()):
 		var skill_value = 0
+		var percentage = 0
 		if i < skills.size():
 			if skills[i] is Object and skills[i].get("level") != null:
 				skill_value = skills[i].level
+				percentage = int(skills[i].experience)
 			elif typeof(skills[i]) == TYPE_DICTIONARY and skills[i].has("level"):
 				skill_value = skills[i].level
+				percentage = int(skills[i].get("experience", 0))
 			elif typeof(skills[i]) == TYPE_INT or typeof(skills[i]) == TYPE_FLOAT:
 				skill_value = int(skills[i])
 		skill_values.append(skill_value)
+		skill_percentages.append(clampi(percentage, 0, 99))
 		initial_skill_values.append(skill_value)
 	
 	# Inicializar puntos de skills locales
@@ -221,5 +234,39 @@ func _create_skills_interface():
 		hbox.add_child(minus_btn)
 		hbox.add_child(value_label)
 		hbox.add_child(plus_btn)
+		if i + 1 in [16, 20, 21, 22]:
+			var manual := Label.new()
+			manual.text = "Manual"
+			manual.custom_minimum_size.x = 72
+			manual.tooltip_text = "Esta habilidad mejora al asignar puntos."
+			hbox.add_child(manual)
+		else:
+			var progress := ProgressBar.new()
+			progress.custom_minimum_size = Vector2(72, 20)
+			progress.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			progress.max_value = 100
+			progress.value = 100 if skill_values[i] == 100 else skill_percentages[i]
+			progress.tooltip_text = "Nivel máximo" if skill_values[i] == 100 else "%d%% hacia el próximo punto por entrenamiento" % skill_percentages[i]
+			hbox.add_child(progress)
+		if i + 1 in [2, 5, 7, 8, 9, 12, 13, 14, 15, 17, 18, 20]:
+			var use := Button.new()
+			use.text = "Fabricar" if i + 1 in [14, 15] else "Usar"
+			use.custom_minimum_size.x = 65
+			use.pressed.connect(_request_action.bind(i + 1))
+			use.disabled = not ClientInterface.capabilities.has_feature(ClientCapabilities.SKILL_ACTIONS)
+			hbox.add_child(use)
+		if i + 1 == 13:
+			var smelt := Button.new()
+			smelt.text = "Fundir"
+			smelt.pressed.connect(_request_action.bind(88))
+			smelt.disabled = not ClientInterface.capabilities.has_feature(ClientCapabilities.SKILL_ACTIONS)
+			hbox.add_child(smelt)
 		skills_container.add_child(hbox)
 		skill_labels.append(value_label)
+
+func _request_action(skill_id: int) -> void:
+	if has_skill_changes() or not _pending_id.is_empty():
+		_status.text = "Guardá o cancelá la asignación de puntos antes de usar una habilidad."
+		return
+	hide()
+	action_requested.emit(skill_id)

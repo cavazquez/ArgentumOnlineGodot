@@ -52,6 +52,19 @@ func GetCharacter(instanceId:int) -> Character:
 		if node.instanceId == instanceId:
 			return node
 	return null
+
+func PlayWorldEffect(at: Vector2, fx: int, loops: int) -> void:
+	# El NPC puede desaparecer antes de que llegue el FX del golpe que lo mató.
+	var anchor := Node2D.new()
+	anchor.position = at
+	_GetLayer("Layer3").add_child(anchor)
+	var effect := CharacterEffect.new()
+	anchor.add_child(effect)
+	effect.finished.connect(anchor.queue_free, CONNECT_ONE_SHOT)
+	effect.play_effect(fx, clampi(loops, 0, 5))
+	get_tree().create_timer(10.0).timeout.connect(func():
+		if is_instance_valid(anchor):
+			anchor.queue_free())
 	
 func GetCharacterAt(x:int, y:int) -> Character:
 	for node in _characterCollection:
