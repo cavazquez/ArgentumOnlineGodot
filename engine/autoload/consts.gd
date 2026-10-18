@@ -2,7 +2,7 @@ extends Node
 
 const MapSize = 100
 const TileSize = 32
-const MaxSkills = 20
+const MaxSkills = 22
 
 const NoAnim = 2
 const InfiniteLoops = -1

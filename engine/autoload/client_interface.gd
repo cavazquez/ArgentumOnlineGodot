@@ -144,6 +144,10 @@ func _AcceptIncomingData(data: PackedByteArray) -> void:
 			capabilities.accept(packet)
 			capabilities_changed.emit()
 			continue
+		var required := _framer.required_capability(packet[0])
+		if required != 0 and not capabilities.has_feature(required):
+			_fail("El servidor envió una extensión no negociada")
+			return
 		dataReceived.emit(packet)
 		# Una devolución puede desconectar o comenzar otro intento.
 		if generation != _generation:

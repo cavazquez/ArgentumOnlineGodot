@@ -77,3 +77,7 @@ func feed(data: PackedByteArray) -> Array[PackedByteArray]:
 		_pending.clear()
 		packets.clear()
 	return packets
+
+func required_capability(packet_id: int) -> int:
+	var entry: Dictionary = _contract.directions.server.get(str(packet_id), {})
+	return int(entry.get("requires_capability", 0))

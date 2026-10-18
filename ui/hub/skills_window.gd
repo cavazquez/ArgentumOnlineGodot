@@ -4,10 +4,7 @@ extends Window
 signal skill_updated(skill_index: int, new_value: int)
 
 # Lista de skills y sus nombres
-const SKILL_NAMES = [
-	"Magia", "Robar", "Tacticas", "Armas", "Meditar", "Apuñalar", "Ocultarse", "Supervivencia", "Talar", "Comerciar",
-	"Defensa", "Pesca", "Mineria", "Carpinteria", "Herreria", "Liderazgo", "Domar", "Proyectiles", "Wrestling", "Navegacion"
-]
+var SKILL_NAMES: Array[String] = SkillCatalog.names()
 
 @onready var free_skills: Label
 @onready var skills_container = $VBox/Scroll/SkillsContainer
@@ -176,6 +173,10 @@ func _create_skills_interface():
 
 		var name_label = Label.new()
 		name_label.text = SKILL_NAMES[i]
+		if not SkillCatalog.definitions()[i].implemented:
+			name_label.text += " (pendiente)"
+			name_label.tooltip_text = "Progresión no implementada; se conserva el valor histórico"
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		name_label.custom_minimum_size = Vector2(120, 0)

@@ -74,6 +74,8 @@ enum Skill{
 	Proyectiles = 18,
 	Wrestling = 19,
 	Navegacion = 20,
+	Robustez = 21,
+	Agilidad = 22,
 
 	# FIXME: Revisar esto!
 	FundirMetal = 88
