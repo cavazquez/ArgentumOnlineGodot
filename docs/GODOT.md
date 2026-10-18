@@ -38,9 +38,17 @@ Estas pruebas verifican la migración del motor y sus recursos. El recorrido de 
 ```bash
 ./tools/check-godot.sh --templates
 mkdir -p build
-"$GODOT_BIN" --headless --path . --export-release "Linux Desktop" build/pyao-client.x86_64
+"$GODOT_BIN" --path . --rendering-method gl_compatibility --export-release "Linux Desktop" build/pyao-client.x86_64
 ./build/pyao-client.x86_64
 ```
+
+La exportación se validó con OpenGL. En un entorno sin pantalla, usar Xvfb:
+
+```bash
+LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a "$GODOT_BIN" --path . --rendering-method gl_compatibility --export-release "Linux Desktop" build/pyao-client.x86_64
+```
+
+Al exportar este proyecto desde una copia limpia con `--headless`, el renderizador dummy produjo errores `Image width specified (0 pixels)` después de empaquetar. La ruta anterior con OpenGL evita esos errores y es la que debe reproducir la CI de #11. La importación y el recorrido de escenas sí pasan en headless.
 
 El preset incluye mapas, gráficos, sonidos, recursos y los índices binarios/INI leídos mediante `FileAccess`; el PCK queda embebido. No requiere paquetes externos `index.pck`, `graphics.pck`, `sounds.pck` ni `maps.pck`: el arranque puede informar que no están presentes y cargar los recursos propios incorporados. Los directorios `Tools/`, `tools/` y `tests/` se excluyen del producto. Se corrigió también el filtro del preset Windows existente; su ejecución nativa no forma parte de esta validación Linux.
 
@@ -54,4 +62,4 @@ La automatización de importación/exportación en GitHub Actions continúa en [
 - Se repararon los contenedores RIFF de `Assets/Sfx/34.wav`, `65.wav`, `83.wav`, `142.wav`, `151.wav`, `152.wav` y `154.wav`: tamaños/padding y metadatos dañados provocaban errores de importación. Sus bytes PCM, formato y frecuencia permanecen idénticos; En 34/142/151 sólo se conservaron los chunks de formato y audio; en 65/83/152/154 se añadió el byte de padding final faltante y se actualizó el tamaño RIFF.
 - El editor añadió opciones por defecto a 2773 `.import`: compresión UASTC/RDO en cero, canales RGBA de identidad y modulación de glifos desactivada. Se revisaron y se omitieron esas adiciones redundantes para conservar la configuración original de cada recurso. Una importación local puede volver a agregarlas; no son cambios visuales necesarios para la migración.
 
-Validación del 18/10/2026: importación sin errores, recorrido de escenas en headless y OpenGL (Mesa/llvmpipe), exportación Linux con los templates fijados y arranque del binario con recursos embebidos. Los avisos de V-Sync/entrada X11 bajo Xvfb describen el entorno de prueba.
+Validación del 18/10/2026: importación sin errores, recorrido de escenas en headless y OpenGL (Mesa/llvmpipe), exportación Linux con OpenGL y los templates fijados y arranque del binario con recursos embebidos. Los avisos de V-Sync/entrada X11 bajo Xvfb describen el entorno de prueba.
