@@ -129,13 +129,17 @@ def main():
             deadline = time.monotonic() + 40
             while True:
                 screenshot = ImageGrab.grab(xdisplay=os.environ["DISPLAY"])
-                colors = screenshot.crop((10, 135, 540, 550)).convert("RGB").getcolors(1000000)
-                colored = sum(count for count, (r, g, b) in colors if max(r, g, b) - min(r, g, b) > 30)
-                if colored > 10000:
+                def pixels(box, predicate):
+                    return sum(count for count, rgb in screenshot.crop(box).convert("RGB").getcolors(1000000) if predicate(*rgb))
+                world = pixels((10, 135, 540, 550), lambda r, g, b: max(r, g, b) - min(r, g, b) > 30)
+                minimap = pixels((456, 7, 552, 103), lambda r, g, b: max(r, g, b) - min(r, g, b) > 30)
+                console = pixels((12, 6, 445, 104), lambda r, g, b: g > 120 and g > r * 1.5 and g > b * 1.5)
+                last_slot = pixels((730, 326, 758, 350), lambda r, g, b: min(r, g, b) > 110)
+                if world > 10000 and minimap > 500 and console > 100 and last_slot > 10:
                     break
                 if time.monotonic() > deadline or process.poll() is not None:
                     screenshot.save(output / "snap-failure.png")
-                    raise TimeoutError("El Snap no llegó al mapa mediante el login real")
+                    raise TimeoutError(f"Interfaz del Snap incompleta: mapa={world}, minimapa={minimap}, consola={console}, slot30={last_slot}")
                 time.sleep(.5)
             screenshot.save(output / "snap-map.png")
             for direction in ("Right", "Down", "Left"):
@@ -148,8 +152,10 @@ def main():
             controls.tap("Return")
             controls.move(744, 340)
             controls.button(True)
-            controls.move(700, 290)
-            controls.move(615, 180)
+            time.sleep(.4)
+            for step in range(1, 11):
+                controls.move(744 - step * 129 // 10, 340 - step * 160 // 10)
+            time.sleep(.4)
             controls.button(False)
             time.sleep(2)
             ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).save(output / "snap-input.png")
@@ -166,7 +172,8 @@ def main():
                 raise RuntimeError("El cliente registró un error o una credencial efímera")
             (output / "snap-ui.json").write_text(json.dumps({"passed": True,
                 "installed": args.executable is None, "tls": True, "audio_driver": audio,
-                "map_rendered": True, "keyboard_mouse": True, "profile_external": True}, indent=2) + "\n")
+                "map_rendered": True, "minimap_rendered": True, "console_rendered": True,
+                "inventory_rendered": True, "keyboard_mouse": True, "profile_external": True}, indent=2) + "\n")
         finally:
             if process.poll() is None:
                 process.terminate()

@@ -8,7 +8,9 @@ con TLS y dos procesos Godot de la versión exacta del manifiesto.
 El driver `tests/integration_world.tscn` usa las pantallas reales y sus señales:
 abre alta desde login, crea dos cuentas efímeras, carga el mapa y sus recursos,
 mueve con Input, recibe chat del otro cliente, selecciona y mueve un objeto al
-slot 30 esperando el ACK, mantiene ambas sesiones y desconecta. El runner
+slot 30 esperando el ACK, mantiene ambas sesiones y desconecta. Vuelve a entrar
+desde el formulario y comprueba que se recuperen todos los objetos, la consola
+y el minimapa. El runner
 comprueba las cuentas persistidas y el cierre SIGTERM del servidor. Cada proceso
 tiene preferencias XDG separadas; las credenciales se pasan por entorno y nunca
 por argumentos o logs.
@@ -45,9 +47,11 @@ validación del Snap instalado y su publicación siguen siendo requisito de #46.
 La CI ejecuta un recorrido corto y además instala el Snap estricto construido
 sobre el mismo commit. `--snap-installed --snap-audio PulseAudio` abre ese paquete
 con un perfil nuevo, CA de prueba y credenciales efímeras. `snap-ui-smoke.py` usa
-XTest en un Xvfb exclusivo, comprueba renderizado del mapa, teclado, mouse y un
+XTest en un Xvfb exclusivo, espera el mapa, minimapa, consola e inventario completos
+antes de interactuar, comprueba teclado, mouse y un
 stream PulseAudio hacia un sink nulo; el runner verifica movimiento e inventario
-en Redis. Después se actualiza el Snap local y se compara el hash de las
+en Redis y espera que el cierre libere la reserva de sesión antes de volver a
+autenticar los peers del ensayo de SIGTERM. Después se actualiza el Snap y se compara el hash de las
 preferencias. La opción de desarrollo `--ui-executable` permite depurar ese
 recorrido sin instalar; su resultado declara `installed=false` y no acredita
 confinamiento. La publicación y la instalación desde Store corresponden a #46.

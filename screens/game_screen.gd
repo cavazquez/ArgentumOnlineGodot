@@ -35,7 +35,7 @@ func _ready() -> void:
 	_gameInput.update_name_label(Global.username)
 	
 	# Cargar el cursor después de que los recursos estén listos
-	if FileAccess.file_exists("res://Assets/Cursors/crosshair.png"):
+	if ResourceLoader.exists("res://Assets/Cursors/crosshair.png", "Texture2D"):
 		_crosshair_cursor = load("res://Assets/Cursors/crosshair.png")
 		if _crosshair_cursor:
 			_scaled_crosshair_cursor = _scale_cursor(_crosshair_cursor, 0.5)  # Ajusta el factor de escala según necesites

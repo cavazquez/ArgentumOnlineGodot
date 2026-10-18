@@ -17,6 +17,11 @@ func load_thumbnail(map_id: int) -> void:
 	var path := "res://Assets/minimap_thumbnails/%d.bmp" % map_id
 	if FileAccess.file_exists(path):
 		_InstallThumbnail(FileAccess.get_file_as_bytes(path))
+	elif ResourceLoader.exists(path, "Texture2D"):
+		# Las exportaciones incluyen la textura importada, no el BMP original.
+		var imported := load(path) as Texture2D
+		if imported != null and imported.get_width() > 0 and imported.get_width() <= 4096 and imported.get_height() > 0 and imported.get_height() <= 4096:
+			texture = imported
 	queue_redraw()
 
 func _InstallThumbnail(data: PackedByteArray) -> bool:

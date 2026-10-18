@@ -95,8 +95,31 @@ func _ready() -> void:
 		push_error("INTEGRATION_WORLD: falta movimiento o chat entre pares")
 		get_tree().quit(1)
 		return
+	var expected_slots: Dictionary = {}
+	for slot in range(30):
+		var stack: ItemStack = game._gameContext.playerInventory.GetSlot(slot)
+		if stack.quantity > 0:
+			expected_slots[slot] = stack.item.index
 	ClientInterface.DisconnectFromHost()
 	if not await wait_for(func(): return not ScreenController.currentScreen is GameScreen, "desconexión"):
 		return
+	await get_tree().process_frame
+	login = ScreenController.currentScreen
+	login._loginPanel.get_node("%Username").text = OS.get_environment("PYAO_TEST_USERNAME")
+	login._loginPanel.get_node("%Password").text = OS.get_environment("PYAO_TEST_PASSWORD")
+	# Esperar la liberación de la sesión anterior antes de autenticar otra conexión.
+	await get_tree().create_timer(2.0).timeout
+	login._loginPanel.submit.emit()
+	if not await wait_for(func(): return ScreenController.currentScreen is GameScreen, "segundo login"):
+		return
+	game = ScreenController.currentScreen as GameScreen
+	if not await wait_for(func():
+		for slot in expected_slots:
+			if game._gameContext.playerInventory.GetSlot(slot).item.index != expected_slots[slot]:
+				return false
+		return not game._gameInput._consoleRichTextLabel.get_parsed_text().is_empty() and game._gameInput.minimap.texture != null,
+		"inventario, consola y minimapa tras reconectar"):
+		return
+	ClientInterface.DisconnectFromHost()
 	print("INTEGRATION_WORLD: PASS seconds=", (Time.get_ticks_msec() - started) / 1000)
 	get_tree().quit(0)

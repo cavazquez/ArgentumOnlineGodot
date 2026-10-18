@@ -222,6 +222,11 @@ def worker(args):
                         raise RuntimeError("El input del Snap no cambió la posición en Redis")
                     if store.hget(inventory_key, "slot_1").split(":")[0] != expected_item or store.hget(inventory_key, "slot_30"):
                         raise RuntimeError("El drag del Snap no confirmó inventario en Redis")
+                    deadline = time.monotonic() + 15
+                    while store.exists(f"session:{user_id}:owner"):
+                        if time.monotonic() > deadline:
+                            raise TimeoutError("El cierre del Snap no liberó su sesión")
+                        time.sleep(.1)
                 finally:
                     stop(ui_process)
         async def live_session_shutdown():
