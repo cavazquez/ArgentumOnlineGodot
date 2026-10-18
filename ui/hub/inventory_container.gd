@@ -2,6 +2,8 @@ extends GridContainer
 class_name InventoryContainer
 const InventorySlotScene = preload("uid://b8q7jv01joc1r")
 
+@export var allow_reorder := false
+
 signal slotPressed(index:int) 
   
 var _inventory:Inventory
@@ -55,3 +57,28 @@ func _InventorySlotOnPressed(index:int) -> void:
 	
 	_selectedSlot = index
 	slotPressed.emit(index) 
+
+func CreateDragData(index: int) -> Variant:
+	if not allow_reorder or _inventory == null or index < 0 or index >= _inventory.GetSize():
+		return null
+	var stack := _inventory.GetSlot(index)
+	if stack == null or stack.item == null or stack.quantity < 1 or stack.item.index < 1:
+		return null
+	return {"kind": "pyao_player_inventory", "inventory": _inventory.get_instance_id(), "source": index}
+
+func CanDropItem(destination: int, data: Variant) -> bool:
+	if not allow_reorder or _inventory == null or destination < 0 or destination >= _inventory.GetSize():
+		return false
+	if not data is Dictionary or data.get("kind") != "pyao_player_inventory" or data.get("inventory") != _inventory.get_instance_id():
+		return false
+	var source = data.get("source", -1)
+	if not source is int or source < 0 or source >= _inventory.GetSize() or source == destination:
+		return false
+	var stack := _inventory.GetSlot(source)
+	return stack != null and stack.item != null and stack.quantity > 0 and stack.item.index > 0
+
+func DropItem(destination: int, data: Variant) -> void:
+	if not CanDropItem(destination, data):
+		return
+	# Sin cambios optimistas: sólo ChangeInventorySlot puede actualizar el modelo.
+	GameProtocol.WriteMoveItem(int(data.source) + 1, destination + 1)
