@@ -775,3 +775,17 @@ static func WriteMoveItem(source: int, destination: int) -> void:
 	_writer.put_u8(Enums.ClientPacketID.MoveItem)
 	_writer.put_u8(source)
 	_writer.put_u8(destination)
+
+static func WriteTradeAction(session_id: String, revision: int, action: int, slot: int = 0, quantity: int = 0) -> bool:
+	if not _can_write(252) or not TradeSnapshot.is_session_id(session_id) or revision < 0 or revision > 2147483647:
+		return false
+	if action < 0 or action > 5 or slot < 0 or slot > 30 or quantity < 0 or quantity > 999999999:
+		return false
+	_writer.put_u8(252)
+	_writer.put_u8(1)
+	Utils.PutUnicodeString(_writer, session_id)
+	_writer.put_32(revision)
+	_writer.put_u8(action)
+	_writer.put_u8(slot)
+	_writer.put_32(quantity)
+	return true

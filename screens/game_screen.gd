@@ -168,6 +168,13 @@ var pcg:Array[String]
 
 func _HandleOnePacket(stream:StreamPeerBuffer) -> void:
 	var packetId = stream.get_u8()
+	if packetId == 252:
+		var trade := TradeSnapshot.new(stream)
+		if not trade.valid:
+			ClientInterface._fail("Estado de intercambio inválido")
+			return
+		_gameInput.ApplyTradeSnapshot(trade.data)
+		return
 	if packetId == 251:
 		var update := SkillCatalogPacket.new(stream)
 		if not update.valid:
