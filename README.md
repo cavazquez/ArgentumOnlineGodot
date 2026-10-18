@@ -71,4 +71,6 @@ La [integración con dos Godot](docs/INTEGRACION.md) rechaza pares con versiones
 El recorrido completo de [#106](https://github.com/cavazquez/ArgentumOnlineGodot/issues/106)
 usa `tools/r10_world.py`, el controlador de pantallas `tests/r10_client.gd` y
 `tests/r10_fixture.toml`. `tools/export-linux.sh --r10` genera el ejecutable de
+aceptación. El smoke recompila ambos drivers desde su texto con los autoloads
+del proyecto cargados para validar también el arnés.
 aceptación en `build/r10/`; el Snap se construye con el preset de producción.

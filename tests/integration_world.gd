@@ -131,7 +131,7 @@ func _ready() -> void:
 	if not await wait_for(func(): return ScreenController.currentScreen is GameScreen, "segundo login"):
 		return
 	game = ScreenController.currentScreen as GameScreen
-	var reconnect_game := weakref(game)
+	var reconnect_game: WeakRef = weakref(game)
 	if not await wait_for(func():
 		var restored := reconnect_game.get_ref() as GameScreen
 		if not is_instance_valid(restored):

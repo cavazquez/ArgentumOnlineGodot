@@ -38,3 +38,6 @@ CHECK_LOG
 
 run_checked "$run_dir/protocol.log" "$godot_bin" --headless --path "$project_root" --quit-after 300 res://tests/protocol_smoke.tscn
 grep -q 'PROTOCOL_SMOKE: PASS' "$run_dir/protocol.log"
+
+run_checked "$run_dir/r10-compile.log" "$godot_bin" --headless --path "$project_root" res://tests/r10_compile_smoke.tscn
+grep -q 'R10_COMPILE_SMOKE: PASS' "$run_dir/r10-compile.log"
