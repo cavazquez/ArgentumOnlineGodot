@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Instalar OpenGL software y Xvfb
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libasound2t64
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
       - name: Instalar motor y templates del manifiesto con SHA256
         run: python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
       - name: Importar desde checkout limpio y probar escenas y privacidad

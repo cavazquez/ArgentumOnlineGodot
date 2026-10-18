@@ -8,6 +8,7 @@ mkdir -p "$project_root/build"
 log_file="$project_root/build/export-linux.log"
 status=0
 LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a "$godot_bin" --path "$project_root" \
+  --display-driver x11 --rendering-driver opengl3 --audio-driver Dummy \
   --rendering-method gl_compatibility --export-release 'Linux Desktop' \
   "$project_root/build/pyao-client.x86_64" >"$log_file" 2>&1 || status=$?
 cat "$log_file"
