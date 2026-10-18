@@ -7,3 +7,7 @@
 
 *.exe
 *.pck
+# Herramientas y salidas locales de validación
+.tools/
+build/
+.test-user/

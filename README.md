@@ -1,19 +1,36 @@
-# Argentum Online Godot
+# Argentum Online Godot para ProyectoAO
 
-![Godot Logo](https://godotengine.org/assets/logo.svg)
+Cliente Godot de ProyectoAO, basado en el [port de brian-christopher](https://github.com/brian-christopher/ArgentumOnlineGodot) del cliente Argentum Online 0.13.3 liberado por Shak.
 
-## Sobre el Proyecto
+## Servidor y alcance de la 1.0
 
-Este proyecto es un port del cliente 0.13.3 de Argentum Online, liberado por [Shak](https://www.mediafire.com/?o9bo7aun50ao8gg). Utilizando el motor Godot.
-- **Estado**: En desarrollo.  
-- **Tecnología**: Godot Engine.   
-## Cómo Usarlo
+El servidor objetivo es [cavazquez/pyao-server](https://github.com/cavazquez/pyao-server). El [issue #123 del servidor](https://github.com/cavazquez/pyao-server/issues/123) contiene el alcance compartido, el orden de implementación y las pruebas para aprobar ambos proyectos juntos. Su documento versionado es `docs/development/ALCANCE_1_0.md` en el repositorio del servidor.
 
-Para probar el proyecto, sigue estos pasos:
+La primera distribución incluye Linux amd64 y Snap `pyao-client` en `latest/edge`. Conserva login/alta directos, ciudades, clases, mapas, recursos e inventario de 30 slots propios de pyao. Los ports de Hide Zone se adaptan a ese contrato; el login y el dataset de AO Libre no sustituyen los de ProyectoAO.
 
-1. **Descarga Godot Engine**: Necesitas el motor Godot para abrir y ejecutar el proyecto. Puedes descargarlo desde el sitio oficial: [Descargar Godot Engine](https://godotengine.org/download).  
-   - **Versión mínima requerida**: Godot 4.4.1 Asegúrate de usar esta versión o una superior para compatibilidad con el proyecto.  
-2. **Clona el Repositorio**: Descarga este proyecto usando `git clone https://github.com/brian-christopher/ArgentumOnlineGodot.git` o descárgalo como ZIP desde GitHub.  
-3. **Abre el Proyecto**: Inicia Godot, selecciona "Importar", y busca la carpeta del proyecto clonado (busca el archivo `project.godot`).  
-4. **Ejecuta o Edita**: Presiona "Play" en Godot para probarlo, o explora el código y assets para modificarlo.  
-¡Listo!
+El cierre se prueba con dos clientes Godot reales contra servidor y Redis aislados: cuentas, mapa, chat, inventario, economía, combate, magia, funciones sociales y reconexión. La distribución inicial no exige web, Windows, macOS, ARM64, quests ni facciones.
+
+## Ejecutar el proyecto en desarrollo
+
+1. Clonar este fork:
+
+   ```bash
+   git clone https://github.com/cavazquez/ArgentumOnlineGodot.git
+   cd ArgentumOnlineGodot
+   ```
+
+2. Instalar **Godot 4.7.2 stable Standard** y **export templates 4.7.2.stable**. La versión está fijada en [`.godot-version`](.godot-version); las descargas, checksums y comprobaciones están en [la guía del motor](docs/GODOT.md). Se mantiene GL Compatibility.
+3. Importar `project.godot` con el motor validado y ejecutar la escena principal.
+4. Configurar un servidor pyao de prueba siguiendo su README. Python, dependencias y ejecución del servidor se gestionan con **uv**; Redis se ejecuta por separado.
+
+## Orden de distribución
+
+- [#10](https://github.com/cavazquez/ArgentumOnlineGodot/issues/10): Godot 4.7.2 y templates fijados; importación, escenas y exportación Linux verificadas.
+- [#8](https://github.com/cavazquez/ArgentumOnlineGodot/issues/8) y [#11](https://github.com/cavazquez/ArgentumOnlineGodot/issues/11): rutas Linux e importación/exportación en CI.
+- Resolver seguridad, protocolo y gameplay en el orden del alcance compartido.
+- [#60](https://github.com/cavazquez/ArgentumOnlineGodot/issues/60): recorrido automatizado del cliente real con servidor y Redis.
+- [#46](https://github.com/cavazquez/ArgentumOnlineGodot/issues/46): construir, instalar, probar y publicar el Snap después de las puertas de calidad y seguridad.
+
+El plan de la 1.0 está definido; su implementación y aprobación siguen pendientes de los issues y pruebas enlazados. La exportación Linux del motor está verificada; la integración completa con servidor y la distribución Snap siguen los issues enlazados.
+
+Para repetir la comprobación del motor: `GODOT_BIN=/ruta/godot ./tools/smoke-godot.sh`. Para exportar Linux, seguir [docs/GODOT.md](docs/GODOT.md).
