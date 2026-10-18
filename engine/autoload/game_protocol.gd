@@ -343,7 +343,7 @@ static func WriteMoveSpell(upwards:bool, slot:int) -> void:
 	_writer.put_u8(slot) 
 
 static func WriteWarpChar(username:String, map_id:int, x:int, y:int) -> void:
-	if not _can_write(Enums.ClientPacketID.GMCommands):
+	if not _can_write(Enums.ClientPacketID.GMCommands, Enums.EGMCommands.WARP_CHAR):
 		return
 	if not _validate_text_fields([username]):
 		return
@@ -398,6 +398,8 @@ static func WriteModifySkills(skills: Array) -> void:
 		_writer.put_u8(skills[i])
 
 static func write_invisible() -> void:
+	if not _can_write(Enums.ClientPacketID.GMCommands, Enums.EGMCommands.INVISIBLE):
+		return
 	_log_outgoing_packet("Invisible")
 	_writer.put_u8(Enums.ClientPacketID.GMCommands)
 	_writer.put_u8(Enums.EGMCommands.INVISIBLE)
@@ -759,8 +761,8 @@ static func _validate_text_fields(values: Array[String]) -> bool:
 			return false
 	return true
 
-static func _can_write(packet_id: int) -> bool:
-	if ClientInterface.capabilities.can_send(packet_id):
+static func _can_write(packet_id: int, subcommand: int = -1) -> bool:
+	if ClientInterface.capabilities.can_send(packet_id, subcommand):
 		return true
 	ClientInterface.serialization_failed.emit("Esta función no está disponible en el servidor conectado")
 	return false

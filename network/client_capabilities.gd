@@ -62,8 +62,10 @@ func has_feature(feature: int) -> bool:
 	expire()
 	return (enabled & feature) == feature
 
-func can_send(packet_id: int) -> bool:
+func can_send(packet_id: int, subcommand: int = -1) -> bool:
 	var entry: Dictionary = _contract.directions.client.get(str(packet_id), {})
 	if entry.is_empty() or entry.status != "supported":
+		return false
+	if entry.has("variants") and not entry.variants.has(str(subcommand)):
 		return false
 	return not REQUIRED.has(packet_id) or has_feature(REQUIRED[packet_id])

@@ -193,10 +193,13 @@ func _verify_capabilities() -> void:
 	for id in [29, 31, 32, 38, 39, 46, 107, 124]:
 		check(not legacy.can_send(id), "Una función sin backend está habilitada: " + str(id))
 	GameProtocol.Clear()
+	GameProtocol.write_invisible()
 	GameProtocol.WriteTrainList()
 	GameProtocol.WriteChangePassword("secret", "secret2")
 	GameProtocol.WriteModifySkills([1])
 	check(GameProtocol.IsEmpty(), "Writer sin backend produjo bytes")
+	GameProtocol.WriteWarpChar("YO", 1, 50, 50)
+	check(GameProtocol.Flush() == PackedByteArray([122, 11, 2, 0, 89, 79, 1, 0, 50, 50]), "Se bloqueó el subcomando GM propio soportado")
 	var password_window = load("res://ui/hub/password_change_window.tscn").instantiate()
 	add_child(password_window)
 	password_window.current_password_input.text = "secret"
