@@ -26,6 +26,32 @@ func _run() -> void:
 	_check(window.skills_container.get_child(8).get_child(4).value == 37, "La barra no usa el porcentaje de entrenamiento")
 	_check(window.skills_container.get_child(20).get_child(4).text == "Manual", "Robustez debe conservar su progresión manual")
 	_check(window.skills_container.get_child(13).get_child(5).text == "Fabricar", "Falta acceso a Carpintería")
+	window.operation_id = GameProtocol.NewSkillActionId()
+	window._on_plus_pressed(8)
+	catalog.skills[8].level = 3
+	catalog.skills[8].experience = 55
+	window.ApplyProgressUpdate(catalog.skills)
+	_check(window.skill_values[8] == 3 and window.initial_skill_values[8] == 2, "El entrenamiento borró el punto en borrador")
+	var refresh := SkillAllocationState.new()
+	refresh.status = 0
+	refresh.next_operation_id = GameProtocol.NewSkillActionId()
+	refresh.free_points = 15
+	refresh.skills = catalog.skills
+	window.ApplyAllocationState(refresh)
+	_check(window.initial_skill_values[8] == 3 and window.skill_values[8] == 4, "Un snapshot ajeno descartó la asignación pendiente")
+	_check(window.current_free_skills == 14 and window.operation_id == refresh.next_operation_id, "El borrador no usa el presupuesto y la identidad actualizados")
+	_check(window.skill_percentages[8] == 55, "El borrador oculta el progreso confirmado")
+	# Si se perdió un ACK, refrescar no debe proponer gastar el mismo punto otra vez.
+	window._pending_id = window.operation_id
+	window.operation_id = ""
+	window._deadline = 0
+	window._process(0.0)
+	catalog.skills[8].level = 4
+	refresh.skills = catalog.skills
+	refresh.free_points = 14
+	refresh.next_operation_id = GameProtocol.NewSkillActionId()
+	window.ApplyAllocationState(refresh)
+	_check(window.skill_values[8] == 4 and not window.has_skill_changes(), "Consultar tras perder un ACK duplica la asignación propuesta")
 	var requested := [0]
 	window.action_requested.connect(func(skill): requested[0] = skill)
 	window._request_action(17)

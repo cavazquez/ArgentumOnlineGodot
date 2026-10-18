@@ -130,11 +130,21 @@ func _can_edit(index: int) -> bool:
 func ApplyAllocationState(state: SkillAllocationState) -> void:
 	if not _pending_id.is_empty() and (state.status == 0 or state.operation_id != _pending_id):
 		return
+	var draft: Array[int] = []
+	if state.status == 0 and not operation_id.is_empty() and has_skill_changes():
+		for index in skill_values.size():
+			draft.append(maxi(0, skill_values[index] - initial_skill_values[index]))
 	_pending_id = ""
 	operation_id = state.next_operation_id
 	Global.skillPoints = state.free_points
 	set_skills(state.skills)
-	_status.text = state.message if state.status != 0 else "Estado confirmado por el servidor."
+	if not draft.is_empty():
+		for index in mini(draft.size(), skill_values.size()):
+			for _point in draft[index]:
+				_on_plus_pressed(index)
+		_status.text = "Progreso actualizado; revisá el borrador antes de guardar."
+	else:
+		_status.text = state.message if state.status != 0 else "Estado confirmado por el servidor."
 
 func ApplyProgressUpdate(skills: Array) -> void:
 	if not _pending_id.is_empty() or has_skill_changes():
