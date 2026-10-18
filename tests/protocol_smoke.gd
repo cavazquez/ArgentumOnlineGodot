@@ -54,6 +54,7 @@ func _ready() -> void:
 	_verify_capabilities()
 	_verify_drag()
 	_verify_inventory()
+	_verify_chat_text()
 	_verify_spellbook_order()
 	_verify_trade()
 	_verify_ui()
@@ -468,3 +469,26 @@ func _verify_spellbook_order() -> void:
 	check(GameProtocol.IsEmpty(), "Mover después del último slot emite paquete")
 	panel._ResetPending()
 	panel.free()
+
+func _verify_chat_text() -> void:
+	var game = load("res://screens/game_screen.tscn").instantiate()
+	add_child(game)
+	game.set_process(false)
+	var hub: HubController = game._gameInput
+	hub._consoleRichTextLabel.clear()
+	var untrusted := "[color=red]Peña[/color]\n[url={\"type\":\"screenshot\",\"path\":\"https://example.invalid\"}]abrir[/url]"
+	hub.ShowConsoleMessage(untrusted, FontData.new(Color.RED, true))
+	check(hub._consoleRichTextLabel.get_parsed_text().contains(untrusted), "La consola interpretó BBCode de red")
+	for invalid in ["https://example.invalid", '{"type":"screenshot","path":"/tmp/evil.png"}', "pyao-screenshot:inventado", {}]:
+		check(hub._ResolveScreenshot(invalid).is_empty(), "Metadato remoto puede abrir una ruta")
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://screenshots"))
+	var path := "user://screenshots/protocol-smoke.png"
+	var image := Image.create(2, 2, false, Image.FORMAT_RGBA8)
+	image.fill(Color.BLUE)
+	check(image.save_png(path) == OK, "No se pudo crear captura local de prueba")
+	var absolute := ProjectSettings.globalize_path(path)
+	var token := hub._ShowSavedScreenshot(absolute)
+	check(not token.is_empty() and hub._ResolveScreenshot(token) == absolute, "La captura creada no conserva su enlace interno")
+	DirAccess.remove_absolute(absolute)
+	check(hub._ResolveScreenshot(token).is_empty(), "Se abre un enlace a captura ya inexistente")
+	game.free()

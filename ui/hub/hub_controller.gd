@@ -48,6 +48,7 @@ var _options_window
 var _skills_window
 var _password_change_window
 var _guild_foundation_window
+var _saved_screenshots := {}
 var _trade_sequences := {}
 var _stats_window
 
@@ -79,23 +80,24 @@ func Init(gameContext:GameContext) -> void:
 		_use_object(true))
 
 func ShowConsoleMessage(message:String, fontData:FontData = FontData.new(Color.WHITE)) -> void:
-	# Dividimos por líneas para contar correctamente los "\n" recientes
-	var parts:Array = message.split("\n")
-	for part in parts:
-		var line_bbcode = "[color=#%s]%s[/color]" % [fontData.color.to_html(), part]
-		if fontData.italic:
-			line_bbcode = "[i]%s[/i]" % line_bbcode
+	for part in message.split("\n"):
+		_consoleRichTextLabel.push_color(fontData.color)
 		if fontData.bold:
-			line_bbcode = "[b]%s[/b]" % line_bbcode
-		# Agregamos directamente al RichTextLabel, sin limpiar/redibujar todo
-		_consoleRichTextLabel.append_text(line_bbcode + "\n")
+			_consoleRichTextLabel.push_bold()
+		if fontData.italic:
+			_consoleRichTextLabel.push_italics()
+		_consoleRichTextLabel.add_text(part + "\n")
+		if fontData.italic:
+			_consoleRichTextLabel.pop()
+		if fontData.bold:
+			_consoleRichTextLabel.pop()
+		_consoleRichTextLabel.pop()
+	_TrimConsole()
 
-	# Si nos pasamos del máximo, eliminamos los párrafos más antiguos del control
+func _TrimConsole() -> void:
 	while _consoleRichTextLabel.get_paragraph_count() > _console_max_lines:
 		_consoleRichTextLabel.remove_paragraph(0)
-
-	# Desplazar al final para ver lo último (si no está bloqueado por el usuario)
-	if !_console_blocked and _consoleRichTextLabel.get_line_count() > 0:
+	if not _console_blocked and _consoleRichTextLabel.get_line_count() > 0:
 		_consoleRichTextLabel.scroll_to_line(_consoleRichTextLabel.get_line_count() - 1)
 
 func OpenMerchant() -> void:
@@ -411,17 +413,35 @@ func _take_screenshot() -> void:
 	var path = "user://screenshots/%s.png" % date_time
 	var absolute_path = ProjectSettings.globalize_path("user://screenshots/%s.png" % date_time) 
 	
-	var meta_data = {
-		"type" : "screenshot",
-		"path" : absolute_path
-	} 
-	
-	var meta_string = JSON.stringify(meta_data)
-	
 	if image.save_png(path) == OK:
-		ShowConsoleMessage("[url=%s]¡Screen Capturada![/url]" % meta_string, FontData.new(Color.WHITE)) 		
-		pass
-		
+		_ShowSavedScreenshot(absolute_path)
+
+func _ScreenshotFileExists(path: String) -> bool:
+	var directory := ProjectSettings.globalize_path("user://screenshots/")
+	return path == path.simplify_path() and path.get_base_dir() == directory.trim_suffix("/") and path.get_extension().to_lower() == "png" and FileAccess.file_exists(path)
+
+func _ShowSavedScreenshot(path: String) -> String:
+	if not _ScreenshotFileExists(path):
+		return ""
+	var token := "pyao-screenshot:" + Crypto.new().generate_random_bytes(16).hex_encode()
+	_saved_screenshots[token] = path
+	if _saved_screenshots.size() > 32:
+		_saved_screenshots.erase(_saved_screenshots.keys()[0])
+	_consoleRichTextLabel.push_color(Color.WHITE)
+	_consoleRichTextLabel.push_meta(token)
+	_consoleRichTextLabel.add_text("¡Captura guardada!")
+	_consoleRichTextLabel.pop()
+	_consoleRichTextLabel.pop()
+	_consoleRichTextLabel.add_text("\n")
+	_TrimConsole()
+	return token
+
+func _ResolveScreenshot(meta: Variant) -> String:
+	if not meta is String or not _saved_screenshots.has(meta):
+		return ""
+	var path: String = _saved_screenshots[meta]
+	return path if _ScreenshotFileExists(path) else ""
+
 func _hide() -> void:
 	if !_gameContext.player_stats.is_alive():
 		ShowConsoleMessage("¡¡Estás muerto!!", GameAssets.FontDataList[Enums.FontTypeNames.FontType_Info])
@@ -474,13 +494,11 @@ func _show_drop_panel(slot:int) -> void:
 
 
 func _on_console_meta_clicked(meta: Variant) -> void:
-	var data = JSON.parse_string(meta)
-	if data == null: return
-	
-	if data["type"] == "screenshot":
-		OS.shell_open(data["path"])
-	
-	
+	var path := _ResolveScreenshot(meta)
+	if not path.is_empty():
+		OS.shell_open(path)
+
+
 func _on_minimap_click(mouse_position: Vector2) -> void:
 	if _gameContext.player_map > 0:
 		GameProtocol.WriteWarpChar("YO", _gameContext.player_map, int(mouse_position.x), int(mouse_position.y))
