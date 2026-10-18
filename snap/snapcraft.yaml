@@ -1,0 +1,47 @@
+name: pyao-client
+title: PyAO Client
+base: core24
+adopt-info: client
+summary: Cliente de Argentum Online para el servidor PyAO
+description: |
+  Cliente de ProyectoAO con el protocolo y los recursos propios del proyecto.
+  Permite crear personajes, explorar, comerciar y jugar con un servidor PyAO compatible.
+  El paquete contiene el cliente y sus recursos. Se necesita una conexión a un servidor.
+license: MIT
+grade: devel
+confinement: strict
+platforms:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+apps:
+  pyao-client:
+    command: bin/pyao-client-launch
+    extensions: [gpu]
+    plugs: [network, x11, opengl, audio-playback, desktop, desktop-legacy]
+    desktop: share/applications/pyao-client.desktop
+parts:
+  client:
+    plugin: nil
+    source: .
+    build-packages: [python3, git, xvfb, xauth, libgl1-mesa-dri, libvulkan1, mesa-vulkan-drivers]
+    stage-packages: [libx11-6, libxcursor1, libxinerama1, libxrandr2, libxi6, libxrender1, libfontconfig1, libasound2t64, libpulse0, libudev1, ca-certificates, xdg-utils]
+    override-build: |
+      set -eu
+      cd "$CRAFT_PART_SRC"
+      engine_dir="$CRAFT_PART_BUILD/pinned-godot"
+      GODOT_BIN=$(env -u GITHUB_ENV python3 tools/install-godot.py --destination "$engine_dir")
+      export GODOT_BIN XDG_DATA_HOME="$engine_dir/data"
+      tools/smoke-godot.sh
+      tools/export-linux.sh
+      install -Dm755 build/pyao-client.x86_64 "$CRAFT_PART_INSTALL/bin/pyao-client"
+      install -Dm755 snap/local/pyao-client-launch "$CRAFT_PART_INSTALL/bin/pyao-client-launch"
+      install -Dm644 snap/gui/pyao-client.desktop "$CRAFT_PART_INSTALL/share/applications/pyao-client.desktop"
+      install -Dm644 icon.svg "$CRAFT_PART_INSTALL/meta/gui/pyao-client.svg"
+      install -Dm644 LICENSE "$CRAFT_PART_INSTALL/share/doc/pyao-client/LICENSE"
+      install -Dm644 README.md "$CRAFT_PART_INSTALL/share/doc/pyao-client/README.md"
+      source_sha=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["commit"])' "$CRAFT_PROJECT_DIR/snap/pyao-source.json")
+      printf '%s\n' "$source_sha" > "$CRAFT_PART_INSTALL/share/doc/pyao-client/source-commit"
+      cp "$CRAFT_PROJECT_DIR/snap/pyao-source.json" "$CRAFT_PART_INSTALL/share/doc/pyao-client/provenance.json"
+      cp tools/godot-release.json "$CRAFT_PART_INSTALL/share/doc/pyao-client/godot-release.json"
+      craftctl set version="1.0-dev.g$(printf %.12s "$source_sha")"

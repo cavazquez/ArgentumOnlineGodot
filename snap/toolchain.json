@@ -1,0 +1,7 @@
+{
+  "snapcraft_version": "9.1.4",
+  "snapcraft_revision": "19274",
+  "base": "core24",
+  "architecture": "amd64",
+  "channel": "latest/edge"
+}

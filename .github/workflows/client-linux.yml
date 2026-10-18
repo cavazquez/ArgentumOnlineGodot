@@ -45,3 +45,42 @@ jobs:
           path: build/
           if-no-files-found: warn
           retention-days: 7
+
+  package-snap:
+    needs: import-and-export
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Preparar LXD en el runner descartable
+        uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee # v1
+        with:
+          channel: 5.21/stable
+      - name: Instalar Snapcraft fijado
+        run: |
+          if snap list snapcraft >/dev/null 2>&1; then
+            sudo snap refresh snapcraft --revision=19274
+          else
+            sudo snap install snapcraft --classic --revision=19274
+          fi
+      - name: Construir Snap estricto desde la fuente y el motor fijados
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build
+          python3 tools/build-snap.py 2>&1 | tee build/snap-build.log
+          sha256sum pyao-client_*_amd64.snap > build/snap-sha256.txt
+      - name: Conservar paquete y procedencia
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pyao-client-snap-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            pyao-client_*_amd64.snap
+            build/snap-build.log
+            build/snap-sha256.txt
+            snap/pyao-source.json
+          if-no-files-found: warn
+          retention-days: 7
