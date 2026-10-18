@@ -79,3 +79,5 @@ sudo snap revert pyao-client
 La construcción de la receta no acredita una publicación en Store ni una prueba
 completa del paquete instalado. Esas evidencias se registran por separado en #46
 y en el recorrido conjunto #60.
+
+La versión pública de cliente debe coincidir exactamente con la del servidor: el candidato actual es `1.0.0rc1`. El commit no se agrega al número de versión; queda en `share/doc/pyao-client/provenance.json` y `source-commit`.

@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import re
 from pathlib import Path
 import subprocess
 
@@ -21,7 +22,10 @@ def main() -> None:
     dirty = bool(subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=normal"], cwd=ROOT))
     if dirty and not args.allow_dirty:
         raise SystemExit("El checkout tiene cambios: confirmar primero o usar --allow-dirty para revisión local")
-    provenance = {"commit": commit, "dirty": dirty, "toolchain": toolchain, "godot": json.loads((ROOT / "tools/godot-release.json").read_text())}
+    release = re.search(r'^config/version="([0-9][A-Za-z0-9.+-]*)"$', (ROOT / "project.godot").read_text(), re.MULTILINE)
+    if release is None:
+        raise SystemExit("Falta una versión válida del cliente en project.godot")
+    provenance = {"version": release[1], "commit": commit, "dirty": dirty, "toolchain": toolchain, "godot": json.loads((ROOT / "tools/godot-release.json").read_text())}
     (ROOT / "snap/pyao-source.json").write_text(json.dumps(provenance, indent=2) + "\n")
     subprocess.run(["snapcraft", "pack", "--use-lxd", "--verbosity=brief"], cwd=ROOT, check=True)
 
