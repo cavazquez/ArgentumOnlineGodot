@@ -48,6 +48,7 @@ var _options_window
 var _skills_window
 var _password_change_window
 var _guild_foundation_window
+var _clan_details_window: ClanDetailsWindow
 var _saved_screenshots := {}
 var _trade_sequences := {}
 var _stats_window
@@ -688,3 +689,15 @@ func ApplyTradeSnapshot(value: Dictionary) -> void:
 		_gameContext.trading = true
 		panel.popup_centered()
 	_currentPanel.ApplySnapshot(value)
+
+func OpenClanDetails() -> void:
+	if not is_instance_valid(_clan_details_window):
+		_clan_details_window = ClanDetailsWindow.new()
+		add_child(_clan_details_window)
+		_RegisterModal(_clan_details_window)
+	_clan_details_window.popup_centered()
+	_clan_details_window.RequestDetails()
+
+func ApplyClanDetails(values: Dictionary) -> void:
+	if is_instance_valid(_clan_details_window):
+		_clan_details_window.ApplyDetails(values)

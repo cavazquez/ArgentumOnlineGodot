@@ -50,3 +50,12 @@ TLS; la elección, endpoint y ruta de CA se guardan sin contraseñas.
 comprueba Godot real contra endpoints locales: confianza, nombre, vencimiento,
 plazo, cancelación, recuperación del formulario y segundo intento. La integración
 completa del juego sobre este transporte se valida con el recorrido de #60.
+
+
+### Detalles de clan
+
+`/detallesclan` abre la vista confirmada por pyao: fundador, fecha, líder, sitio,
+miembros, alianzas, guerras, códice y descripción. Actualizar usa el paquete 69.
+Abandonar pide confirmación, envía 72 y consulta nuevamente el estado; la ventana
+no anuncia éxito por su cuenta. Los comandos propios de clan y party se conservan.
+Las acciones de administración sin handler permanecen deshabilitadas.

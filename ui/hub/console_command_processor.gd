@@ -18,6 +18,7 @@ static var command_handler:Dictionary[String, Callable] = {
 	"apostar": gamble,
 	"resucitar": resucitate,
 	"salirclan": guild_leave,
+	"detallesclan": guild_details,
 	"curar": heal,
 	"comerciar": start_commerce,
 	"quieto": pet_stand,
@@ -568,3 +569,6 @@ static func guild_fundate(args:ChatCommandArgs) -> void:
 	
 	# Enviar solicitud al servidor para verificar si el jugador puede fundar un clan
 	GameProtocol.WriteGuildFundate()
+
+static func guild_details(args: ChatCommandArgs) -> void:
+	args.hub_controller.OpenClanDetails()

@@ -54,6 +54,7 @@ func _ready() -> void:
 	_verify_capabilities()
 	_verify_drag()
 	_verify_inventory()
+	_verify_clan_details(by_name)
 	_verify_minimap()
 	_verify_chat_text()
 	_verify_spellbook_order()
@@ -521,3 +522,38 @@ func _verify_minimap() -> void:
 	game._gameInput._on_minimap_click(Vector2(-1, 200))
 	check(GameProtocol.IsEmpty(), "Clic normal en minimapa emite un comando GM")
 	game.free()
+
+func _verify_clan_details(fixtures: Dictionary) -> void:
+	for name in ["clan_empty", "clan_accents_zero"]:
+		var zero := StreamPeerBuffer.new()
+		zero.data_array = fixtures[name]
+		zero.get_u8()
+		var decoded := ClanDetailsPacket.new(zero)
+		check(decoded.valid and decoded.values.members == 0, "Clan vacío/acentuado no consume la fixture")
+	var stream := StreamPeerBuffer.new()
+	stream.data_array = fixtures.clan_large_counts
+	check(stream.get_u8() == 80, "Fixture de clan tiene otro ID")
+	var packet := ClanDetailsPacket.new(stream)
+	check(packet.valid and packet.values.members == 32768, "Detalles de clan no consumen contadores int32")
+	var window := ClanDetailsWindow.new()
+	add_child(window)
+	window.ApplyDetails(packet.values)
+	check(window.details.text.contains("32768") and window.details.text.contains(packet.values.description), "Ventana pierde datos de clan")
+	GameProtocol.Clear()
+	window.RequestDetails()
+	window.RequestDetails()
+	check(GameProtocol.Flush() == PackedByteArray([69]), "Petición de detalles duplicada o con ID ajeno")
+	window.ApplyDetails(packet.values)
+	window.leave.pressed.emit()
+	check(GameProtocol.IsEmpty(), "Abandonar no pidió confirmación")
+	window.confirmation.confirmed.emit()
+	window.confirmation.confirmed.emit()
+	check(GameProtocol.Flush() == PackedByteArray([72, 69]), "Abandono no usa 72 seguido de consulta autoritativa")
+	window.ApplyDetails(packet.values)
+	check(not window.leave.disabled and window.status.text.contains("Seguís"), "Rechazo de abandono se representa como éxito")
+	var empty := packet.values.duplicate(true)
+	empty.name = ""
+	empty.members = 0
+	window.ApplyDetails(empty)
+	check(window.leave.disabled and window.details.text.is_empty(), "Clan vacío conserva detalle anterior")
+	window.free()
