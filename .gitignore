@@ -2,7 +2,6 @@
 .godot/
 .windsurf/
 .vscode/
-.github/
 /android/
 
 *.exe

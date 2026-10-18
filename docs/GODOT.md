@@ -52,7 +52,7 @@ Al exportar este proyecto desde una copia limpia con `--headless`, el renderizad
 
 El preset incluye mapas, gráficos, sonidos, recursos y los índices binarios/INI leídos mediante `FileAccess`; el PCK queda embebido. No requiere paquetes externos `index.pck`, `graphics.pck`, `sounds.pck` ni `maps.pck`: el arranque puede informar que no están presentes y cargar los recursos propios incorporados. Los directorios `Tools/`, `tools/` y `tests/` se excluyen del producto. Se corrigió también el filtro del preset Windows existente; su ejecución nativa no forma parte de esta validación Linux.
 
-La automatización de importación/exportación en GitHub Actions continúa en [#11](https://github.com/cavazquez/ArgentumOnlineGodot/issues/11); construir/publicar Snap `pyao-client` continúa en [#46](https://github.com/cavazquez/ArgentumOnlineGodot/issues/46).
+La CI `Cliente Linux` importa desde checkout limpio, ejecuta escenas y privacidad y exporta con OpenGL software bajo Xvfb. Descarga motor/templates del manifiesto y verifica SHA256; conserva logs y el ejecutable durante siete días. No utiliza caché UID ni un perfil `user://` del operador. Puede reproducirse con `tools/install-godot.py --destination /ruta/temporal` y `tools/export-linux.sh`. Construir/publicar Snap `pyao-client` continúa en [#46](https://github.com/cavazquez/ArgentumOnlineGodot/issues/46).
 
 ## Cambios necesarios al migrar
 

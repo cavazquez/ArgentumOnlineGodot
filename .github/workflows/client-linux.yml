@@ -1,0 +1,40 @@
+name: Cliente Linux
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  import-and-export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Instalar OpenGL software y Xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libasound2t64
+      - name: Instalar motor y templates del manifiesto con SHA256
+        run: python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
+      - name: Importar desde checkout limpio y probar escenas y privacidad
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build
+          tools/smoke-godot.sh 2>&1 | tee build/import-and-smoke.log
+      - name: Exportar Linux con templates de la misma versión
+        run: tools/export-linux.sh
+      - name: Conservar logs y ejecutable
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pyao-client-linux-${{ github.sha }}
+          path: build/
+          if-no-files-found: warn
+          retention-days: 7
