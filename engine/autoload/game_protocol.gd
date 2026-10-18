@@ -791,3 +791,9 @@ static func WriteTradeAction(session_id: String, revision: int, action: int, slo
 	_writer.put_u8(slot)
 	_writer.put_32(quantity)
 	return true
+
+static func WriteGuildRequestDetails() -> bool:
+	if not _can_write(69):
+		return false
+	_writer.put_u8(69)
+	return true

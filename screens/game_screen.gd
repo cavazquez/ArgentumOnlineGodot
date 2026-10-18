@@ -237,6 +237,12 @@ func _HandleOnePacket(stream:StreamPeerBuffer) -> void:
 			_HandleUpdateHungerAndThirst(UpdateHungerAndThirst.new(stream))
 		Enums.ServerPacketID.UpdateStrenghtAndDexterity:
 			_HandleUpdateStrengthAndDexterity(UpdateStrengthAndDexterity.new(stream))
+		Enums.ServerPacketID.GuildDetails:
+			var clan := ClanDetailsPacket.new(stream)
+			if not clan.valid:
+				ClientInterface._fail("Detalles del clan inválidos")
+				return
+			_gameInput.ApplyClanDetails(clan.values)
 		Enums.ServerPacketID.GuildChat:
 			_HandleGuildChat(GuildChat.new(stream))
 		Enums.ServerPacketID.SendSkills:
