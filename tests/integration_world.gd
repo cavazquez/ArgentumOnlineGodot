@@ -107,8 +107,10 @@ func _ready() -> void:
 	login = ScreenController.currentScreen
 	login._loginPanel.get_node("%Username").text = OS.get_environment("PYAO_TEST_USERNAME")
 	login._loginPanel.get_node("%Password").text = OS.get_environment("PYAO_TEST_PASSWORD")
-	# Esperar la liberación de la sesión anterior antes de autenticar otra conexión.
-	await get_tree().create_timer(2.0).timeout
+	# El runner confirma en Redis que terminó la limpieza de esta conexión.
+	print("INTEGRATION_WORLD: RECONNECT_WAIT")
+	if not await wait_for(func(): return FileAccess.file_exists(OS.get_environment("PYAO_TEST_RELEASED")), "liberación de sesión anterior"):
+		return
 	login._loginPanel.submit.emit()
 	if not await wait_for(func(): return ScreenController.currentScreen is GameScreen, "segundo login"):
 		return

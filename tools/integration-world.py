@@ -147,6 +147,7 @@ def worker(args):
                     raise TimeoutError("Listener no disponible")
                 time.sleep(.1)
         clients = []
+        reconnect_gates = [work / f"client-{index}-released" for index in (1, 2)]
         password = secrets.token_urlsafe(18)
         names = []
         for index in (1, 2):
@@ -156,6 +157,7 @@ def worker(args):
             client_env = dict(os.environ, PYAO_TEST_PASSWORD=password, PYAO_TEST_USERNAME=name,
                 PYAO_TEST_PORT=str(endpoint), PYAO_TEST_CA=str(certificate),
                 PYAO_TEST_INDEX=str(index), PYAO_TEST_PEER=str(3-index), PYAO_TEST_DURATION=str(args.seconds),
+                PYAO_TEST_RELEASED=str(reconnect_gates[index-1]),
                 PYAO_TEST_SCREENSHOT=str(output / f"godot-{index}.png"),
                 XDG_DATA_HOME=str(work / f"client-{index}/data"), XDG_CONFIG_HOME=str(work / f"client-{index}/config"),
                 XDG_CACHE_HOME=str(work / f"client-{index}/cache"))
@@ -167,11 +169,17 @@ def worker(args):
             stack.callback(stop, client)
             clients.append(client)
         started = time.monotonic()
+        from src.utils.redis_config import RedisKeys
         while any(client.poll() is None for client in clients):
             for index in (1, 2):
                 text = (output / f"godot-{index}.log").read_text()
                 if "SCRIPT ERROR:" in text or "ERROR:" in text:
                     raise RuntimeError(f"Error de script o recurso en Godot {index}; revisar log")
+                if "INTEGRATION_WORLD: RECONNECT_WAIT" in text and not reconnect_gates[index-1].exists():
+                    with redis.client() as store:
+                        user_id = store.hget(RedisKeys.account_data(names[index-1]), "user_id")
+                        if user_id and not store.exists(f"session:{user_id}:owner"):
+                            reconnect_gates[index-1].write_text("released\n")
             if any(client.poll() not in (None, 0) for client in clients):
                 raise RuntimeError("Falló un cliente Godot; revisar logs")
             if server.poll() is not None or time.monotonic() - started > args.seconds + 120:
@@ -183,7 +191,6 @@ def worker(args):
                 raise RuntimeError(f"Godot {index} no acredita la prueba completa")
             if password in log:
                 raise RuntimeError("Se filtró una credencial sintética en el log")
-        from src.utils.redis_config import RedisKeys
         with redis.client() as store:
             for name in names:
                 account = store.hgetall(RedisKeys.account_data(name))
