@@ -228,6 +228,7 @@ class R10World:
                 index,
                 lambda v: (
                     v["map"] == map_id
+                    and v["name"] == self.names[index - 1]
                     and (
                         abs(v["x"] - x) + abs(v["y"] - y) <= 3
                         if allow_adjustment

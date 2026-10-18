@@ -45,7 +45,7 @@ func snapshot() -> Dictionary:
 		if stack.quantity > 0:
 			items[str(index + 1)] = [stack.item.index, stack.quantity, stack.equipped]
 	var character = screen._gameWorld.GetCharacter(screen._mainCharacterInstanceId)
-	var result := {"in_game": true, "map": context.player_map, "gold": context.player_gold,
+	var result := {"in_game": true, "name": hub.get_node("%LblName").text, "map": context.player_map, "gold": context.player_gold,
 		"hp": context.player_stats.hp, "mana": context.player_stats.mana,
 		"level": context.player_level, "experience": context.player_experience,
 		"items": items, "console": hub._consoleRichTextLabel.get_parsed_text(),
@@ -122,13 +122,13 @@ func execute(command: Dictionary) -> bool:
 		var login = ScreenController.currentScreen
 		login._loginPanel.get_node("%Username").text = OS.get_environment("PYAO_TEST_USERNAME")
 		login._loginPanel.get_node("%Password").text = OS.get_environment("PYAO_TEST_PASSWORD")
-		login._loginPanel.submit.emit()
+		login._loginPanel.get_node("%Submit").pressed.emit()
 		if not await host.wait_for(func(): return ScreenController.currentScreen is GameScreen, "R10 login"):
 			return false
 		print("R10_CAPABILITIES_LOGIN: tick=", Time.get_ticks_msec(), " deadline=", ClientInterface.capabilities._deadline_msec)
 		return await host.wait_for(func():
 			var g = ScreenController.currentScreen
-			return g._gameWorld.GetCharacter(g._mainCharacterInstanceId) != null and g._gameContext.player_stats.max_hp > 0 and ClientInterface.capabilities.has_feature(ClientCapabilities.TARGETED_CAST),
+			return g._gameWorld.GetCharacter(g._mainCharacterInstanceId) != null and g._gameContext.player_stats.max_hp > 0 and ClientInterface.capabilities.has_feature(ClientCapabilities.TARGETED_CAST) and g._gameInput.get_node("%LblName").text == OS.get_environment("PYAO_TEST_USERNAME"),
 			"R10 personaje y estadísticas")
 	if not ScreenController.currentScreen is GameScreen:
 		return false

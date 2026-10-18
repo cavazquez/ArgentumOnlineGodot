@@ -127,7 +127,7 @@ func _ready() -> void:
 	print("INTEGRATION_WORLD: RECONNECT_WAIT")
 	if not await wait_for(func(): return FileAccess.file_exists(OS.get_environment("PYAO_TEST_RELEASED")), "liberación de sesión anterior"):
 		return
-	login._loginPanel.submit.emit()
+	login._loginPanel.get_node("%Submit").pressed.emit()
 	if not await wait_for(func(): return ScreenController.currentScreen is GameScreen, "segundo login"):
 		return
 	game = ScreenController.currentScreen as GameScreen
@@ -140,6 +140,8 @@ func _ready() -> void:
 		if Array(game._gameInput.spell_list_panel._spell_ids) != expected_spells:
 			return false
 		if ClientInterface.capabilities.enabled != ClientCapabilities.REQUESTED:
+			return false
+		if game._gameInput.get_node("%LblName").text != OS.get_environment("PYAO_TEST_USERNAME"):
 			return false
 		return not game._gameInput._consoleRichTextLabel.get_parsed_text().is_empty() and game._gameInput.minimap.texture != null,
 		"objetos, cantidades, equipo, libro ordenado, consola y minimapa tras reconectar"):
