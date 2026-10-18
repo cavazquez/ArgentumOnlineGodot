@@ -7,6 +7,7 @@ import tomllib
 from pathlib import Path
 
 from r10_world import R10World, prepare_fixture
+from spell_evidence import check_effects
 from src.runtime_paths import data_dir
 
 HERE = Path(__file__).resolve().parent
@@ -191,6 +192,19 @@ class MechanicsWorld(R10World):
                             "thirst_flag": 0,
                         },
                     )
+                    attrs_key = f"player:{self.ids[i]}:stats"
+                    attrs = store.hgetall(attrs_key)
+                    store.hset(
+                        attrs_key,
+                        mapping={
+                            **{key: 0 for key in attrs if "_modifier_" in key},
+                            "strength": 20,
+                            "agility": 20,
+                            "intelligence": 20,
+                            "constitution": 20,
+                            "charisma": 20,
+                        },
+                    )
                 store.hset(
                     f"player:{self.ids[1]}:skills",
                     mapping={"level:magia": 100, "xp:magia": 0},
@@ -237,6 +251,13 @@ class MechanicsWorld(R10World):
                 i: store.hgetall(f"player:{self.ids[i]}:user_stats") for i in (1, 2)
             }
             before_views = {i: self.command(i, "snapshot") for i in (1, 2)}
+            attributes_before = {
+                i: store.hgetall(f"player:{self.ids[i]}:stats") for i in (1, 2)
+            }
+            needs_before = {
+                i: store.hgetall(f"player:{self.ids[i]}:hunger_thirst") for i in (1, 2)
+            }
+            captured_at = time.time()
             errors_before = len((self.output / "server.log").read_bytes())
             target_x, target_y = (
                 (x, y + 1)
@@ -298,6 +319,16 @@ class MechanicsWorld(R10World):
                 .decode(errors="replace"),
             }
             row["before_views"] = before_views
+            row["attributes_before"] = attributes_before
+            row["needs_before"] = needs_before
+            row["attributes_after"] = {
+                i: store.hgetall(f"player:{self.ids[i]}:stats") for i in (1, 2)
+            }
+            row["needs_after"] = {
+                i: store.hgetall(f"player:{self.ids[i]}:hunger_thirst") for i in (1, 2)
+            }
+            row["captured_at"] = captured_at
+            row["target_actor"] = self.ids[2]
             row["after_views"] = {1: one, 2: two}
             row["caster_audio_playback"] = one.get("audio_playback", [])
             row["peer_audio_playback"] = two.get("audio_playback", [])
@@ -321,6 +352,9 @@ class MechanicsWorld(R10World):
         for row in records:
             sid = row["id"]
             spell = next(s for s in SPELLS if s["id"] == sid)
+            failures.extend(
+                f"{sid}: {failure}" for failure in check_effects(row, spell)
+            )
             if row["cast_confirmed"] == row["expected_restricted"]:
                 failures.append(f"{sid}: confirmación/reserva incorrecta")
             if (
@@ -329,16 +363,24 @@ class MechanicsWorld(R10World):
             ):
                 failures.append(f"{sid}: error de servidor")
             if row["cast_confirmed"] and row["expected_fx"]:
+                actors = (
+                    {int(pet["char_index"]) for pet in row["pets"]}
+                    if (spell.get("invokes") or spell.get("warps_pet"))
+                    else {row["target_actor"]}
+                )
                 for label in ("caster", "peer"):
                     packets = row[label + "_fx_packets"]
                     frames = row[label + "_frames"]
                     if not any(
-                        p["fx"] == row["expected_fx"] and p["char_index"] > 0
+                        p["fx"] == row["expected_fx"] and p["char_index"] in actors
                         for p in packets
                     ):
                         failures.append(f"{sid}: FX/actor ausente en {label}")
                     if not any(
-                        f["fx"] == row["expected_fx"] and f["visible"] and f["playing"]
+                        f["fx"] == row["expected_fx"]
+                        and f["char_index"] in actors
+                        and f["visible"]
+                        and f["playing"]
                         for f in frames
                     ):
                         failures.append(f"{sid}: animación ausente en {label}")

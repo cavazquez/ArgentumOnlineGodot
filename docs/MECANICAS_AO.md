@@ -52,7 +52,10 @@ ese display virtual y conserva los logs y capturas de ambos procesos.
 y comprueba progreso y estado en Redis, ventanas, navegación, reconexión y reinicio
 del servidor con mascota permanente. `spells` ejecuta los 45 hechizos, rechaza los
 diez reservados y exige FX con cuadros visibles y reproducción real de WAV en los
-dos clientes para los hechizos configurados. Las cuentas, posiciones y recursos
+dos clientes para los hechizos configurados. También compara HP, hambre,
+modificadores temporales, apariencia y mascotas; confirmar un cast sin aplicar
+su efecto no acredita el caso. Los FX deben pertenecer al actor correcto.
+Las cuentas, posiciones y recursos
 controlados pertenecen exclusivamente al fixture. Las acciones pasan por la UI,
 paquetes, TLS y servicios reales; no se publica ni modifica una partida del usuario.
 
