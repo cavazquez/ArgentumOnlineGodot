@@ -3,6 +3,7 @@ extends Node
 signal connected
 signal disconnected
 signal connection_failed(message: String)
+signal serialization_failed(message: String)
 signal dataReceived(data: PackedByteArray)
 
 enum State { DISCONNECTED, CONNECTING, TLS_HANDSHAKING, CONNECTED }

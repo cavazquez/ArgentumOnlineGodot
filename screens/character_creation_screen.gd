@@ -64,32 +64,11 @@ func _HandleDiceRoll(collection:Array[int]) -> void:
 		_attributeContainer.get_child(i).text = "{0}: {1}".format([names[i], collection[i]])
 	
 func _OnSubmitButtonPressed() -> void:
-	if _usernameLineEdit.text.is_empty():
-		Utils.ShowAlertDialog("Error", "Nombre de usuario vacio.", self)
+	var message := CredentialPolicy.validate(_usernameLineEdit.text, _passwordLineEdit.text)
+	if not message.is_empty():
+		Utils.ShowAlertDialog("Error", message, self)
 		return
 
-	if _usernameLineEdit.text.length() < 3 || _usernameLineEdit.text.length() > 15:
-		Utils.ShowAlertDialog("Error", "el nombre del usuario tiene que tener un minimo de 3 caracteres y un maximo de 15 caracteres", self)
-		return
-	
-	for i in _usernameLineEdit.text:
-		if !Utils.LegalCharacter(i):
-			Utils.ShowAlertDialog("Error", "Nombre invalido: El caracter [{0}] no esta permitido".format([i]), self)
-			return 
-		
-	if _passwordLineEdit.text.is_empty():
-		Utils.ShowAlertDialog("Error", "La contraseña esta vacia.", self)
-		return
-		
-	if _passwordLineEdit.text.length() < 3 || _usernameLineEdit.text.length() > 15:
-		Utils.ShowAlertDialog("Error", "La contraseña tiene que tener un minimo de 3 caracteres y un maximo de 15 caracteres", self)
-		return
-		
-	for i in _passwordLineEdit.text:
-		if !Utils.LegalCharacter(i):
-			Utils.ShowAlertDialog("Error", "Contraseña invalido: El caracter [{0}] no esta permitido".format([i]), self)
-			return 
-	 
 	if _passwordLineEdit.text != _confirmPasswordLineEdit.text:
 		Utils.ShowAlertDialog("Error", "Las contraseñas no coinciden", self)
 		return
