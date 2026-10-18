@@ -391,13 +391,21 @@ static func WriteRequestFame() -> void:
 	_writer.put_u8(Enums.ClientPacketID.RequestFame)
 
 
-static func WriteModifySkills(skills: Array) -> void:
-	if not _can_write(Enums.ClientPacketID.ModifySkills):
-		return
-	_log_outgoing_packet("ModifySkills", "skills: " + str(skills))
+static func WriteModifySkills(deltas: Array, operation_id: String = "") -> bool:
+	if not _can_write(Enums.ClientPacketID.ModifySkills) or not SkillAllocationState.valid_identity(operation_id) or deltas.size() != 22:
+		return false
+	for index in deltas.size():
+		if typeof(deltas[index]) != TYPE_INT or deltas[index] < 0 or deltas[index] > 100:
+			return false
+		if deltas[index] > 0 and not SkillCatalog.definitions()[index].implemented:
+			return false
 	_writer.put_u8(Enums.ClientPacketID.ModifySkills)
-	for i in range(skills.size()):
-		_writer.put_u8(skills[i])
+	_writer.put_u8(1)
+	Utils.PutUnicodeString(_writer, operation_id)
+	for index in deltas.size():
+		_writer.put_u8(index + 1)
+		_writer.put_16(deltas[index])
+	return true
 
 static func write_invisible() -> void:
 	if not _can_write(Enums.ClientPacketID.GMCommands, Enums.EGMCommands.INVISIBLE):
