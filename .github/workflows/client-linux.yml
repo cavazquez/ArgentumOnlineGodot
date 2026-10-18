@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+      - name: Comprobar clasificación estricta de logs de exportación
+        run: python3 -m unittest discover -s tools/tests -p test_export_log.py
       - name: Instalar OpenGL software y Xvfb
         run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
       - name: Instalar motor y templates del manifiesto con SHA256

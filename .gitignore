@@ -10,3 +10,4 @@
 .tools/
 build/
 .test-user/
+__pycache__/
