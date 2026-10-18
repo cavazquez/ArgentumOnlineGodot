@@ -1,6 +1,9 @@
 extends TextureRect
 class_name BankPanel
 
+signal finished
+var _closing := false
+
 @export var _bankInventoryContainer:InventoryContainer
 @export var _playerInventoryContainer:InventoryContainer
 @export var _infoLabel:Label 
@@ -16,10 +19,10 @@ var _playerInventory:Inventory
 
 func _ready() -> void:
 	_bankInventoryContainer.slotPressed.connect(func(index:int):
-		_UpdateInfo(_bankInventory.GetSlot(index).item))
+		_UpdateInfo(_bankInventory.GetSlot(index).item if _bankInventory != null else null))
 		
 	_playerInventoryContainer.slotPressed.connect(func(index:int):
-		_UpdateInfo(_playerInventory.GetSlot(index).item))
+		_UpdateInfo(_playerInventory.GetSlot(index).item if _playerInventory != null else null))
 
 
 func SetBankInventory(inventory:Inventory) -> void:
@@ -37,6 +40,9 @@ func SetBankGold(gold:int) -> void:
   
 
 func _UpdateInfo(item:Item) -> void:
+	if item == null or item.index < 1:
+		_infoLabel.text = "Seleccioná un objeto"
+		return
 	var infoText = item.name 
 	
 	if (item.IsWeapon()):
@@ -53,8 +59,16 @@ func _GetGoldQuantity() -> int:
 	return int(_quantityGoldSpinBox.value)
 
 
-func _on_btn_close_pressed() -> void:
+func RequestClose() -> void:
+	if _closing:
+		return
+	_closing = true
 	GameProtocol.WriteBankEnd()
+	hide()
+	finished.emit()
+
+func _on_btn_close_pressed() -> void:
+	RequestClose()
  
 
 func _on_btn_extract_gold_pressed() -> void:

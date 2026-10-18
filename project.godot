@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="ArgentumOnlineGodot"
+config/version="1.0.0rc1"
 run/main_scene="uid://do2mqxkqcbws8"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
@@ -24,6 +25,7 @@ ClientInterface="*res://engine/autoload/client_interface.gd"
 Consts="*res://engine/autoload/consts.gd"
 Global="*res://engine/autoload/global.gd"
 SavedCredentials="*res://engine/autoload/saved_credentials.gd"
+ConnectionPreferences="*res://engine/autoload/connection_preferences.gd"
 
 [display]
 

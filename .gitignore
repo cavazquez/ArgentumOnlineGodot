@@ -2,7 +2,6 @@
 .godot/
 .windsurf/
 .vscode/
-.github/
 /android/
 
 *.exe
@@ -11,3 +10,8 @@
 .tools/
 build/
 .test-user/
+__pycache__/
+
+# Contexto generado del build Snap; no contiene credenciales.
+snap/pyao-source.json
+*.snap

@@ -2,10 +2,7 @@ extends Window
 
 # StatsWindow: visualiza Atributos, MiniStats, Fama y Skills (solo lectura)
 
-const SKILL_NAMES = [
-	"Magia", "Robar", "Tacticas", "Armas", "Meditar", "Apuñalar", "Ocultarse", "Supervivencia", "Talar", "Comerciar",
-	"Defensa", "Pesca", "Mineria", "Carpinteria", "Herreria", "Liderazgo", "Domar", "Proyectiles", "Wrestling", "Navegacion"
-]
+var SKILL_NAMES: Array[String] = SkillCatalog.names()
 
 const VALUE_COL_MIN_WIDTH := 56
 

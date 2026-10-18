@@ -15,9 +15,18 @@ func GetSize() -> int:
 	
 	
 func GetSlot(index:int) -> ItemStack:
+	if index < 0 or index >= _slots.size():
+		return null
 	return _slots[index]
 	
 	
-func SetSlot(index:int, itemStack:ItemStack) -> void:
+func SetSlot(index:int, itemStack:ItemStack) -> bool:
+	if index < 0 or index >= _slots.size():
+		return false
 	_slots[index] = itemStack
 	slotChanged.emit(index, itemStack)
+	return true
+
+func SetProtocolSlot(slot: int, item_stack: ItemStack) -> bool:
+	# Único punto de conversión de actualizaciones de red 1-based al modelo 0-based.
+	return SetSlot(slot - 1, item_stack)

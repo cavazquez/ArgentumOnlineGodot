@@ -18,6 +18,7 @@ static var command_handler:Dictionary[String, Callable] = {
 	"apostar": gamble,
 	"resucitar": resucitate,
 	"salirclan": guild_leave,
+	"detallesclan": guild_details,
 	"curar": heal,
 	"comerciar": start_commerce,
 	"quieto": pet_stand,
@@ -204,6 +205,12 @@ static func start_commerce(args:ChatCommandArgs) -> void:
 		args.hub_controller.ShowConsoleMessage("Ya estás comerciando", GameAssets.FontDataList[Enums.FontTypeNames.FontType_Info])
 		return
 	
+	if not args.parameters.is_empty():
+		if not ClientInterface.capabilities.has_feature(ClientCapabilities.TRADE_STATE):
+			args.hub_controller.ShowConsoleMessage("El servidor no habilitó el intercambio entre jugadores.")
+			return
+		GameProtocol.WriteTalk("/COMERCIAR " + " ".join(args.parameters))
+		return
 	GameProtocol.WriteCommerceStart()
 
 
@@ -318,7 +325,15 @@ static func party_join(args:ChatCommandArgs) -> void:
 		args.hub_controller.ShowConsoleMessage("¡¡Estás muerto!!", GameAssets.FontDataList[Enums.FontTypeNames.FontType_Info])
 		return
 	
-	GameProtocol.WritePartyJoin()
+	if args.parameters.size() != 1:
+		args.hub_controller.ShowConsoleMessage("Uso: /PARTY <nombre>", GameAssets.FontDataList[Enums.FontTypeNames.FontType_Info])
+		return
+	var nickname: String = args.parameters[0]
+	var message := CredentialPolicy.username_error(nickname)
+	if not message.is_empty():
+		args.hub_controller.ShowConsoleMessage(message, GameAssets.FontDataList[Enums.FontTypeNames.FontType_Info])
+		return
+	GameProtocol.WritePartyJoin(nickname)
 
 
 static func share_npc(args:ChatCommandArgs) -> void:
@@ -554,3 +569,6 @@ static func guild_fundate(args:ChatCommandArgs) -> void:
 	
 	# Enviar solicitud al servidor para verificar si el jugador puede fundar un clan
 	GameProtocol.WriteGuildFundate()
+
+static func guild_details(args: ChatCommandArgs) -> void:
+	args.hub_controller.OpenClanDetails()

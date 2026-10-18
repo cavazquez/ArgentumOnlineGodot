@@ -1,0 +1,167 @@
+name: Cliente Linux
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  import-and-export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Comprobar clasificación estricta de logs de exportación
+        run: python3 -m unittest discover -s tools/tests -p test_export_log.py
+      - name: Instalar OpenGL software y Xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
+      - name: Instalar motor y templates del manifiesto con SHA256
+        run: python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
+      - name: Importar desde checkout limpio y probar escenas y privacidad
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build
+          tools/smoke-godot.sh 2>&1 | tee build/import-and-smoke.log
+      - name: Verificar certificados TLS, cancelación y reintentos
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 tools/smoke-tls.py 2>&1 | tee build/tls-smoke.log
+      - name: Exportar Linux con templates de la misma versión
+        run: tools/export-linux.sh
+      - name: Conservar logs y ejecutable
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pyao-client-linux-${{ github.sha }}
+          path: build/
+          if-no-files-found: warn
+          retention-days: 7
+
+  package-snap:
+    needs: import-and-export
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Preparar LXD en el runner descartable
+        uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee # v1
+        with:
+          channel: 5.21/stable
+      - name: Instalar Snapcraft fijado
+        run: |
+          if snap list snapcraft >/dev/null 2>&1; then
+            sudo snap refresh snapcraft --revision=19274
+          else
+            sudo snap install snapcraft --classic --revision=19274
+          fi
+      - name: Construir Snap estricto desde la fuente y el motor fijados
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build
+          python3 tools/build-snap.py 2>&1 | tee build/snap-build.log
+          sha256sum pyao-client_*_amd64.snap > build/snap-sha256.txt
+      - name: Conservar paquete y procedencia
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pyao-client-snap-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            pyao-client_*_amd64.snap
+            build/snap-build.log
+            build/snap-sha256.txt
+            snap/pyao-source.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  integration-world:
+    needs: package-snap
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/checkout@v6
+        with:
+          repository: cavazquez/pyao-server
+          ref: 8db0484318c49b7abfdb402eb066b3330ff51d21
+          path: build/server-under-test
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.1"
+          enable-cache: false
+      - run: uv python install 3.14
+      - name: Instalar OpenGL software y Xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils squashfs-tools
+      - uses: actions/download-artifact@v8
+        with:
+          name: pyao-client-snap-${{ github.event.pull_request.head.sha || github.sha }}
+          path: build/snap-package
+      - name: Instalar el Snap estricto y su proveedor gráfico en el runner descartable
+        env:
+          CLIENT_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          sudo snap install mesa-2404
+          source=artifact
+          mkdir -p "$RUNNER_TEMP/store-client"
+          if snap download pyao-client --channel=latest/edge --target-directory="$RUNNER_TEMP/store-client"; then
+            published_commit=$(unsquashfs -cat "$RUNNER_TEMP/store-client/"*.snap share/doc/pyao-client/provenance.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["commit"])')
+            if [ "$published_commit" = "$CLIENT_COMMIT" ]; then
+              sudo snap install pyao-client --edge
+              source=store
+            fi
+          fi
+          if [ "$source" = artifact ]; then
+            sudo snap install build/snap-package/pyao-client_1.0.0rc1_amd64.snap --dangerous
+          fi
+          echo "SNAP_INSTALL_SOURCE=$source" >> "$GITHUB_ENV"
+          sudo snap connect pyao-client:gpu-2404 mesa-2404:gpu-2404
+          snap connections pyao-client
+      - name: Preparar audio aislado con un sink de prueba
+        run: |
+          sudo install -d -m 700 -o "$(id -u)" -g "$(id -g)" "/run/user/$(id -u)"
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=pyao_test
+          echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
+      - name: Instalar Godot fijado e importar el cliente
+        run: |
+          python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
+          GODOT_BIN="$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" tools/smoke-godot.sh
+      - name: Construir e instalar el servidor y recorrer dos clientes reales
+        env:
+          UV_PYTHON: "3.14"
+        run: |
+          uv sync --project build/server-under-test --locked --group build
+          uv build --project build/server-under-test --out-dir "$RUNNER_TEMP/pyao-wheel"
+          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/server-under-test --locked python tools/integration-world.py --server-project build/server-under-test --wheel "$RUNNER_TEMP/pyao-wheel/pyao_server-1.0.0rc1-py3-none-any.whl" --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --output build/integration --seconds 60 --snap-installed --snap-audio PulseAudio --snap-source "$SNAP_INSTALL_SOURCE"
+      - name: Verificar que una actualización local conserva preferencias
+        run: |
+          profile="$HOME/snap/pyao-client/common/data/godot/app_userdata/ArgentumOnlineGodot/connection.cfg"
+          sha256sum "$profile" > "$RUNNER_TEMP/pyao-preferences.sha256"
+          pyao_before_revision=$(snap list pyao-client --unicode=never | awk 'NR==2 {print $3}')
+          # Los archivos locales se actualizan con install; refresh usa la Store.
+          sudo snap install build/snap-package/pyao-client_1.0.0rc1_amd64.snap --dangerous
+          pyao_after_revision=$(snap list pyao-client --unicode=never | awk 'NR==2 {print $3}')
+          test "$pyao_before_revision" != "$pyao_after_revision"
+          sha256sum -c "$RUNNER_TEMP/pyao-preferences.sha256"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: godot-world-integration
+          path: build/integration/
+          retention-days: 7

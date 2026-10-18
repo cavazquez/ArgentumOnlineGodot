@@ -29,7 +29,7 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -151.0
-offset_top = -166.0
+offset_top = -260.0
 offset_right = 152.0
 offset_bottom = -125.0
 grow_horizontal = 2
@@ -43,22 +43,43 @@ theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer"]
+[node name="ConnectionOptions" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer"]
 layout_mode = 2
 
-[node name="Ip" type="LineEdit" parent="CanvasLayer/PanelContainer/MarginContainer/HBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer/ConnectionOptions"]
+layout_mode = 2
+
+[node name="Ip" type="LineEdit" parent="CanvasLayer/PanelContainer/MarginContainer/ConnectionOptions/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "127.0.0.1"
 alignment = 1
 
-[node name="Port" type="SpinBox" parent="CanvasLayer/PanelContainer/MarginContainer/HBoxContainer"]
+[node name="Port" type="SpinBox" parent="CanvasLayer/PanelContainer/MarginContainer/ConnectionOptions/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 max_value = 65535.0
 value = 7666.0
 rounded = true
+
+[node name="UseTLS" type="CheckBox" parent="CanvasLayer/PanelContainer/MarginContainer/ConnectionOptions"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "TLS: verificar certificado y servidor"
+tooltip_text = "Desmarcar sólo para conectar explícitamente por TCP de desarrollo"
+
+[node name="CaPath" type="LineEdit" parent="CanvasLayer/PanelContainer/MarginContainer/ConnectionOptions"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "CA propia (opcional): /ruta/ca.crt"
+
+[node name="CancelConnection" type="Button" parent="CanvasLayer/PanelContainer/MarginContainer/ConnectionOptions"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+text = "Cancelar conexión"
 
 [connection signal="register" from="CanvasLayer/LoginPanel" to="." method="_OnLoginPanelRegister"]
 [connection signal="submit" from="CanvasLayer/LoginPanel" to="." method="_OnLoginPanelSubmit"]

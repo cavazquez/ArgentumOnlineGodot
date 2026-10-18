@@ -48,11 +48,11 @@ La exportación se validó con OpenGL. En un entorno sin pantalla, usar Xvfb:
 LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a "$GODOT_BIN" --path . --rendering-method gl_compatibility --export-release "Linux Desktop" build/pyao-client.x86_64
 ```
 
-Al exportar este proyecto desde una copia limpia con `--headless`, el renderizador dummy produjo errores `Image width specified (0 pixels)` después de empaquetar. La ruta anterior con OpenGL evita esos errores y es la que debe reproducir la CI de #11. La importación y el recorrido de escenas sí pasan en headless.
+En la primera exportación de un checkout con caché fría, Godot puede informar tres pares de errores `Image width specified (0 pixels)` / `Invalid image: image is empty` al salir, después de completar `savepack` y con código de salida cero. Se reprodujo tanto con OpenGL como con importación headless previa; abrir el editor no lo resolvió en el runner. `tools/export-linux.sh` reconoce únicamente esa secuencia exacta y repite una sola vez para materializar su caché de exportación. El segundo intento debe terminar sin ningún error. Un código de salida no cero, un error de script/recurso distinto o un error repetido rechaza el build. Ambos logs se conservan y el clasificador tiene pruebas negativas. No se restaura caché UID de otro checkout. Ejecutar `tools/smoke-godot.sh` antes para comprobar imports y escenas.
 
 El preset incluye mapas, gráficos, sonidos, recursos y los índices binarios/INI leídos mediante `FileAccess`; el PCK queda embebido. No requiere paquetes externos `index.pck`, `graphics.pck`, `sounds.pck` ni `maps.pck`: el arranque puede informar que no están presentes y cargar los recursos propios incorporados. Los directorios `Tools/`, `tools/` y `tests/` se excluyen del producto. Se corrigió también el filtro del preset Windows existente; su ejecución nativa no forma parte de esta validación Linux.
 
-La automatización de importación/exportación en GitHub Actions continúa en [#11](https://github.com/cavazquez/ArgentumOnlineGodot/issues/11); construir/publicar Snap `pyao-client` continúa en [#46](https://github.com/cavazquez/ArgentumOnlineGodot/issues/46).
+La CI `Cliente Linux` importa desde checkout limpio, ejecuta escenas y privacidad y exporta con OpenGL software bajo Xvfb. Descarga motor/templates del manifiesto y verifica SHA256; conserva logs y el ejecutable durante siete días. No utiliza caché UID ni un perfil `user://` del operador. Puede reproducirse con `tools/install-godot.py --destination /ruta/temporal` y `tools/export-linux.sh`. Construir/publicar Snap `pyao-client` continúa en [#46](https://github.com/cavazquez/ArgentumOnlineGodot/issues/46).
 
 ## Cambios necesarios al migrar
 

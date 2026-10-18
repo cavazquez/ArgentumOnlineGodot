@@ -34,3 +34,35 @@ El cierre se prueba con dos clientes Godot reales contra servidor y Redis aislad
 El plan de la 1.0 está definido; su implementación y aprobación siguen pendientes de los issues y pruebas enlazados. La exportación Linux del motor está verificada; la integración completa con servidor y la distribución Snap siguen los issues enlazados.
 
 Para repetir la comprobación del motor: `GODOT_BIN=/ruta/godot ./tools/smoke-godot.sh`. Para exportar Linux, seguir [docs/GODOT.md](docs/GODOT.md).
+
+El cliente sólo recuerda el nombre de usuario. Al abrir una instalación antigua migra `saved_credentials.dat` a `login_preferences.cfg` y elimina el archivo legado con contraseña. Los logs de autenticación conservan únicamente el tipo de operación.
+
+El formulario conecta por **TLS con verificación de certificado y hostname** de
+forma predeterminada. Usar el nombre presente en el certificado del servidor;
+para una CA privada, indicar su archivo PEM en `CA propia`. Sin ese campo se usa
+la confianza estándar de Godot. Un certificado inválido, vencido o de otro nombre
+produce error visible y no envía credenciales ni cambia automáticamente a TCP.
+El intento completo, incluido el handshake, vence a los 10 segundos y admite
+cancelación y reintento. Para desarrollo local en claro, desmarcar explícitamente
+TLS; la elección, endpoint y ruta de CA se guardan sin contraseñas.
+
+`GODOT_BIN=/ruta/godot python3 tools/smoke-tls.py` genera certificados temporales y
+comprueba Godot real contra endpoints locales: confianza, nombre, vencimiento,
+plazo, cancelación, recuperación del formulario y segundo intento. La integración
+completa del juego sobre este transporte se valida con el recorrido de #60.
+
+
+### Detalles de clan
+
+`/detallesclan` abre la vista confirmada por pyao: fundador, fecha, líder, sitio,
+miembros, alianzas, guerras, códice y descripción. Actualizar usa el paquete 69.
+Abandonar pide confirmación, envía 72 y consulta nuevamente el estado; la ventana
+no anuncia éxito por su cuenta. Los comandos propios de clan y party se conservan.
+Las acciones de administración sin handler permanecen deshabilitadas.
+
+La distribución Linux como `pyao-client` se construye con la receta de
+[Snap](docs/SNAP.md), que incluye procedencia del commit y el motor fijado.
+
+El cliente y el servidor usan la misma versión de producto: `1.0.0rc1` para el candidato RC1. Snap toma ese valor de `project.godot`; la procedencia conserva además el commit y el motor.
+
+La [integración con dos Godot](docs/INTEGRACION.md) rechaza pares con versiones distintas y comprueba TLS, pantallas reales y cierre ordenado. CI instala además el Snap estricto, recorre login/mapa/chat/inventario con teclado y mouse X11, verifica audio con un sink de prueba y conserva preferencias al actualizar.

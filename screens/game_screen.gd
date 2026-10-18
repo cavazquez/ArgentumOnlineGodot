@@ -28,13 +28,14 @@ var _input:Dictionary[String, int] = {
  
 func _ready() -> void: 
 	ClientInterface.disconnected.connect(_OnDisconnected)
-	ClientInterface.dataReceived.connect(_OnDataReceived) 
+	ClientInterface.dataReceived.connect(_OnDataReceived)
+	ClientInterface.serialization_failed.connect(_OnSerializationFailed) 
 	
 	_gameInput.Init(_gameContext)
 	_gameInput.update_name_label(Global.username)
 	
 	# Cargar el cursor después de que los recursos estén listos
-	if FileAccess.file_exists("res://Assets/Cursors/crosshair.png"):
+	if ResourceLoader.exists("res://Assets/Cursors/crosshair.png", "Texture2D"):
 		_crosshair_cursor = load("res://Assets/Cursors/crosshair.png")
 		if _crosshair_cursor:
 			_scaled_crosshair_cursor = _scale_cursor(_crosshair_cursor, 0.5)  # Ajusta el factor de escala según necesites
@@ -75,6 +76,8 @@ func _UpdateCameraPosition() -> void:
 		_camera.position = character.position
 
 func _CheckKeys() -> void:
+	if _gameInput.IsWorldInputBlocked():
+		return
 	if _gameContext.traveling || _gameContext.mirandoForo ||\
 		_gameContext.trading  || _gameContext.pause:
 		return
@@ -158,13 +161,42 @@ func _HandleIncomingData(data:PackedByteArray) -> void:
 	var stream = StreamPeerBuffer.new()
 	stream.data_array = data
 	
-	while stream.get_position() < stream.get_size():
-		_HandleOnePacket(stream)
+	# ClientInterface entrega exactamente un paquete, ya reconstruido y validado.
+	_HandleOnePacket(stream)
 
 var pcg:Array[String] 
 
 func _HandleOnePacket(stream:StreamPeerBuffer) -> void:
 	var packetId = stream.get_u8()
+	if packetId == 253:
+		var password_result := PasswordChangeReply.new(stream)
+		if not password_result.valid:
+			ClientInterface._fail("Respuesta de contraseña inválida")
+			return
+		_gameInput.ApplyPasswordReply(password_result)
+		return
+	if packetId == 254:
+		var allocation := SkillAllocationState.new(stream)
+		if not allocation.valid:
+			ClientInterface._fail("Asignación de habilidades inválida")
+			return
+		_gameInput.ApplySkillAllocation(allocation)
+		return
+	if packetId == 252:
+		var trade := TradeSnapshot.new(stream)
+		if not trade.valid:
+			ClientInterface._fail("Estado de intercambio inválido")
+			return
+		_gameInput.ApplyTradeSnapshot(trade.data)
+		return
+	if packetId == 251:
+		var update := SkillCatalogPacket.new(stream)
+		if not update.valid:
+			ClientInterface._fail("Catálogo de habilidades inválido")
+			return
+		Global.skillPoints = update.free_points
+		_HandleSendSkills(update)
+		return
 	var pname = ""
 	if packetId < Enums.ServerPacketID.keys().size():
 		pname = Enums.ServerPacketID.keys()[packetId]
@@ -219,6 +251,12 @@ func _HandleOnePacket(stream:StreamPeerBuffer) -> void:
 			_HandleUpdateHungerAndThirst(UpdateHungerAndThirst.new(stream))
 		Enums.ServerPacketID.UpdateStrenghtAndDexterity:
 			_HandleUpdateStrengthAndDexterity(UpdateStrengthAndDexterity.new(stream))
+		Enums.ServerPacketID.GuildDetails:
+			var clan := ClanDetailsPacket.new(stream)
+			if not clan.valid:
+				ClientInterface._fail("Detalles del clan inválidos")
+				return
+			_gameInput.ApplyClanDetails(clan.values)
 		Enums.ServerPacketID.GuildChat:
 			_HandleGuildChat(GuildChat.new(stream))
 		Enums.ServerPacketID.SendSkills:
@@ -497,7 +535,6 @@ func _HandleCommerceEnd() -> void:
 	
 func _HandleBankInit(p:BankInit) -> void:
 	_gameInput.OpenBank()
-	_gameInput.SetBankGold(p.gold)
 
 func _HandleBankEnd() -> void:
 	_gameInput.CloseBank()
@@ -568,6 +605,8 @@ func _HandleCharacterChange(p:CharacterChange) -> void:
 func _HandleUpdateHP(p:UpdateHP) -> void:
 	_gameInput.health_stat_bar.value = p.hp
 	_gameContext.player_stats.hp = p.hp
+	if p.hp <= 0:
+		_gameInput._restore_default_cursor()
 
 
 func _HandleCharacterRemove(p:CharacterRemove) -> void:
@@ -595,6 +634,9 @@ func _HandleLevelUp(p:LevelUp) -> void:
 	pass
 
 func _HandleSendSkills(p:SendSkills) -> void:
+	if not p.valid:
+		ClientInterface._fail("Estado de habilidades inválido")
+		return
 	_gameInput._show_skills_window(p.skills)
 	# Actualizar también la ventana de estadísticas si está abierta
 	_gameInput.update_stats_skills(p.skills)
@@ -663,6 +705,8 @@ func _HandleUpdateUserStats(p:UpdateUserStats) -> void:
 	
 	_gameContext.player_stats.max_hp = p.maxHp
 	_gameContext.player_stats.hp = p.minHp
+	if p.minHp <= 0:
+		_gameInput._restore_default_cursor()
 	
 	_gameInput.mana_stat_bar.max_value = p.maxMana
 	_gameInput.mana_stat_bar.value = p.minMana
@@ -768,16 +812,19 @@ func _HandlePlayWave(p:PlayWave) -> void:
 
 
 func _HandleChangeMap(p:ChangeMap) -> void:
+	_gameInput._restore_default_cursor()
 	_gameWorld.SwitchMap(p.mapId)
 	_gameContext.player_map = p.mapId
 	_gameInput.minimap.load_thumbnail(p.mapId)
 		
 		
 func _HandleChangeSpellSlot(p:ChangeSpellSlot) -> void:
-	_gameInput.spell_list_panel.set_slot_text(p.slot - 1, p.name) 
+	_gameInput.spell_list_panel.set_slot_text(p.slot - 1, p.name, p.spellId) 
 
 
 func _HandleChangeInventorySlot(p:ChangeInventorySlot) -> void:
+	if p.slot < 1 or p.slot > _gameContext.playerInventory.GetSize():
+		return
 	var item = Item.new()
 	item.index = p.index
 	item.name = p.name
@@ -792,7 +839,7 @@ func _HandleChangeInventorySlot(p:ChangeInventorySlot) -> void:
 		item.icon = GameAssets.GetTexture(GameAssets.GrhDataList[p.grhId].fileId)
 	
 	var itemStack = ItemStack.new(p.amount, p.equipped, item)
-	_gameContext.playerInventory.SetSlot(p.slot -1, itemStack)
+	_gameContext.playerInventory.SetProtocolSlot(p.slot, itemStack)
 	_gameInput.update_equipment_label(p.slot - 1, itemStack)
 
 func _HandleMultiMessage(p:MultiMessage) -> void:
@@ -919,3 +966,6 @@ func _OnPingTimerTimeout() -> void:
 	GameProtocol.WritePing()
 	_FlushData()
 	_gameContext.pingTime = Time.get_ticks_msec()
+
+func _OnSerializationFailed(message: String) -> void:
+	_gameInput.ShowConsoleMessage(message, GameAssets.FontDataList[Enums.FontTypeNames.FontType_Warning] if GameAssets.FontDataList.size() > Enums.FontTypeNames.FontType_Warning else FontData.new(Color.YELLOW))
