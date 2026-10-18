@@ -184,6 +184,11 @@ func _verify_text_policy() -> void:
 	panel.free()
 
 func _verify_capabilities() -> void:
+	# Cargar mapa/libro/inventario puede superar 2 s en un equipo lento.
+	var slow := ClientCapabilities.new()
+	slow.begin()
+	slow._deadline_msec -= 2500
+	check(slow.accept(PackedByteArray([250, 1, 143, 0, 0, 0])), "ACK tras 2,5 s perdió las acciones negociadas")
 	var legacy := ClientCapabilities.new()
 	var extended := ClientCapabilities.new()
 	check(legacy.enabled == 0, "Se habilitaron funciones sin negociar")
@@ -318,6 +323,25 @@ func _verify_ui() -> void:
 	add_child(game)
 	game.set_process(false)
 	var hub: HubController = game._gameInput
+	var drag_item := Item.new()
+	drag_item.index = 38
+	game._gameContext.playerInventory.SetSlot(29, ItemStack.new(5, false, drag_item))
+	var cell := hub._inventoryContainer.GetInventorySlot(29)
+	var inventory_click := InputEventMouseButton.new()
+	inventory_click.button_index = MOUSE_BUTTON_LEFT
+	inventory_click.position = cell.size / 2
+	inventory_click.pressed = true
+	cell._gui_input(inventory_click)
+	check(GameProtocol.IsEmpty(), "Presionar para iniciar un drag usa el objeto")
+	game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_DOUBLE_CLICK].elapsed_time = -1000
+	inventory_click.pressed = false
+	cell._gui_input(inventory_click)
+	check(GameProtocol.Flush() == PackedByteArray([30, 30]), "Un clic completo perdió el uso habitual")
+	var gold_reader := StreamPeerBuffer.new()
+	gold_reader.put_32(9930)
+	gold_reader.seek(0)
+	game._HandleUpdateGold(UpdateGold.new(gold_reader))
+	check(game._gameContext.player_gold == 9930, "UpdateGold deja el contexto con un saldo viejo")
 	hub._consoleInputLineEdit.show()
 	hub._consoleInputLineEdit.text = "no atacar"
 	check(hub.IsWorldInputBlocked(), "El chat deja pasar movimiento")
@@ -458,11 +482,18 @@ func _verify_spellbook_order() -> void:
 	panel._on_btn_move_down_pressed()
 	panel._on_btn_move_down_pressed()
 	var bytes := GameProtocol.Flush()
-	check(bytes.size() == 3 and bytes[1] == 1 and bytes[2] == 1, "MOVE_SPELL duplicado o con slot nuevo")
+	check(bytes == PackedByteArray([45, 0, 1]), "Bajar debe enviar upwards=0 con el slot original una sola vez")
 	check(panel.get_selected_slot() == 0 and panel._item_list.get_item_text(0) == "Curar", "MOVE_SPELL cambió nombres/selección antes del ack")
 	panel.set_slot_text(0, "Fuego", 2)
 	panel.set_slot_text(1, "Curar", 1)
 	check(panel.get_selected_slot() == 1 and panel._pending_move.is_empty(), "Selección no sigue al hechizo confirmado")
+	panel._on_btn_move_up_pressed()
+	bytes = GameProtocol.Flush()
+	check(bytes == PackedByteArray([45, 1, 2]), "Subir debe enviar upwards=1 con el slot original")
+	panel.set_slot_text(0, "Curar", 1)
+	panel.set_slot_text(1, "Fuego", 2)
+	check(panel.get_selected_slot() == 0 and panel._pending_move.is_empty(), "Selección no sigue el movimiento hacia arriba confirmado")
+	panel._item_list.select(1)
 	panel._on_btn_move_down_pressed()
 	GameProtocol.Clear()
 	panel._deadline = 0

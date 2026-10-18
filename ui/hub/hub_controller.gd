@@ -103,7 +103,7 @@ func Init(gameContext:GameContext) -> void:
 	ClientInterface.disconnected.connect(_restore_default_cursor)
 	_inventoryContainer.allow_reorder = true
 	_inventoryContainer.SetInventory(_gameContext.playerInventory)
-	_inventoryContainer.slotPressed.connect(func(_v): 
+	_inventoryContainer.slotActivated.connect(func(_v):
 		_use_object(true))
 
 func ShowConsoleMessage(message:String, fontData:FontData = FontData.new(Color.WHITE)) -> void:

@@ -31,7 +31,8 @@ El cierre se prueba con dos clientes Godot reales contra servidor y Redis aislad
 - [#60](https://github.com/cavazquez/ArgentumOnlineGodot/issues/60): recorrido automatizado del cliente real con servidor y Redis.
 - [#46](https://github.com/cavazquez/ArgentumOnlineGodot/issues/46): construir, instalar, probar y publicar el Snap después de las puertas de calidad y seguridad.
 
-El plan de la 1.0 está definido; su implementación y aprobación siguen pendientes de los issues y pruebas enlazados. La exportación Linux del motor está verificada; la integración completa con servidor y la distribución Snap siguen los issues enlazados.
+La aprobación de la 1.0 se registra para un par exacto de commits con las pruebas
+del alcance. Un issue cerrado o un ensayo corto no sustituyen la aceptación R10.
 
 Para repetir la comprobación del motor: `GODOT_BIN=/ruta/godot ./tools/smoke-godot.sh`. Para exportar Linux, seguir [docs/GODOT.md](docs/GODOT.md).
 
@@ -66,3 +67,10 @@ La distribución Linux como `pyao-client` se construye con la receta de
 El cliente y el servidor usan la misma versión de producto: `1.0.0rc1` para el candidato RC1. Snap toma ese valor de `project.godot`; la procedencia conserva además el commit y el motor.
 
 La [integración con dos Godot](docs/INTEGRACION.md) rechaza pares con versiones distintas y comprueba TLS, pantallas reales y cierre ordenado. CI instala además el Snap estricto, recorre login/mapa/chat/inventario con teclado y mouse X11, verifica audio con un sink de prueba y conserva preferencias al actualizar.
+
+El recorrido completo de [#106](https://github.com/cavazquez/ArgentumOnlineGodot/issues/106)
+usa `tools/r10_world.py`, el controlador de pantallas `tests/r10_client.gd` y
+`tests/r10_fixture.toml`. `tools/export-linux.sh --r10` genera el ejecutable de
+aceptación en `build/r10/`; el Snap se construye con el preset de producción.
+El smoke recompila ambos drivers desde su texto con los autoloads del proyecto
+cargados para validar también el arnés.

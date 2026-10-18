@@ -3,6 +3,7 @@ class_name ClientCapabilities
 
 const PACKET_ID := 250
 const VERSION := 1
+const NEGOTIATION_TIMEOUT_SECONDS := 10.0
 const SKILLS_CATALOG := 1
 const TARGETED_CAST := 2
 const SKILL_ALLOCATION := 4
@@ -25,7 +26,7 @@ func clear() -> void:
 	_deadline_msec = 0
 	_pending = false
 
-func begin(timeout_seconds: float = 2.0) -> PackedByteArray:
+func begin(timeout_seconds: float = NEGOTIATION_TIMEOUT_SECONDS) -> PackedByteArray:
 	clear()
 	_requested = REQUESTED
 	_deadline_msec = Time.get_ticks_msec() + int(timeout_seconds * 1000)

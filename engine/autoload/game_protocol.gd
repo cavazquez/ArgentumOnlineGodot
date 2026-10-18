@@ -344,13 +344,13 @@ static func WriteCastTarget(slot: int, tile: Vector2i) -> bool:
 	_writer.put_16(tile.y)
 	return true
 
-static func WriteMoveSpell(downwards: bool, slot: int) -> bool:
+static func WriteMoveSpell(upwards: bool, slot: int) -> bool:
 	if not _can_write(Enums.ClientPacketID.MoveSpell) or slot < 1 or slot > Consts.MaxUserHechizos:
 		return false
-	if (downwards and slot == Consts.MaxUserHechizos) or (not downwards and slot == 1):
+	if (upwards and slot == 1) or (not upwards and slot == Consts.MaxUserHechizos):
 		return false
 	_writer.put_u8(Enums.ClientPacketID.MoveSpell)
-	_writer.put_u8(1 if downwards else 0)
+	_writer.put_u8(1 if upwards else 0)
 	_writer.put_u8(slot)
 	return true
 

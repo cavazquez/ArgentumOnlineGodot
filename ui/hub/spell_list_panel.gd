@@ -57,7 +57,7 @@ func _RequestMove(direction: int) -> void:
 	var destination := original + direction
 	if destination < 0 or destination >= _spell_ids.size():
 		return
-	if GameProtocol.WriteMoveSpell(direction > 0, original + 1):
+	if GameProtocol.WriteMoveSpell(direction < 0, original + 1):
 		_pending_move = {"source": original, "destination": destination, "spell": _spell_ids[original], "other": _spell_ids[destination], "seen": {}}
 		_deadline = Time.get_ticks_msec() + 5000
 
