@@ -131,19 +131,23 @@ func _ready() -> void:
 	if not await wait_for(func(): return ScreenController.currentScreen is GameScreen, "segundo login"):
 		return
 	game = ScreenController.currentScreen as GameScreen
+	var reconnect_game := weakref(game)
 	if not await wait_for(func():
+		var restored := reconnect_game.get_ref() as GameScreen
+		if not is_instance_valid(restored):
+			return false
 		for slot in range(30):
-			var stack: ItemStack = game._gameContext.playerInventory.GetSlot(slot)
+			var stack: ItemStack = restored._gameContext.playerInventory.GetSlot(slot)
 			var actual: Array = [stack.item.index, stack.quantity, stack.equipped] if stack.quantity > 0 else []
 			if actual != expected_slots.get(slot, []):
 				return false
-		if Array(game._gameInput.spell_list_panel._spell_ids) != expected_spells:
+		if Array(restored._gameInput.spell_list_panel._spell_ids) != expected_spells:
 			return false
 		if ClientInterface.capabilities.enabled != ClientCapabilities.REQUESTED:
 			return false
-		if game._gameInput.get_node("%LblName").text != OS.get_environment("PYAO_TEST_USERNAME"):
+		if restored._gameInput.get_node("%LblName").text != OS.get_environment("PYAO_TEST_USERNAME"):
 			return false
-		return not game._gameInput._consoleRichTextLabel.get_parsed_text().is_empty() and game._gameInput.minimap.texture != null,
+		return not restored._gameInput._consoleRichTextLabel.get_parsed_text().is_empty() and restored._gameInput.minimap.texture != null,
 		"objetos, cantidades, equipo, libro ordenado, consola y minimapa tras reconectar"):
 		return
 	print("INTEGRATION_WORLD: RECONNECT_STATE ", JSON.stringify({"inventory": expected_slots,

@@ -128,6 +128,8 @@ func execute(command: Dictionary) -> bool:
 		print("R10_CAPABILITIES_LOGIN: tick=", Time.get_ticks_msec(), " deadline=", ClientInterface.capabilities._deadline_msec)
 		return await host.wait_for(func():
 			var g = ScreenController.currentScreen
+			if not g is GameScreen:
+				return false
 			return g._gameWorld.GetCharacter(g._mainCharacterInstanceId) != null and g._gameContext.player_stats.max_hp > 0 and ClientInterface.capabilities.has_feature(ClientCapabilities.TARGETED_CAST) and g._gameInput.get_node("%LblName").text == OS.get_environment("PYAO_TEST_USERNAME"),
 			"R10 personaje y estadísticas")
 	if not ScreenController.currentScreen is GameScreen:

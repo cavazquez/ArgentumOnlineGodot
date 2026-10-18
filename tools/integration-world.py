@@ -368,6 +368,14 @@ def worker(args):
         from src.utils.redis_config import RedisKeys
 
         while any(client.poll() is None for client in clients):
+            server_text = (output / "server.log").read_text()
+            if (
+                "| ERROR |" in server_text
+                or "Traceback (most recent call last)" in server_text
+            ):
+                raise RuntimeError(
+                    "Excepción del servidor durante sesión/reconexión; revisar server.log"
+                )
             for index in (1, 2):
                 text = (output / f"godot-{index}.log").read_text()
                 if "SCRIPT ERROR:" in text or "ERROR:" in text:
