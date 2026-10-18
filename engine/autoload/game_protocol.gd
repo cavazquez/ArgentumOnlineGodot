@@ -23,7 +23,7 @@ static func Clear() -> void:
 	_writer.clear()
 
 static func WriteLoginExistingCharacter(username:String, password:String) -> void:
-	_log_outgoing_packet("LoginExistingCharacter", "username: " + username + ", password: " + password)
+	_log_outgoing_packet("LoginExistingCharacter")
 	_writer.put_u8(Enums.ClientPacketID.LoginExistingChar)
 	Utils.PutUnicodeString(_writer, username)
 	Utils.PutUnicodeString(_writer, password)
@@ -32,7 +32,7 @@ static func WriteLoginExistingCharacter(username:String, password:String) -> voi
 	_writer.put_u8(0)
 	
 static func WriteLoginNewChar(username:String, password:String, email:String, job:int, race:int, gender:int, home:int, head:int) -> void:
-	_log_outgoing_packet("LoginNewChar", "username: " + username + ", password: " + password + ", email: " + email + ", job: " + str(job) + ", race: " + str(race) + ", gender: " + str(gender) + ", home: " + str(home) + ", head: " + str(head))
+	_log_outgoing_packet("LoginNewChar")
 	_writer.put_u8(Enums.ClientPacketID.LoginNewChar)
 	Utils.PutUnicodeString(_writer, username)
 	Utils.PutUnicodeString(_writer, password)

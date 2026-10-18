@@ -11,12 +11,10 @@ func _ready() -> void:
 	%ShowPasswordButton.toggle_mode = true
 	%ShowPasswordButton.button_pressed = false
 	
-	# Load saved credentials if they exist
-	var credentials = SavedCredentials.load_credentials()
-	if credentials.username != "" and credentials.password != "":
-		%Username.text = credentials.username
-		%Password.text = credentials.password
-		%RememberPassword.button_pressed = true
+	var username := SavedCredentials.load_username()
+	%Username.text = username
+	%Password.text = ""
+	%RememberUsername.button_pressed = not username.is_empty()
 
 func _on_show_password_toggled(button_pressed: bool) -> void:
 	%Password.secret = !button_pressed
@@ -74,9 +72,8 @@ func _OnButtonLoginPressed() -> void:
 			
 	Global.username = %Username.text
 	
-	# Save credentials if checkbox is checked
-	if %RememberPassword.button_pressed:
-		SavedCredentials.save_credentials(%Username.text, %Password.text)
+	if %RememberUsername.button_pressed:
+		SavedCredentials.save_username(%Username.text)
 	else:
 		SavedCredentials.clear_credentials()
 	

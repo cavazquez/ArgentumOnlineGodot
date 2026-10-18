@@ -34,3 +34,5 @@ El cierre se prueba con dos clientes Godot reales contra servidor y Redis aislad
 El plan de la 1.0 está definido; su implementación y aprobación siguen pendientes de los issues y pruebas enlazados. La exportación Linux del motor está verificada; la integración completa con servidor y la distribución Snap siguen los issues enlazados.
 
 Para repetir la comprobación del motor: `GODOT_BIN=/ruta/godot ./tools/smoke-godot.sh`. Para exportar Linux, seguir [docs/GODOT.md](docs/GODOT.md).
+
+El cliente sólo recuerda el nombre de usuario. Al abrir una instalación antigua migra `saved_credentials.dat` a `login_preferences.cfg` y elimina el archivo legado con contraseña. Los logs de autenticación conservan únicamente el tipo de operación.

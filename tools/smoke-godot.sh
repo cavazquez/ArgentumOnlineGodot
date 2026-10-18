@@ -22,3 +22,16 @@ run_checked() {
 run_checked "$run_dir/import.log" "$godot_bin" --headless --path "$project_root" --editor --import
 run_checked "$run_dir/smoke.log" "$godot_bin" --headless --path "$project_root" res://tests/engine_smoke.tscn
 grep -q 'ENGINE_SMOKE: PASS' "$run_dir/smoke.log"
+
+run_checked "$run_dir/credentials.log" "$godot_bin" --headless --path "$project_root" --quit-after 300 res://tests/credentials_smoke.tscn
+grep -q 'CREDENTIALS_SMOKE: PASS' "$run_dir/credentials.log"
+python3 - "$run_dir/credentials.log" <<'CHECK_LOG'
+import pathlib
+import sys
+
+log = pathlib.Path(sys.argv[1]).read_text()
+secret = b"SYNTHETIC_CANARY_431"
+variants = [secret.decode(), secret.hex(), secret.hex(" ")]
+if any(value.lower() in log.lower() for value in variants):
+    raise SystemExit("Una contraseña sintética o sus bytes llegaron a los logs")
+CHECK_LOG
