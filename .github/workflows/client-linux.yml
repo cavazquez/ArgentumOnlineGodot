@@ -32,6 +32,8 @@ jobs:
           set -o pipefail
           mkdir -p build
           tools/smoke-godot.sh 2>&1 | tee build/import-and-smoke.log
+          git diff --exit-code
+          test -z "$(git ls-files --others --exclude-standard)"
       - name: Verificar certificados TLS, cancelación y reintentos
         shell: bash
         run: |

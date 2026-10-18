@@ -41,6 +41,10 @@ desde una fuente limpia. La aprobación final
 adjunta además los resultados R01 a R09 de ese mismo par; el campo
 `r10_gameplay_passed` sólo acredita este recorrido de juego.
 
+Los `.import` versionados incluyen los defaults del Godot fijado. CI exige que
+importar y ejecutar los smokes conserve limpio el checkout. La normalización
+sólo explicita opciones del importador; conserva los bytes de los recursos propios.
+
 ## Repetir el ensayo
 
 ```sh
