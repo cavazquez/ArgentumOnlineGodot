@@ -44,6 +44,9 @@ Repetir con `--scenario spells` y otra carpeta de salida. Por defecto se usa un
 contenedor Redis descartable. `--redis-runtime /ruta/runtime` admite el runtime
 local Redis 8.10.2 descrito por el runner; nunca utiliza la base del operador.
 Cada salida debe ser nueva para conservar errores y evidencias de intentos previos.
+En un servidor sin escritorio, anteponer `xvfb-run -a -s '-screen 0 800x600x24'`
+al comando de uv. Los dos clientes requieren una pantalla gráfica; CI utiliza
+ese display virtual y conserva los logs y capturas de ambos procesos.
 
 `skills` crea dos clientes gráficos, asigna las 22 habilidades, ejecuta sus acciones
 y comprueba progreso y estado en Redis, ventanas, navegación, reconexión y reinicio

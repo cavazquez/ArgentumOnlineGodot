@@ -216,7 +216,7 @@ jobs:
           uv sync --project build/server-under-test --locked --group build
           uv build --project build/server-under-test --wheel --out-dir "$RUNNER_TEMP/pyao-wheel"
           chmod +x build/native-export/r10/pyao-client-r10.x86_64
-          uv run --project build/server-under-test --locked python tools/integration-world.py --scenario "$MECHANICS_SCENARIO" --server-project build/server-under-test --wheel "$RUNNER_TEMP/pyao-wheel/pyao_server-1.0.0rc1-py3-none-any.whl" --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --client-executable build/native-export/r10/pyao-client-r10.x86_64 --output "build/mechanics-$MECHANICS_SCENARIO" --seconds 30
+          xvfb-run -a -s '-screen 0 800x600x24' uv run --project build/server-under-test --locked python tools/integration-world.py --scenario "$MECHANICS_SCENARIO" --server-project build/server-under-test --wheel "$RUNNER_TEMP/pyao-wheel/pyao_server-1.0.0rc1-py3-none-any.whl" --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --client-executable build/native-export/r10/pyao-client-r10.x86_64 --output "build/mechanics-$MECHANICS_SCENARIO" --seconds 30
       - uses: actions/upload-artifact@v7
         if: always()
         with:
