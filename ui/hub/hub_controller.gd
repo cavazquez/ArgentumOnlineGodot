@@ -500,8 +500,8 @@ func _on_console_meta_clicked(meta: Variant) -> void:
 
 
 func _on_minimap_click(mouse_position: Vector2) -> void:
-	if _gameContext.player_map > 0:
-		GameProtocol.WriteWarpChar("YO", _gameContext.player_map, int(mouse_position.x), int(mouse_position.y))
+	if _gameContext.player_map > 0 and mouse_position.x >= 1 and mouse_position.x <= 100 and mouse_position.y >= 1 and mouse_position.y <= 100:
+		ShowConsoleMessage("Mapa %d · coordenadas %d, %d" % [_gameContext.player_map, int(mouse_position.x), int(mouse_position.y)])
 
 func _on_btn_options_pressed() -> void:
 	if _options_window == null:
