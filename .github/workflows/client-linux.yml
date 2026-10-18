@@ -153,7 +153,11 @@ jobs:
         run: |
           profile="$HOME/snap/pyao-client/common/data/godot/app_userdata/ArgentumOnlineGodot/connection.cfg"
           sha256sum "$profile" > "$RUNNER_TEMP/pyao-preferences.sha256"
-          sudo snap refresh build/snap-package/pyao-client_1.0.0rc1_amd64.snap --dangerous
+          pyao_before_revision=$(snap list pyao-client --unicode=never | awk 'NR==2 {print $3}')
+          # Los archivos locales se actualizan con install; refresh usa la Store.
+          sudo snap install build/snap-package/pyao-client_1.0.0rc1_amd64.snap --dangerous
+          pyao_after_revision=$(snap list pyao-client --unicode=never | awk 'NR==2 {print $3}')
+          test "$pyao_before_revision" != "$pyao_after_revision"
           sha256sum -c "$RUNNER_TEMP/pyao-preferences.sha256"
       - uses: actions/upload-artifact@v7
         if: always()
