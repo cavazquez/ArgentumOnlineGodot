@@ -5,6 +5,7 @@ const InventorySlotScene = preload("uid://b8q7jv01joc1r")
 @export var allow_reorder := false
 
 signal slotPressed(index:int) 
+signal slotActivated(index:int)
   
 var _inventory:Inventory
 var _selectedSlot:int = -1
@@ -32,6 +33,7 @@ func SetInventory(inventory:Inventory) -> void:
 		
 		inventorySlot.index = i
 		inventorySlot.pressed.connect(_InventorySlotOnPressed.bind(i)) 
+		inventorySlot.activated.connect(func(): slotActivated.emit(inventorySlot.index))
 		_OnSlotChanged(i, _inventory.GetSlot(i))
 		inventorySlot.SetSelected(i == _selectedSlot)
 

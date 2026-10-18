@@ -17,6 +17,9 @@ func wait_for(predicate: Callable, label: String, seconds: float = 30.0) -> bool
 	return true
 
 func _ready() -> void:
+	print("R10_NATIVE: ", OS.has_feature("r10_acceptance"))
+	ClientInterface.capabilities_changed.connect(func():
+		print("R10_CAPABILITIES: tick=", Time.get_ticks_msec(), " enabled=", ClientInterface.capabilities.enabled))
 	var password := OS.get_environment("PYAO_TEST_PASSWORD")
 	if password.is_empty():
 		push_error("El harness requiere una credencial efímera por entorno")
@@ -62,10 +65,17 @@ func _ready() -> void:
 	if not await wait_for(func(): return game._gameContext.playerInventory.GetSlot(29).item.index == item_id, "ACK de inventario en slot 30"):
 		return
 	print("INTEGRATION_WORLD: READY map=", game._gameContext.player_map, " slots=30 tls=true")
+	if not OS.get_environment("PYAO_TEST_CONTROL").is_empty():
+		var scenario = load("res://tests/r10_client.gd").new()
+		if not await scenario.run(self):
+			return
+		game = ScreenController.currentScreen as GameScreen
+		hub = game._gameInput
 	if DisplayServer.get_name() != "headless" and not OS.get_environment("PYAO_TEST_SCREENSHOT").is_empty():
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(OS.get_environment("PYAO_TEST_SCREENSHOT"))
 	var duration := maxi(10, int(OS.get_environment("PYAO_TEST_DURATION")))
+	var hunger_before := [hub.hunger_stat_bar.value, hub.thirst_stat_bar.value]
 	var started := Time.get_ticks_msec()
 	var until := started + duration * 1000
 	var actions := ["ui_right", "ui_down", "ui_left", "ui_up"]
@@ -99,7 +109,13 @@ func _ready() -> void:
 	for slot in range(30):
 		var stack: ItemStack = game._gameContext.playerInventory.GetSlot(slot)
 		if stack.quantity > 0:
-			expected_slots[slot] = stack.item.index
+			expected_slots[slot] = [stack.item.index, stack.quantity, stack.equipped]
+	var expected_spells: Array = Array(hub.spell_list_panel._spell_ids).duplicate()
+	var hunger_after := [hub.hunger_stat_bar.value, hub.thirst_stat_bar.value]
+	if duration >= 1800 and (hunger_after[0] >= hunger_before[0] or hunger_after[1] >= hunger_before[1]):
+		push_error("INTEGRATION_WORLD: hambre/sed configuradas no progresaron en 30 minutos")
+		get_tree().quit(1)
+		return
 	ClientInterface.DisconnectFromHost()
 	if not await wait_for(func(): return not ScreenController.currentScreen is GameScreen, "desconexión"):
 		return
@@ -116,12 +132,22 @@ func _ready() -> void:
 		return
 	game = ScreenController.currentScreen as GameScreen
 	if not await wait_for(func():
-		for slot in expected_slots:
-			if game._gameContext.playerInventory.GetSlot(slot).item.index != expected_slots[slot]:
+		for slot in range(30):
+			var stack: ItemStack = game._gameContext.playerInventory.GetSlot(slot)
+			var actual: Array = [stack.item.index, stack.quantity, stack.equipped] if stack.quantity > 0 else []
+			if actual != expected_slots.get(slot, []):
 				return false
+		if Array(game._gameInput.spell_list_panel._spell_ids) != expected_spells:
+			return false
+		if ClientInterface.capabilities.enabled != ClientCapabilities.REQUESTED:
+			return false
 		return not game._gameInput._consoleRichTextLabel.get_parsed_text().is_empty() and game._gameInput.minimap.texture != null,
-		"inventario, consola y minimapa tras reconectar"):
+		"objetos, cantidades, equipo, libro ordenado, consola y minimapa tras reconectar"):
 		return
+	print("INTEGRATION_WORLD: RECONNECT_STATE ", JSON.stringify({"inventory": expected_slots,
+		"spells": expected_spells, "hunger_before": hunger_before, "hunger_after": hunger_after,
+		"capabilities": ClientInterface.capabilities.enabled,
+		"exact_inventory_and_spell_order": true}))
 	ClientInterface.DisconnectFromHost()
 	print("INTEGRATION_WORLD: PASS seconds=", (Time.get_ticks_msec() - started) / 1000)
 	get_tree().quit(0)

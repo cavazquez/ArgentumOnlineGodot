@@ -39,7 +39,7 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(creation._classOptionButton.item_count == 12, "Se perdieron clases propias")
 	_check(creation._raceOptionButton.item_count == 5, "Se perdieron razas propias")
-	_check(creation._homeOptionButton.item_count > 0, "El selector de ciudades está vacío")
+	_check(creation._homeOptionButton.item_count == 6, "El selector debe conservar las seis ciudades propias")
 	var attributes: Array[int] = [18, 18, 18, 18, 18]
 	creation._HandleDiceRoll(attributes)
 	_check(creation._attributeContainer.get_child(0).text.contains("18"), "No se muestran los atributos")

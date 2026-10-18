@@ -2,6 +2,8 @@ extends PanelContainer
 class_name InventorySlot
 
 signal pressed
+signal activated
+var _drag_started := false
    
 var index:int = -1
   
@@ -20,8 +22,13 @@ func SetSelected(selected:bool) -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.pressed && event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+			_drag_started = false
 			accept_event()
 			pressed.emit()
+		elif not event.pressed && event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+			accept_event()
+			if not _drag_started and Rect2(Vector2.ZERO, size).has_point(event.position):
+				activated.emit()
 			
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
@@ -31,6 +38,7 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	var data = container.CreateDragData(index)
 	if data == null:
 		return null
+	_drag_started = true
 	var preview := TextureRect.new()
 	preview.texture = $Icon.texture
 	preview.custom_minimum_size = Vector2(32, 32)

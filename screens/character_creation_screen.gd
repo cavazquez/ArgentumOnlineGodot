@@ -26,7 +26,7 @@ func _Init() -> void:
 	for i in range(1, Consts.NumRazas + 1):
 		_raceOptionButton.add_item(Consts.RaceNames[i])
 		
-	for i in range(1, Consts.NumCiudades):
+	for i in range(1, Consts.NumCiudades + 1):
 		_homeOptionButton.add_item(Consts.HomeNames[i])
 		
 	_ThrowDice()

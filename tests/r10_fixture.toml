@@ -1,0 +1,60 @@
+# Datos exclusivos del Redis descartable. IDs del catálogo propio, sin renumerar.
+[player]
+level = 20
+gold = 10000
+max_hp = 2000
+min_hp = 1800
+max_mana = 5000
+min_mana = 4500
+max_sta = 1000
+min_sta = 1000
+experience = 0
+elu = 1000000
+
+[items]
+"1" = [38, 10] # poción roja
+"20" = [561, 1] # hacha de leñador
+"21" = [562, 1] # piquete minero
+"22" = [563, 1] # caña de pescar
+"23" = [197, 2] # pergamino de Flecha Mágica
+"25" = [37, 10] # poción azul
+"26" = [15, 1] # daga
+"27" = [659, 1] # bastón nudoso para invocar
+"30" = [1, 10] # manzanas
+
+[spells]
+"1" = 3 # curación
+"2" = 2 # dardo
+"3" = 33 # invocación
+"4" = 11 # resurrección
+
+[skills]
+magia = 100
+talar = 50
+mineria = 50
+pesca = 50
+liderazgo = 50
+
+[npcs]
+merchant = 7
+banker = 5
+combat = 500
+
+[[city]]
+home = 1
+map = 1
+[[city]]
+home = 2
+map = 34
+[[city]]
+home = 3
+map = 59
+[[city]]
+home = 4
+map = 62
+[[city]]
+home = 5
+map = 196
+[[city]]
+home = 6
+map = 151

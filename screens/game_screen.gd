@@ -468,6 +468,7 @@ func _HandleUpdateStrenght(p:UpdateStrenght) -> void:
 
 
 func _HandleUpdateGold(p:UpdateGold) -> void:
+	_gameContext.player_gold = p.gold
 	_gameInput.update_gold_label(p.gold)
 
 
