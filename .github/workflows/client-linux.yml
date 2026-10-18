@@ -106,15 +106,29 @@ jobs:
           enable-cache: false
       - run: uv python install 3.14
       - name: Instalar OpenGL software y Xvfb
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils squashfs-tools
       - uses: actions/download-artifact@v8
         with:
           name: pyao-client-snap-${{ github.event.pull_request.head.sha || github.sha }}
           path: build/snap-package
       - name: Instalar el Snap estricto y su proveedor gráfico en el runner descartable
+        env:
+          CLIENT_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           sudo snap install mesa-2404
-          sudo snap install build/snap-package/pyao-client_1.0.0rc1_amd64.snap --dangerous
+          source=artifact
+          mkdir -p "$RUNNER_TEMP/store-client"
+          if snap download pyao-client --channel=latest/edge --target-directory="$RUNNER_TEMP/store-client"; then
+            published_commit=$(unsquashfs -cat "$RUNNER_TEMP/store-client/"*.snap share/doc/pyao-client/provenance.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["commit"])')
+            if [ "$published_commit" = "$CLIENT_COMMIT" ]; then
+              sudo snap install pyao-client --edge
+              source=store
+            fi
+          fi
+          if [ "$source" = artifact ]; then
+            sudo snap install build/snap-package/pyao-client_1.0.0rc1_amd64.snap --dangerous
+          fi
+          echo "SNAP_INSTALL_SOURCE=$source" >> "$GITHUB_ENV"
           sudo snap connect pyao-client:gpu-2404 mesa-2404:gpu-2404
           snap connections pyao-client
       - name: Preparar audio aislado con un sink de prueba
@@ -134,7 +148,7 @@ jobs:
         run: |
           uv sync --project build/server-under-test --locked --group build
           uv build --project build/server-under-test --out-dir "$RUNNER_TEMP/pyao-wheel"
-          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/server-under-test --locked python tools/integration-world.py --server-project build/server-under-test --wheel "$RUNNER_TEMP/pyao-wheel/pyao_server-1.0.0rc1-py3-none-any.whl" --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --output build/integration --seconds 60 --snap-installed --snap-audio PulseAudio
+          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/server-under-test --locked python tools/integration-world.py --server-project build/server-under-test --wheel "$RUNNER_TEMP/pyao-wheel/pyao_server-1.0.0rc1-py3-none-any.whl" --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --output build/integration --seconds 60 --snap-installed --snap-audio PulseAudio --snap-source "$SNAP_INSTALL_SOURCE"
       - name: Verificar que una actualización local conserva preferencias
         run: |
           profile="$HOME/snap/pyao-client/common/data/godot/app_userdata/ArgentumOnlineGodot/connection.cfg"

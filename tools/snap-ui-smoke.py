@@ -82,12 +82,16 @@ def main():
     parser.add_argument("--ca", type=Path, required=True)
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--version", required=True)
+    parser.add_argument("--commit", required=True)
     parser.add_argument("--executable", type=Path, help="Sólo desarrollo local; no acredita confinamiento")
     args = parser.parse_args()
     if not args.executable:
         metadata = subprocess.check_output(["snap", "list", "pyao-client", "--unicode=never"], text=True)
         if metadata.splitlines()[1].split()[1] != args.version:
             raise RuntimeError("El Snap instalado no corresponde a la versión del servidor")
+        provenance = json.loads(Path("/snap/pyao-client/current/share/doc/pyao-client/provenance.json").read_text())
+        if provenance["commit"] != args.commit or provenance["dirty"]:
+            raise RuntimeError("La procedencia del Snap instalado no coincide con el commit probado")
         if not Path("/var/lib/snapd/desktop/applications/pyao-client_pyao-client.desktop").is_file():
             raise RuntimeError("Falta la integración del Snap en el menú de aplicaciones")
     output = args.output.resolve()

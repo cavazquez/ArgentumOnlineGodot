@@ -200,7 +200,7 @@ def worker(args):
                 PYAO_TEST_PASSWORD=password, PYAO_TEST_AUDIO=args.snap_audio)
             arguments = ["/usr/bin/python3", str(ROOT / "tools/snap-ui-smoke.py"),
                 "--port", str(endpoint), "--ca", str(certificate), "--output", str(ui_output),
-                "--version", args.release_version]
+                "--version", args.release_version, "--commit", args.client_commit]
             if args.ui_executable:
                 arguments += ["--executable", str(args.ui_executable)]
             with redis.client() as store, (output / "snap-ui-run.log").open("wb") as ui_log:
@@ -262,6 +262,7 @@ def worker(args):
         proof["live_tls_sessions_drained"] = 2
         proof["release_version"] = args.release_version
         proof["installed_snap_ui"] = args.snap_installed
+        proof["snap_install_source"] = args.snap_source if args.snap_installed else None
         (output / "result.json").write_text(json.dumps(proof, indent=2) + "\n")
         print(json.dumps(proof))
 
@@ -277,6 +278,7 @@ def main():
     parser.add_argument("--redis-runtime", type=Path)
     parser.add_argument("--snap-installed", action="store_true")
     parser.add_argument("--snap-audio", choices=("Dummy", "PulseAudio"), default="Dummy")
+    parser.add_argument("--snap-source", choices=("artifact", "store"), default="artifact")
     parser.add_argument("--ui-executable", type=Path, help="Desarrollo de UI fuera de Snap; no acredita instalación")
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -326,6 +328,7 @@ def main():
         if args.ui_executable:
             arguments += ["--ui-executable", str(args.ui_executable)]
         arguments += ["--snap-audio", args.snap_audio]
+        arguments += ["--snap-source", args.snap_source]
         child = subprocess.Popen(arguments, cwd=work, env=environment, start_new_session=True)
         try:
             if child.wait(timeout=args.seconds + 240) != 0:
