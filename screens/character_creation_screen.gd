@@ -46,16 +46,17 @@ func _OnDataReceivedd(data:PackedByteArray) -> void:
 				_HandleDiceRoll(stream.get_data(5)[1])
 			Enums.ServerPacketID.ErrorMsg:
 				Utils.ShowAlertDialog("Creacion de personajes", Utils.GetUnicodeString(stream), self)
-			_:
+			Enums.ServerPacketID.Logged:
 				_HandleLogged(data) 
 				return 
 				
 func _HandleLogged(data:PackedByteArray) -> void:
+	ClientInterface.dataReceived.disconnect(_OnDataReceivedd)
+	ClientInterface.disconnected.disconnect(_OnDisconnected)
 	var screen = load("uid://b2dyxo3826bub").instantiate() as GameScreen
 	screen.networkMessages.append(data)
 	
 	ScreenController.SwitchScreen(screen)
-	ClientInterface.dataReceived.disconnect(_OnDataReceivedd)  
 
 func _HandleDiceRoll(collection:Array[int]) -> void:
 	const names = ["Fuerza", "Agilidad", "Inteligencia", "Carisma", "Constitucion"]

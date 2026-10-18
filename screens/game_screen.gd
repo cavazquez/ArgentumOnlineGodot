@@ -158,8 +158,8 @@ func _HandleIncomingData(data:PackedByteArray) -> void:
 	var stream = StreamPeerBuffer.new()
 	stream.data_array = data
 	
-	while stream.get_position() < stream.get_size():
-		_HandleOnePacket(stream)
+	# ClientInterface entrega exactamente un paquete, ya reconstruido y validado.
+	_HandleOnePacket(stream)
 
 var pcg:Array[String] 
 
