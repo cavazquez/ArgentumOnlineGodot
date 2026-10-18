@@ -76,6 +76,8 @@ func _UpdateCameraPosition() -> void:
 		_camera.position = character.position
 
 func _CheckKeys() -> void:
+	if _gameInput.IsWorldInputBlocked():
+		return
 	if _gameContext.traveling || _gameContext.mirandoForo ||\
 		_gameContext.trading  || _gameContext.pause:
 		return
@@ -506,7 +508,6 @@ func _HandleCommerceEnd() -> void:
 	
 func _HandleBankInit(p:BankInit) -> void:
 	_gameInput.OpenBank()
-	_gameInput.SetBankGold(p.gold)
 
 func _HandleBankEnd() -> void:
 	_gameInput.CloseBank()

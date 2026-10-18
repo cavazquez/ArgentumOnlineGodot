@@ -98,34 +98,43 @@ func ShowConsoleMessage(message:String, fontData:FontData = FontData.new(Color.W
 		_consoleRichTextLabel.scroll_to_line(_consoleRichTextLabel.get_line_count() - 1)
 
 func OpenMerchant() -> void:
-	var merchantPanel = MerchantPanelScene.instantiate() as MerchantPanel
-	_currentPanel = merchantPanel
-	add_child(merchantPanel)
-	
-	merchantPanel.SetMerchantInventory(_gameContext.merchantInventory)
-	merchantPanel.SetPlayerInventory(_gameContext.playerInventory)
+	if is_instance_valid(_currentPanel):
+		return
+	var panel := MerchantPanelScene.instantiate() as MerchantPanel
+	_currentPanel = panel
+	add_child(panel)
+	panel.SetMerchantInventory(_gameContext.merchantInventory)
+	panel.SetPlayerInventory(_gameContext.playerInventory)
+	panel.finished.connect(CloseMerchant)
+	_RegisterModal(panel)
 	_gameContext.trading = true
-	
+	panel.popup_centered()
+
 func CloseMerchant() -> void:
-	if _currentPanel:
-		_currentPanel.queue_free()
-	
-	_gameContext.trading = false
-	
+	_CloseCurrentPanel()
+
 func OpenBank() -> void:
-	var bankPanel = BankPanelScene.instantiate() as BankPanel
-	_currentPanel = bankPanel
-	add_child(bankPanel)
-	
-	bankPanel.SetBankInventory(_gameContext.bankInventory)
-	bankPanel.SetPlayerInventory(_gameContext.playerInventory)
+	if is_instance_valid(_currentPanel):
+		return
+	var panel := BankPanelScene.instantiate() as BankPanel
+	_currentPanel = panel
+	add_child(panel)
+	panel.SetBankInventory(_gameContext.bankInventory)
+	panel.SetPlayerInventory(_gameContext.playerInventory)
+	panel.finished.connect(CloseBank)
 	_gameContext.trading = true
 
 func CloseBank() -> void:
-	if _currentPanel:
+	_CloseCurrentPanel()
+
+func _CloseCurrentPanel() -> void:
+	if is_instance_valid(_currentPanel):
 		_currentPanel.queue_free()
+	_currentPanel = null
 	_gameContext.trading = false
-	
+	get_viewport().gui_release_focus()
+	get_window().grab_focus()
+
 func SetBankGold(gold:int) -> void:
 	if _currentPanel && _currentPanel is BankPanel:
 		_currentPanel.SetBankGold(gold)
@@ -190,6 +199,8 @@ func _CameraTransformVector(vec:Vector2) -> Vector2:
 	return _camera.get_canvas_transform().affine_inverse() * vec
 
 func _HandleMouseInput(event:InputEventMouseButton) -> void:
+	if IsWorldInputBlocked():
+		return
 	var mouse_tile_position = Vector2i((_CameraTransformVector(event.position) / 32.0).ceil()) 
 	
 	if _gameContext.trading:
@@ -229,6 +240,8 @@ func _HandleMouseInput(event:InputEventMouseButton) -> void:
 	
 				  
 func _handle_key_event(event:InputEventKey) -> void: 
+	if IsWorldInputBlocked() or event.echo:
+		return
 	if event.is_action_pressed("EquipObject"):
 		_equip_object()
 	if event.is_action_pressed("UseObject"):
@@ -266,9 +279,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	
 	
 func _OnConsoleInputTextSubmitted(newText: String) -> void:
+	if not _VisibleModals().is_empty() or _gameContext.trading:
+		return
 	if newText.is_empty():
 		_consoleInputLineEdit.text = ""
 		_consoleInputLineEdit.visible = false
+		_consoleInputLineEdit.release_focus()
 		return
 	
 	if newText.begins_with("\\"):
@@ -297,6 +313,7 @@ func _OnConsoleInputTextSubmitted(newText: String) -> void:
 	# Limpiar y ocultar la consola después de enviar el mensaje
 	_consoleInputLineEdit.text = ""
 	_consoleInputLineEdit.visible = false
+	_consoleInputLineEdit.release_focus()
 
 func _equip_object() -> void:
 	if !_gameContext.player_stats.is_alive():
@@ -424,6 +441,8 @@ func _meditate() -> void:
 	GameProtocol.WriteMeditate()
 
 func _on_main_viewport_container_gui_input(event: InputEvent) -> void:
+	if IsWorldInputBlocked():
+		return
 	if event is InputEventMouseButton:
 		_HandleMouseInput(event)
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed and Input.is_key_pressed(KEY_SHIFT):
@@ -449,6 +468,7 @@ func _show_drop_panel(slot:int) -> void:
 	get_parent().add_child(drop_panel)
 	
 	drop_panel.slot = slot
+	_RegisterModal(drop_panel)
 	drop_panel.popup_centered()
 
 
@@ -468,12 +488,14 @@ func _on_btn_options_pressed() -> void:
 	if _options_window == null:
 		_options_window = OptionsWindowScene.instantiate()
 		add_child(_options_window)
+		_RegisterModal(_options_window)
 	_options_window.popup_centered()
 
 func _on_btn_skills_pressed() -> void:
 	if _skills_window == null:
 		_skills_window = SkillsWindowScene.instantiate()
 		add_child(_skills_window)
+		_RegisterModal(_skills_window)
 	# Establecer el flag para indicar que estamos esperando las habilidades
 	_waiting_for_skills_popup = true
 	# Solicitar las habilidades al servidor
@@ -489,12 +511,14 @@ func _on_btn_stadistics_pressed() -> void:
 	if _stats_window == null:
 		_stats_window = StatsWindowScene.instantiate()
 		add_child(_stats_window)
+		_RegisterModal(_stats_window)
 	_stats_window.popup_centered()
 
 func _on_btn_password_change_pressed() -> void:
 	if _password_change_window == null:
 		_password_change_window = PasswordChangeWindowScene.instantiate()
 		add_child(_password_change_window)
+		_RegisterModal(_password_change_window)
 	_password_change_window.show_window()
 
 var _waiting_for_skills_popup := false
@@ -506,6 +530,7 @@ func _show_skills_window(skills:Array) -> void:
 	if _skills_window == null:
 		_skills_window = SkillsWindowScene.instantiate()
 		add_child(_skills_window)
+		_RegisterModal(_skills_window)
 	_skills_window.set_skills(skills)
 	_skills_window.popup_centered()
 
@@ -513,6 +538,7 @@ func update_stats_attributes(attrs:Array) -> void:
 	if _stats_window == null:
 		_stats_window = StatsWindowScene.instantiate()
 		add_child(_stats_window)
+		_RegisterModal(_stats_window)
 	_stats_window.set_attributes(attrs)
 
 func update_stats_skills(skills:Array) -> void:
@@ -531,6 +557,7 @@ func show_password_change_window() -> void:
 	if _password_change_window == null:
 		_password_change_window = PasswordChangeWindowScene.instantiate()
 		add_child(_password_change_window)
+		_RegisterModal(_password_change_window)
 	_password_change_window.show_window(self)
 
 # Muestra la ventana de fundación de clan
@@ -539,6 +566,7 @@ func show_guild_foundation_window() -> void:
 		_guild_foundation_window = GuildFoundationWindowScene.instantiate()
 		_guild_foundation_window.form_submitted.connect(_on_guild_foundation_submitted)
 		add_child(_guild_foundation_window)
+		_RegisterModal(_guild_foundation_window)
 	_guild_foundation_window.show_window()
 
 # Maneja el envío del formulario de fundación de clan
@@ -560,20 +588,53 @@ func _on_guild_foundation_submitted(clan_name: String, clan_abbreviation: String
 	
 	ShowConsoleMessage("¡Solicitud de fundación de clan enviada al consejo real!", GameAssets.FontDataList[Enums.FontTypeNames.FontType_Info])
 
-func _unhandled_input(event: InputEvent) -> void:
-	# Si la consola está visible y se presiona ESC, la cerramos
-	if event is InputEventKey and event.pressed and !event.echo and event.keycode == KEY_ESCAPE:
-		if _consoleInputLineEdit.visible:
-			# Marcar el evento como manejado para evitar que se propague
-			get_viewport().set_input_as_handled()
-			# Limpiar y ocultar la consola
-			_consoleInputLineEdit.text = ""
-			_consoleInputLineEdit.visible = false
-			# Quitar el foco para evitar que el LineEdit capture el siguiente evento
-			_consoleInputLineEdit.release_focus()
-			# Forzar la actualización del foco
-			get_viewport().gui_release_focus()
+func _VisibleModals() -> Array[Window]:
+	var result: Array[Window] = []
+	for node in get_parent().find_children("*", "Window", true, false):
+		if node.visible and not node.is_queued_for_deletion():
+			result.append(node)
+	return result
 
+func _RegisterModal(window: Window) -> void:
+	var router := ModalInputRouter.new()
+	router.route = RouteEscape
+	window.add_child(router)
+
+func IsWorldInputBlocked() -> bool:
+	if _gameContext == null:
+		return true
+	var focus := get_viewport().gui_get_focus_owner()
+	return _gameContext.trading or _consoleInputLineEdit.visible or focus is LineEdit or focus is TextEdit or not _VisibleModals().is_empty()
+
+func RouteEscape() -> void:
+	if _gameContext.usingSkill != 0:
+		_restore_default_cursor()
+		return
+	var modals := _VisibleModals()
+	if not modals.is_empty():
+		var top := modals.back() as Window
+		for modal in modals:
+			if modal.has_focus():
+				top = modal
+		if top.has_method("RequestClose"):
+			top.RequestClose()
+		else:
+			top.close_requested.emit()
+		return
+	if is_instance_valid(_currentPanel) and _currentPanel.has_method("RequestClose"):
+		_currentPanel.RequestClose()
+		return
+	if _consoleInputLineEdit.visible:
+		_consoleInputLineEdit.text = ""
+		_consoleInputLineEdit.hide()
+		get_viewport().gui_release_focus()
+		return
+	_on_btn_options_pressed()
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		RouteEscape()
+		get_viewport().set_input_as_handled()
 
 func _on_console_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
