@@ -334,6 +334,16 @@ static func WriteCastSpell(slot:int) -> void:
 	_writer.put_u8(Enums.ClientPacketID.CastSpell) 
 	_writer.put_u8(slot) 
 	
+static func WriteCastTarget(slot: int, tile: Vector2i) -> bool:
+	if not _can_write(253) or slot < 1 or slot > Consts.MaxUserHechizos or tile.x < 1 or tile.x > 100 or tile.y < 1 or tile.y > 100:
+		return false
+	_writer.put_u8(253)
+	_writer.put_u8(1)
+	_writer.put_u8(slot)
+	_writer.put_16(tile.x)
+	_writer.put_16(tile.y)
+	return true
+
 static func WriteMoveSpell(downwards: bool, slot: int) -> bool:
 	if not _can_write(Enums.ClientPacketID.MoveSpell) or slot < 1 or slot > Consts.MaxUserHechizos:
 		return false

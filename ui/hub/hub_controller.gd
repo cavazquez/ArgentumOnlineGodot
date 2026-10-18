@@ -1,15 +1,39 @@
 extends CanvasLayer
 class_name HubController
 
+var _target_spell_slot := 0
+
 # Función para restaurar el cursor al predeterminado
 func _restore_default_cursor() -> void:
-	if _gameContext.usingSkill != 0:
-		Input.set_custom_mouse_cursor(null)
-		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
-		print("Cursor restaurado al predeterminado")
-		
-		# Resetear el estado de la habilidad en uso
+	_target_spell_slot = 0
+	Input.set_custom_mouse_cursor(null)
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	if _gameContext != null:
 		_gameContext.usingSkill = 0
+
+func BeginSpellTarget(slot: int) -> void:
+	if slot < 1 or slot > Consts.MaxUserHechizos or _gameContext.player_stats.hp <= 0:
+		return
+	if not ClientInterface.capabilities.has_feature(ClientCapabilities.TARGETED_CAST):
+		ShowConsoleMessage("El servidor no admite selección de objetivos de magia.")
+		return
+	_restore_default_cursor()
+	_target_spell_slot = slot
+	_gameContext.usingSkill = Enums.Skill.Magia
+	get_viewport().gui_release_focus()
+	Input.set_default_cursor_shape(Input.CURSOR_CROSS)
+	ShowConsoleMessage("Elegí un objetivo. Escape o clic derecho para cancelar.")
+
+func TargetTile(viewport_position: Vector2) -> Vector2i:
+	var container := $MainViewportContainer as SubViewportContainer
+	if not Rect2(Vector2.ZERO, container.size).has_point(viewport_position):
+		return Vector2i.ZERO
+	var viewport := $MainViewportContainer/Viewport as SubViewport
+	var local := viewport_position * Vector2(viewport.size) / container.size
+	var point := _CameraTransformVector(local)
+	var tile := Vector2i((point / 32.0).floor()) + Vector2i.ONE
+	return tile if tile.x >= 1 and tile.x <= 100 and tile.y >= 1 and tile.y <= 100 else Vector2i.ZERO
+
 
 const MerchantPanelScene = preload("uid://b5q8b0u4jmm2b")
 const BankPanelScene = preload("uid://c4skiho4j6vjn") 
@@ -75,6 +99,8 @@ func _ready() -> void:
 
 func Init(gameContext:GameContext) -> void:
 	_gameContext = gameContext
+	spell_list_panel.target_requested.connect(BeginSpellTarget)
+	ClientInterface.disconnected.connect(_restore_default_cursor)
 	_inventoryContainer.allow_reorder = true
 	_inventoryContainer.SetInventory(_gameContext.playerInventory)
 	_inventoryContainer.slotPressed.connect(func(_v): 
@@ -204,6 +230,12 @@ func _CameraTransformVector(vec:Vector2) -> Vector2:
 
 func _HandleMouseInput(event:InputEventMouseButton) -> void:
 	if IsWorldInputBlocked():
+		return
+	if _target_spell_slot != 0:
+		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			var tile := TargetTile(event.position)
+			if tile != Vector2i.ZERO and GameProtocol.WriteCastTarget(_target_spell_slot, tile):
+				_restore_default_cursor()
 		return
 	var mouse_tile_position = Vector2i((_CameraTransformVector(event.position) / 32.0).ceil()) 
 	
@@ -652,6 +684,10 @@ func RouteEscape() -> void:
 	_on_btn_options_pressed()
 
 func _input(event: InputEvent) -> void:
+	if _target_spell_slot != 0 and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		_restore_default_cursor()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		RouteEscape()
 		get_viewport().set_input_as_handled()

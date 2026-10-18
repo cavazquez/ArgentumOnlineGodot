@@ -605,6 +605,8 @@ func _HandleCharacterChange(p:CharacterChange) -> void:
 func _HandleUpdateHP(p:UpdateHP) -> void:
 	_gameInput.health_stat_bar.value = p.hp
 	_gameContext.player_stats.hp = p.hp
+	if p.hp <= 0:
+		_gameInput._restore_default_cursor()
 
 
 func _HandleCharacterRemove(p:CharacterRemove) -> void:
@@ -703,6 +705,8 @@ func _HandleUpdateUserStats(p:UpdateUserStats) -> void:
 	
 	_gameContext.player_stats.max_hp = p.maxHp
 	_gameContext.player_stats.hp = p.minHp
+	if p.minHp <= 0:
+		_gameInput._restore_default_cursor()
 	
 	_gameInput.mana_stat_bar.max_value = p.maxMana
 	_gameInput.mana_stat_bar.value = p.minMana
@@ -808,6 +812,7 @@ func _HandlePlayWave(p:PlayWave) -> void:
 
 
 func _HandleChangeMap(p:ChangeMap) -> void:
+	_gameInput._restore_default_cursor()
 	_gameWorld.SwitchMap(p.mapId)
 	_gameContext.player_map = p.mapId
 	_gameInput.minimap.load_thumbnail(p.mapId)
@@ -963,4 +968,4 @@ func _OnPingTimerTimeout() -> void:
 	_gameContext.pingTime = Time.get_ticks_msec()
 
 func _OnSerializationFailed(message: String) -> void:
-	_gameInput.ShowConsoleMessage(message, GameAssets.FontDataList[Enums.FontTypeNames.FontType_Warning])
+	_gameInput.ShowConsoleMessage(message, GameAssets.FontDataList[Enums.FontTypeNames.FontType_Warning] if GameAssets.FontDataList.size() > Enums.FontTypeNames.FontType_Warning else FontData.new(Color.YELLOW))
