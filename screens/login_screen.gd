@@ -27,6 +27,7 @@ func _ready() -> void:
 	
 func _OnConnected() -> void:
 	if _state == State.NewPj:
+		_DetachNetwork()
 		var screen = load("uid://bp35uafwebjdb").instantiate()
 		ScreenController.SwitchScreen(screen)
 	elif _state == State.Login:
@@ -66,7 +67,7 @@ func _OnDataReceived(data:PackedByteArray) -> void:
 		match packetId:
 			Enums.ServerPacketID.ErrorMsg:
 				_HandleErrorMsg(Utils.GetUnicodeString(stream))
-			_:
+			Enums.ServerPacketID.Logged:
 				_HandleLogged(data)
 				return
 
@@ -75,6 +76,7 @@ func _HandleErrorMsg(message:String) -> void:
 	ClientInterface.DisconnectFromHost()
 
 func _HandleLogged(data:PackedByteArray) -> void:
+	_DetachNetwork()
 	var screen = load("uid://b2dyxo3826bub").instantiate() as GameScreen
 	screen.networkMessages.append(data)
 	
@@ -104,3 +106,8 @@ func _ConnectToHost(state: State) -> void:
 
 func _Flush() -> void:
 	ClientInterface.Send(GameProtocol.Flush());
+
+func _DetachNetwork() -> void:
+	for pair in [[ClientInterface.connected, _OnConnected], [ClientInterface.disconnected, _OnDisconnected], [ClientInterface.dataReceived, _OnDataReceived], [ClientInterface.connection_failed, _OnConnectionFailed]]:
+		if pair[0].is_connected(pair[1]):
+			pair[0].disconnect(pair[1])

@@ -63,7 +63,7 @@ async def run() -> None:
                     while data := await reader.read(65536):
                         captured[case].extend(data)
                         if case != "stall":
-                            writer.write(data)
+                            writer.write(b"\x58")
                             await writer.drain()
                 except (ConnectionError, ssl.SSLError):
                     pass
@@ -112,6 +112,8 @@ async def run() -> None:
                         raise RuntimeError("Se enviaron credenciales antes de verificar el certificado")
                     if case in ["stall", "cancel", "ui"] and CANARY in captured["stall"][before["stall"]:]:
                         raise RuntimeError("Se enviaron credenciales durante el handshake")
+                    if case in ["valid", "tcp"] and CANARY not in captured[case][before[case]:]:
+                        raise RuntimeError("Las credenciales sintéticas no llegaron al endpoint validado")
                     print(f"TLS_SMOKE: {case} PASS")
             finally:
                 for client in clients:

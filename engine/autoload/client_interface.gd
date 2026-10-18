@@ -14,12 +14,16 @@ var _state := State.DISCONNECTED
 var _use_tls := true
 var _hostname := ""
 var _deadline_msec := 0
+var _framer := AOPacketFramer.new()
+var _generation := 0
 var _trusted_ca: X509Certificate
 
 func _ready() -> void:
 	set_process(false)
 
 func _reset() -> void:
+	_generation += 1
+	_framer.clear()
 	set_process(false)
 	if _tls != null:
 		_tls.disconnect_from_stream()
@@ -119,4 +123,16 @@ func _process(_delta: float) -> void:
 		if response[0] != OK:
 			_fail("No se pudieron recibir datos del servidor")
 			return
-		dataReceived.emit(response[1])
+		_AcceptIncomingData(response[1])
+
+func _AcceptIncomingData(data: PackedByteArray) -> void:
+	var generation := _generation
+	var packets := _framer.feed(data)
+	if not _framer.error.is_empty():
+		_fail("Protocolo inválido: " + _framer.error)
+		return
+	for packet in packets:
+		dataReceived.emit(packet)
+		# Una devolución puede desconectar o comenzar otro intento.
+		if generation != _generation:
+			return
