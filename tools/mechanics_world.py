@@ -83,7 +83,8 @@ class MechanicsWorld(R10World):
         )
 
     def run(self, locations):
-        self.deadline = time.monotonic() + 900
+        # Cada hechizo reinicia dos sesiones reales; los 45 casos superan 15 min en CI.
+        self.deadline = time.monotonic() + 1800
         self.wait(
             lambda: all(
                 "INTEGRATION_WORLD: READY"

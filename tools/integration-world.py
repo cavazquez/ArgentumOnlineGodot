@@ -26,6 +26,7 @@ import tomllib
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+SCENARIO_TIMEOUT_SECONDS = {"r10": 900, "skills": 1800, "spells": 1800}
 
 
 def verify_wheel_source(project, wheel):
@@ -437,7 +438,8 @@ def worker(args):
                 raise RuntimeError("Falló un cliente Godot; revisar logs")
             if (
                 server.poll() is not None
-                or time.monotonic() - started > args.seconds + 900
+                or time.monotonic() - started
+                > args.seconds + SCENARIO_TIMEOUT_SECONDS[args.scenario]
             ):
                 raise TimeoutError("Proceso perdido o plazo total agotado")
             time.sleep(1)
@@ -857,7 +859,9 @@ def main():
             arguments, cwd=work, env=environment, start_new_session=True
         )
         try:
-            if child.wait(timeout=args.seconds + 1020) != 0:
+            if child.wait(
+                timeout=args.seconds + SCENARIO_TIMEOUT_SECONDS[args.scenario] + 120
+            ) != 0:
                 raise RuntimeError(
                     "Falló el ensayo instalado; revisar los logs conservados"
                 )
