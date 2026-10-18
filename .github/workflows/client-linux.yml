@@ -85,3 +85,65 @@ jobs:
             snap/pyao-source.json
           if-no-files-found: warn
           retention-days: 7
+
+  integration-world:
+    needs: package-snap
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/checkout@v6
+        with:
+          repository: cavazquez/pyao-server
+          ref: 40e6bf3028d78c796e17cb99db21455c644525f4
+          path: build/server-under-test
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.1"
+          enable-cache: false
+      - run: uv python install 3.14
+      - name: Instalar OpenGL software y Xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils
+      - uses: actions/download-artifact@v8
+        with:
+          name: pyao-client-snap-${{ github.event.pull_request.head.sha || github.sha }}
+          path: build/snap-package
+      - name: Instalar el Snap estricto y su proveedor gráfico en el runner descartable
+        run: |
+          sudo snap install mesa-2404
+          sudo snap install build/snap-package/pyao-client_1.0.0rc1_amd64.snap --dangerous
+          sudo snap connect pyao-client:gpu-2404 mesa-2404:gpu-2404
+          snap connections pyao-client
+      - name: Preparar audio aislado con un sink de prueba
+        run: |
+          sudo install -d -m 700 -o "$(id -u)" -g "$(id -g)" "/run/user/$(id -u)"
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=pyao_test
+          echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
+      - name: Instalar Godot fijado e importar el cliente
+        run: |
+          python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
+          GODOT_BIN="$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" tools/smoke-godot.sh
+      - name: Construir e instalar el servidor y recorrer dos clientes reales
+        env:
+          UV_PYTHON: "3.14"
+        run: |
+          uv sync --project build/server-under-test --locked --group build
+          uv build --project build/server-under-test --out-dir "$RUNNER_TEMP/pyao-wheel"
+          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/server-under-test --locked python tools/integration-world.py --server-project build/server-under-test --wheel "$RUNNER_TEMP/pyao-wheel/pyao_server-1.0.0rc1-py3-none-any.whl" --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --output build/integration --seconds 60 --snap-installed --snap-audio PulseAudio
+      - name: Verificar que una actualización local conserva preferencias
+        run: |
+          profile="$HOME/snap/pyao-client/common/data/godot/app_userdata/ArgentumOnlineGodot/connection.cfg"
+          sha256sum "$profile" > "$RUNNER_TEMP/pyao-preferences.sha256"
+          sudo snap refresh build/snap-package/pyao-client_1.0.0rc1_amd64.snap --dangerous
+          sha256sum -c "$RUNNER_TEMP/pyao-preferences.sha256"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: godot-world-integration
+          path: build/integration/
+          retention-days: 7
