@@ -168,6 +168,13 @@ var pcg:Array[String]
 
 func _HandleOnePacket(stream:StreamPeerBuffer) -> void:
 	var packetId = stream.get_u8()
+	if packetId == 254:
+		var allocation := SkillAllocationState.new(stream)
+		if not allocation.valid:
+			ClientInterface._fail("Asignación de habilidades inválida")
+			return
+		_gameInput.ApplySkillAllocation(allocation)
+		return
 	if packetId == 252:
 		var trade := TradeSnapshot.new(stream)
 		if not trade.valid:

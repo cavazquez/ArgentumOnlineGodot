@@ -701,3 +701,10 @@ func OpenClanDetails() -> void:
 func ApplyClanDetails(values: Dictionary) -> void:
 	if is_instance_valid(_clan_details_window):
 		_clan_details_window.ApplyDetails(values)
+
+func ApplySkillAllocation(state: SkillAllocationState) -> void:
+	Global.skillPoints = state.free_points
+	_show_skills_window(state.skills)
+	if is_instance_valid(_skills_window):
+		_skills_window.ApplyAllocationState(state)
+	update_stats_skills(state.skills)
