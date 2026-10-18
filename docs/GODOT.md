@@ -48,7 +48,7 @@ La exportación se validó con OpenGL. En un entorno sin pantalla, usar Xvfb:
 LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a "$GODOT_BIN" --path . --rendering-method gl_compatibility --export-release "Linux Desktop" build/pyao-client.x86_64
 ```
 
-Al exportar este proyecto desde una copia limpia con `--headless`, el renderizador dummy produjo errores `Image width specified (0 pixels)` después de empaquetar. La ruta anterior con OpenGL evita esos errores y es la que debe reproducir la CI de #11. La importación y el recorrido de escenas sí pasan en headless.
+En una copia limpia, el renderizador dummy deja recursos del editor sin inicializar y la primera exportación puede producir tres errores `Image width specified (0 pixels)` al salir, aun después de empaquetar correctamente. `tools/export-linux.sh` abre primero el editor durante 60 frames con OpenGL software y audio Dummy, verifica que no haya errores y después exporta. Esta secuencia se comprobó con caché fría y es la que reproduce la CI. La importación y el recorrido de escenas sí pasan en headless. Ejecutar `tools/smoke-godot.sh` antes del export para generar y comprobar los imports.
 
 El preset incluye mapas, gráficos, sonidos, recursos y los índices binarios/INI leídos mediante `FileAccess`; el PCK queda embebido. No requiere paquetes externos `index.pck`, `graphics.pck`, `sounds.pck` ni `maps.pck`: el arranque puede informar que no están presentes y cargar los recursos propios incorporados. Los directorios `Tools/`, `tools/` y `tests/` se excluyen del producto. Se corrigió también el filtro del preset Windows existente; su ejecución nativa no forma parte de esta validación Linux.
 
