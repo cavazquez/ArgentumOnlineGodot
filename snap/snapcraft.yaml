@@ -24,8 +24,8 @@ parts:
   client:
     plugin: nil
     source: .
-    build-packages: [python3, git, xvfb, xauth, libfontconfig1, libxkbcommon0, libasound2t64, libpulse0, libgl1-mesa-dri, libvulkan1, mesa-vulkan-drivers]
-    stage-packages: [libx11-6, libxcursor1, libxinerama1, libxrandr2, libxi6, libxrender1, libfontconfig1, libasound2t64, libpulse0, libudev1, ca-certificates, xdg-utils]
+    build-packages: [python3, git, xvfb, xauth, libx11-6, libxcursor1, libxinerama1, libxrandr2, libxi6, libxrender1, libfontconfig1, libxkbcommon0, libasound2t64, libpulse0, libgl1, libegl1, libgl1-mesa-dri, libvulkan1, mesa-vulkan-drivers]
+    stage-packages: [libxkbcommon0, libx11-6, libxcursor1, libxinerama1, libxrandr2, libxi6, libxrender1, libfontconfig1, libasound2t64, libpulse0, libudev1, ca-certificates, xdg-utils]
     override-build: |
       set -eu
       cd "$CRAFT_PART_SRC"
