@@ -44,4 +44,5 @@ parts:
       printf '%s\n' "$source_sha" > "$CRAFT_PART_INSTALL/share/doc/pyao-client/source-commit"
       cp "$CRAFT_PROJECT_DIR/snap/pyao-source.json" "$CRAFT_PART_INSTALL/share/doc/pyao-client/provenance.json"
       cp tools/godot-release.json "$CRAFT_PART_INSTALL/share/doc/pyao-client/godot-release.json"
-      craftctl set version="1.0-dev.g$(printf %.12s "$source_sha")"
+      release_version=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$CRAFT_PROJECT_DIR/snap/pyao-source.json")
+      craftctl set version="$release_version"

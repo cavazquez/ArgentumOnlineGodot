@@ -11,6 +11,7 @@ enum State {
 var _state:State
 
 func _ready() -> void:
+	DisplayServer.window_set_title("PyAO Client " + str(ProjectSettings.get_setting("application/config/version", "unknown")))
 	ClientInterface.connected.connect(_OnConnected)
 	ClientInterface.disconnected.connect(_OnDisconnected)
 	ClientInterface.dataReceived.connect(_OnDataReceived)
