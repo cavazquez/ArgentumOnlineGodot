@@ -50,6 +50,7 @@ func _ready() -> void:
 		check(update.slot == slot and update.name == "Poción", "Reader inventario incompatible")
 		check(reader.get_available_bytes() == 0, "Reader inventario dejó bytes pendientes")
 	_verify_text_policy()
+	_verify_capabilities()
 	_verify_inventory()
 	_verify_screen_handoff()
 	print("PROTOCOL_SMOKE: ", "FAIL" if failed else "PASS")
@@ -170,3 +171,56 @@ func _verify_text_policy() -> void:
 	check(counts.serialization > 0, "Los errores locales no se comunican a la UI")
 	ClientInterface.serialization_failed.disconnect(rejected)
 	panel.free()
+
+func _verify_capabilities() -> void:
+	var legacy := ClientCapabilities.new()
+	var extended := ClientCapabilities.new()
+	check(legacy.enabled == 0, "Se habilitaron funciones sin negociar")
+	var request := extended.begin()
+	check(request == PackedByteArray([250, 1, 255, 0, 0, 0]), "Solicitud de capacidades fuera del contrato")
+	check(extended.accept(PackedByteArray([250, 1, 1, 0, 0, 0])), "Respuesta válida rechazada")
+	check(extended.has_feature(ClientCapabilities.SKILLS_CATALOG) and legacy.enabled == 0, "Se mezclaron capacidades entre conexiones")
+	extended.clear()
+	check(extended.enabled == 0, "Reconexión conserva capacidades")
+	extended.begin()
+	extended._deadline_msec = 0
+	check(not extended.accept(PackedByteArray([250, 1, 255, 0, 0, 0])) and extended.enabled == 0, "Respuesta tardía elevó funciones")
+	for response in [PackedByteArray([250, 2, 1, 0, 0, 0]), PackedByteArray([250, 1, 0, 0, 16, 0]), PackedByteArray([250, 1, 255, 255, 255, 255])]:
+		extended.begin()
+		check(not extended.accept(response) and extended.enabled == 0, "Respuesta inválida elevó funciones")
+	for id in [28, 69, 72, 93, 41, 43, 129]:
+		check(legacy.can_send(id), "Se bloqueó una función propia soportada: " + str(id))
+	for id in [29, 31, 32, 38, 39, 46, 107, 124]:
+		check(not legacy.can_send(id), "Una función sin backend está habilitada: " + str(id))
+	GameProtocol.Clear()
+	GameProtocol.write_invisible()
+	GameProtocol.WriteTrainList()
+	GameProtocol.WriteChangePassword("secret", "secret2")
+	GameProtocol.WriteModifySkills([1])
+	check(GameProtocol.IsEmpty(), "Writer sin backend produjo bytes")
+	GameProtocol.WriteWarpChar("YO", 1, 50, 50)
+	check(GameProtocol.Flush() == PackedByteArray([122, 11, 2, 0, 89, 79, 1, 0, 50, 50]), "Se bloqueó el subcomando GM propio soportado")
+	var password_window = load("res://ui/hub/password_change_window.tscn").instantiate()
+	add_child(password_window)
+	password_window.current_password_input.text = "secret"
+	password_window.new_password_input.text = "secret2"
+	password_window.confirm_password_input.text = "secret2"
+	password_window._validate_fields()
+	check(password_window.accept_button.disabled and not password_window.error_label.text.is_empty(), "Cambio de contraseña no explica la indisponibilidad")
+	password_window._on_accept_pressed()
+	check(GameProtocol.IsEmpty(), "La ventana envió un cambio no soportado")
+	password_window.free()
+	var previous_points = Global.skillPoints
+	Global.skillPoints = 5
+	var skills_window = load("res://ui/hub/skills_window.tscn").instantiate()
+	add_child(skills_window)
+	var skills: Array = []
+	for index in 20:
+		skills.append({"level": 0})
+	skills_window.set_skills(skills)
+	skills_window._on_plus_pressed(0)
+	skills_window._on_accept_pressed()
+	check(skills_window.skill_values[0] == 0 and Global.skillPoints == 5, "La ventana aplicó puntos sin backend")
+	check(skills_window.accept_button.disabled and GameProtocol.IsEmpty(), "La ventana de skills permite una asignación sin backend")
+	skills_window.free()
+	Global.skillPoints = previous_points

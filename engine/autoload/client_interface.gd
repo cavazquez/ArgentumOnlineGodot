@@ -4,6 +4,7 @@ signal connected
 signal disconnected
 signal connection_failed(message: String)
 signal serialization_failed(message: String)
+signal capabilities_changed
 signal dataReceived(data: PackedByteArray)
 
 enum State { DISCONNECTED, CONNECTING, TLS_HANDSHAKING, CONNECTED }
@@ -15,6 +16,8 @@ var _state := State.DISCONNECTED
 var _use_tls := true
 var _hostname := ""
 var _deadline_msec := 0
+var capabilities := ClientCapabilities.new()
+var _logged := false
 var _framer := AOPacketFramer.new()
 var _generation := 0
 var _trusted_ca: X509Certificate
@@ -25,6 +28,8 @@ func _ready() -> void:
 func _reset() -> void:
 	_generation += 1
 	_framer.clear()
+	capabilities.clear()
+	_logged = false
 	set_process(false)
 	if _tls != null:
 		_tls.disconnect_from_stream()
@@ -83,6 +88,8 @@ func _mark_connected() -> void:
 	connected.emit()
 
 func _process(_delta: float) -> void:
+	if capabilities.expire():
+		capabilities_changed.emit()
 	if _state != State.CONNECTED and Time.get_ticks_msec() >= _deadline_msec:
 		_fail("Se agotó el tiempo de conexión o verificación TLS")
 		return
@@ -133,7 +140,16 @@ func _AcceptIncomingData(data: PackedByteArray) -> void:
 		_fail("Protocolo inválido: " + _framer.error)
 		return
 	for packet in packets:
+		if packet[0] == ClientCapabilities.PACKET_ID:
+			capabilities.accept(packet)
+			capabilities_changed.emit()
+			continue
 		dataReceived.emit(packet)
 		# Una devolución puede desconectar o comenzar otro intento.
 		if generation != _generation:
 			return
+		if packet[0] == 0 and not _logged:
+			_logged = true
+			# Opt-in exclusivamente después de Logged; nunca antecede al login pyao.
+			if IsConnected():
+				Send(capabilities.begin())
