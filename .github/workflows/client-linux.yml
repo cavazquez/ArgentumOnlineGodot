@@ -102,7 +102,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: cavazquez/pyao-server
-          ref: 12a31b8ffabba35020897705aab9d4ac69fb4036
+          ref: 98d7049ebe437ec1283e22efea4931f894b1b31d
           path: build/server-under-test
       - uses: astral-sh/setup-uv@v7
         with:
