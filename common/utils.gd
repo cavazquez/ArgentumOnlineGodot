@@ -70,35 +70,33 @@ static func GetNickColor(nickColor:int, privileges:int) -> Color:
 		return GameAssets.GetNickColor(privileges) 
 
 static func GetUnicodeString(stream:StreamPeer) -> String:
-	var size = stream.get_16()
+	var size = stream.get_u16()
 	if size > 0:
 		var data:PackedByteArray = stream.get_data(size)[1]
 		return data.get_string_from_ascii() 
 	return ""
 	
-static func Utf8ToLatin1(text:String) -> PackedByteArray:
-	var latin1_bytes = PackedByteArray()
-	
-	for c in text:
-		var code = c.unicode_at(0)
-		
-		# Latin-1 solo admite caracteres entre 0-255
-		if code <= 255:
-			latin1_bytes.append(code)
-		else:
-			# Reemplazar caracteres fuera de Latin-1 con '?'
-			latin1_bytes.append(63)  # 63 = '?'
+static func CanEncodeLatin1(text: String) -> bool:
+	for index in text.length():
+		if text.unicode_at(index) > 255:
+			return false
+	return true
 
+static func Utf8ToLatin1(text:String) -> PackedByteArray:
+	if not CanEncodeLatin1(text):
+		return PackedByteArray()
+	var latin1_bytes := PackedByteArray()
+	for index in text.length():
+		latin1_bytes.append(text.unicode_at(index))
 	return latin1_bytes
-	
-static func PutUnicodeString(stream:StreamPeer, text:String) -> void:
-	if text.length() == 0:
-		stream.put_16(0)
-		return
-	
-	var data = Utf8ToLatin1(text)
-	stream.put_16(data.size())
+
+static func PutUnicodeString(stream:StreamPeer, text:String) -> bool:
+	if not CanEncodeLatin1(text) or text.length() > 65535:
+		return false
+	var data := Utf8ToLatin1(text)
+	stream.put_u16(data.size())
 	stream.put_data(data)
+	return true
 
 static func IsEmailValid(email:String) -> bool:
 	var regex = RegEx.new();

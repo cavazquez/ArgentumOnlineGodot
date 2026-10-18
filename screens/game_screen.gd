@@ -28,7 +28,8 @@ var _input:Dictionary[String, int] = {
  
 func _ready() -> void: 
 	ClientInterface.disconnected.connect(_OnDisconnected)
-	ClientInterface.dataReceived.connect(_OnDataReceived) 
+	ClientInterface.dataReceived.connect(_OnDataReceived)
+	ClientInterface.serialization_failed.connect(_OnSerializationFailed) 
 	
 	_gameInput.Init(_gameContext)
 	_gameInput.update_name_label(Global.username)
@@ -778,6 +779,8 @@ func _HandleChangeSpellSlot(p:ChangeSpellSlot) -> void:
 
 
 func _HandleChangeInventorySlot(p:ChangeInventorySlot) -> void:
+	if p.slot < 1 or p.slot > _gameContext.playerInventory.GetSize():
+		return
 	var item = Item.new()
 	item.index = p.index
 	item.name = p.name
@@ -792,7 +795,7 @@ func _HandleChangeInventorySlot(p:ChangeInventorySlot) -> void:
 		item.icon = GameAssets.GetTexture(GameAssets.GrhDataList[p.grhId].fileId)
 	
 	var itemStack = ItemStack.new(p.amount, p.equipped, item)
-	_gameContext.playerInventory.SetSlot(p.slot -1, itemStack)
+	_gameContext.playerInventory.SetProtocolSlot(p.slot, itemStack)
 	_gameInput.update_equipment_label(p.slot - 1, itemStack)
 
 func _HandleMultiMessage(p:MultiMessage) -> void:
@@ -919,3 +922,6 @@ func _OnPingTimerTimeout() -> void:
 	GameProtocol.WritePing()
 	_FlushData()
 	_gameContext.pingTime = Time.get_ticks_msec()
+
+func _OnSerializationFailed(message: String) -> void:
+	_gameInput.ShowConsoleMessage(message, GameAssets.FontDataList[Enums.FontTypeNames.FontType_Warning])

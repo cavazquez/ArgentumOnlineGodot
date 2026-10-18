@@ -49,6 +49,8 @@ func _ready() -> void:
 		var update := ChangeInventorySlot.new(reader)
 		check(update.slot == slot and update.name == "Poción", "Reader inventario incompatible")
 		check(reader.get_available_bytes() == 0, "Reader inventario dejó bytes pendientes")
+	_verify_text_policy()
+	_verify_inventory()
 	_verify_screen_handoff()
 	print("PROTOCOL_SMOKE: ", "FAIL" if failed else "PASS")
 	get_tree().quit(1 if failed else 0)
@@ -97,3 +99,74 @@ func _verify_screen_handoff() -> void:
 	game.free()
 	ScreenController.currentScreen = null
 	ClientInterface._reset()
+
+func _verify_inventory() -> void:
+	var inventory := Inventory.new(Consts.MaxInventorySlots)
+	var grid = load("res://ui/hub/inventory_container.tscn").instantiate()
+	add_child(grid)
+	grid.SetInventory(inventory)
+	check(grid.get_child_count() == 30, "La grilla trunca los slots 26–30")
+	for slot in [1, 25, 26, 30]:
+		var item := Item.new()
+		item.name = "Objeto " + str(slot)
+		var stack := ItemStack.new(slot, true, item)
+		check(inventory.SetProtocolSlot(slot, stack), "Se rechazó slot válido")
+		grid._InventorySlotOnPressed(slot - 1)
+		check(grid.GetSelectedSlot() == slot - 1 and grid.GetInventorySlot(slot - 1) != null, "Slot alto no seleccionable")
+		check(inventory.GetSlot(slot - 1).quantity == slot and inventory.GetSlot(slot - 1).equipped, "Se perdió cantidad/equipado")
+	var last := inventory.GetSlot(29)
+	check(not inventory.SetProtocolSlot(0, ItemStack.new()) and not inventory.SetProtocolSlot(31, ItemStack.new()), "Se aceptó slot inválido")
+	check(inventory.GetSlot(29) == last and inventory.GetSlot(-1) == null and inventory.GetSlot(30) == null, "Índice inválido alteró otro item")
+	grid.SetInventory(inventory)
+	check(grid.get_child_count() == 30 and grid.GetSelectedSlot() == 29, "El refresco duplica slots o pierde selección")
+	GameProtocol.WriteUseItem(30)
+	check(GameProtocol.Flush() == PackedByteArray([30, 30]), "No se puede usar slot 30")
+	GameProtocol.WriteEquipItem(30)
+	check(GameProtocol.Flush() == PackedByteArray([36, 30]), "No se puede equipar slot 30")
+	grid.free()
+
+func _verify_text_policy() -> void:
+	var cases = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/credentials.json"))
+	var panel = load("res://ui/login_panel.tscn").instantiate()
+	add_child(panel)
+	var counts := {"submit": 0, "error": 0, "serialization": 0}
+	panel.submit.connect(func(): counts.submit += 1)
+	panel.error.connect(func(_message): counts.error += 1)
+	var rejected := func(_message): counts.serialization += 1
+	ClientInterface.serialization_failed.connect(rejected)
+	for vector in cases:
+		check(CredentialPolicy.validate(vector.username, vector.password).is_empty() == vector.accepted, "Política: " + vector.name)
+		GameProtocol.Clear()
+		GameProtocol.WriteWalk(1)
+		GameProtocol.WriteLoginExistingCharacter(vector.username, vector.password)
+		var data := GameProtocol.Flush()
+		if vector.accepted:
+			var reader := StreamPeerBuffer.new()
+			reader.data_array = data
+			check(reader.get_u8() == 6 and reader.get_u8() == 1 and reader.get_u8() == 0, "Se perdió el comando anterior")
+			check(Utils.GetUnicodeString(reader) == vector.username and Utils.GetUnicodeString(reader) == vector.password, "Se normalizó una credencial aceptada")
+		else:
+			check(data == PackedByteArray([6, 1]), "Credencial rechazada dejó bytes o borró un comando")
+		panel.get_node("%Username").text = vector.username
+		panel.get_node("%Password").text = vector.password
+		var before := int(counts.submit)
+		panel._OnButtonLoginPressed()
+		check(counts.submit - before == (1 if vector.accepted else 0), "El formulario no respeta la política compartida")
+	GameProtocol.Clear()
+	GameProtocol.WriteWalk(1)
+	GameProtocol.WriteTalk("texto🙂")
+	GameProtocol.WriteWalk(2)
+	check(GameProtocol.Flush() == PackedByteArray([6, 1, 6, 2]), "Chat inválido contaminó comandos anteriores/siguientes")
+	GameProtocol.WriteTalk("¡Hola, señor! áéíóú")
+	var fixtures = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/fixtures.json"))
+	for fixture in fixtures:
+		if fixture.name == "talk_latin1":
+			check(GameProtocol.Flush() == fixture.hex.hex_decode(), "Acentos de chat difieren de la fixture")
+	GameProtocol.WritePartyJoin("Ana")
+	check(GameProtocol.Flush() == PackedByteArray([93, 3, 0, 65, 110, 97]), "Party no envía el nickname compartido")
+	for nickname in ["", "a".repeat(21), "Ana🙂"]:
+		GameProtocol.WritePartyJoin(nickname)
+		check(GameProtocol.IsEmpty(), "Nickname inválido produjo un paquete parcial")
+	check(counts.serialization > 0, "Los errores locales no se comunican a la UI")
+	ClientInterface.serialization_failed.disconnect(rejected)
+	panel.free()

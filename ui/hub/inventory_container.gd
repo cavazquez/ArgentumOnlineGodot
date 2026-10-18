@@ -14,7 +14,14 @@ func GetInventory() -> Inventory:
 	return _inventory
 
 func SetInventory(inventory:Inventory) -> void:
+	if _inventory != null and _inventory.slotChanged.is_connected(_OnSlotChanged):
+		_inventory.slotChanged.disconnect(_OnSlotChanged)
+	for child in get_children():
+		if child is InventorySlot:
+			child.free()
 	_inventory = inventory
+	if _selectedSlot >= inventory.GetSize():
+		_selectedSlot = -1
 	_inventory.slotChanged.connect(_OnSlotChanged)
 
 	for i in _inventory.GetSize():
@@ -24,6 +31,7 @@ func SetInventory(inventory:Inventory) -> void:
 		inventorySlot.index = i
 		inventorySlot.pressed.connect(_InventorySlotOnPressed.bind(i)) 
 		_OnSlotChanged(i, _inventory.GetSlot(i))
+		inventorySlot.SetSelected(i == _selectedSlot)
 
 func GetInventorySlot(index:int) -> InventorySlot:
 	for child in get_children():
@@ -39,6 +47,8 @@ func _OnSlotChanged(index:int, itemStack:ItemStack) -> void:
 		inventorySlot.SetEquipped(itemStack.equipped)
 		
 func _InventorySlotOnPressed(index:int) -> void:
+	if index < 0 or _inventory == null or index >= _inventory.GetSize():
+		return
 	if GetInventorySlot(_selectedSlot):
 		GetInventorySlot(_selectedSlot).SetSelected(false)
 	GetInventorySlot(index).SetSelected(true)

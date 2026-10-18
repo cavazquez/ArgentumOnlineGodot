@@ -23,6 +23,12 @@ static func Clear() -> void:
 	_writer.clear()
 
 static func WriteLoginExistingCharacter(username:String, password:String) -> void:
+	var credential_error := CredentialPolicy.validate(username, password)
+	if not credential_error.is_empty():
+		ClientInterface.serialization_failed.emit(credential_error)
+		return
+	if not _validate_text_fields([username, password]):
+		return
 	_log_outgoing_packet("LoginExistingCharacter")
 	_writer.put_u8(Enums.ClientPacketID.LoginExistingChar)
 	Utils.PutUnicodeString(_writer, username)
@@ -32,6 +38,12 @@ static func WriteLoginExistingCharacter(username:String, password:String) -> voi
 	_writer.put_u8(0)
 	
 static func WriteLoginNewChar(username:String, password:String, email:String, job:int, race:int, gender:int, home:int, head:int) -> void:
+	var credential_error := CredentialPolicy.validate(username, password)
+	if not credential_error.is_empty():
+		ClientInterface.serialization_failed.emit(credential_error)
+		return
+	if not _validate_text_fields([username, password, email]):
+		return
 	_log_outgoing_packet("LoginNewChar")
 	_writer.put_u8(Enums.ClientPacketID.LoginNewChar)
 	Utils.PutUnicodeString(_writer, username)
@@ -205,16 +217,22 @@ static func WriteWork(skill:int) -> void:
 	_writer.put_u8(skill) 
 
 static func WriteTalk(text:String) -> void:
+	if not _validate_text_fields([text]):
+		return
 	_log_outgoing_packet("Talk", "text: " + text)
 	_writer.put_u8(Enums.ClientPacketID.Talk) 
 	Utils.PutUnicodeString(_writer, text)
 
 static func WriteYell(text:String) -> void:
+	if not _validate_text_fields([text]):
+		return
 	_log_outgoing_packet("Yell", "text: " + text)
 	_writer.put_u8(Enums.ClientPacketID.Yell)
 	Utils.PutUnicodeString(_writer, text)
 
 static func WriteWhisper(receiver:String, text:String) -> void:
+	if not _validate_text_fields([receiver, text]):
+		return
 	_log_outgoing_packet("Whisper", "receiver: " + receiver + ", text: " + text)
 	_writer.put_u8(Enums.ClientPacketID.Whisper)
 	Utils.PutUnicodeString(_writer, receiver)
@@ -241,6 +259,8 @@ static func WriteMoveSpell(upwards:bool, slot:int) -> void:
 	_writer.put_u8(slot) 
 
 static func WriteWarpChar(username:String, map_id:int, x:int, y:int) -> void:
+	if not _validate_text_fields([username]):
+		return
 	_log_outgoing_packet("WarpChar", "username: " + username + ", map_id: " + str(map_id) + ", x: " + str(x) + ", y: " + str(y))
 	_writer.put_u8(Enums.ClientPacketID.GMCommands) 
 	_writer.put_u8(Enums.EGMCommands.WARP_CHAR) 
@@ -370,9 +390,16 @@ static func WritePartyCreate() -> void:
 	_writer.put_u8(Enums.ClientPacketID.PartyCreate)
 
 
-static func WritePartyJoin() -> void:
+static func WritePartyJoin(nickname: String) -> void:
+	if not _validate_text_fields([nickname]):
+		return
+	var message := CredentialPolicy.username_error(nickname)
+	if not message.is_empty():
+		ClientInterface.serialization_failed.emit(message)
+		return
 	_log_outgoing_packet("PartyJoin")
 	_writer.put_u8(Enums.ClientPacketID.PartyJoin)
+	Utils.PutUnicodeString(_writer, nickname)
 
 
 static func WriteShareNpc() -> void:
@@ -386,18 +413,24 @@ static func WriteStopSharingNpc() -> void:
 
 
 static func WritePartyKick(nickname:String) -> void:
+	if not _validate_text_fields([nickname]):
+		return
 	_log_outgoing_packet("PartyKick", "nickname: " + nickname)
 	_writer.put_u8(Enums.ClientPacketID.PartyKick)
 	Utils.PutUnicodeString(_writer, nickname)
 
 
 static func WritePartySetLeader(nickname:String) -> void:
+	if not _validate_text_fields([nickname]):
+		return
 	_log_outgoing_packet("PartySetLeader", "nickname: " + nickname)
 	_writer.put_u8(Enums.ClientPacketID.PartySetLeader)
 	Utils.PutUnicodeString(_writer, nickname)
 
 
 static func WritePartyAcceptMember(nickname:String) -> void:
+	if not _validate_text_fields([nickname]):
+		return
 	_log_outgoing_packet("PartyAcceptMember", "nickname: " + nickname)
 	_writer.put_u8(Enums.ClientPacketID.PartyAcceptMember)
 	Utils.PutUnicodeString(_writer, nickname)
@@ -416,12 +449,16 @@ static func WriteInquiryVote(vote:int) -> void:
 
 
 static func WriteGuildMessage(message:String) -> void:
+	if not _validate_text_fields([message]):
+		return
 	_log_outgoing_packet("GuildMessage", "message: " + message)
 	_writer.put_u8(Enums.ClientPacketID.GuildMessage)
 	Utils.PutUnicodeString(_writer, message)
 
 
 static func WritePartyMessage(message:String) -> void:
+	if not _validate_text_fields([message]):
+		return
 	_log_outgoing_packet("PartyMessage", "message: " + message)
 	_writer.put_u8(Enums.ClientPacketID.PartyMessage)
 	Utils.PutUnicodeString(_writer, message)
@@ -444,6 +481,8 @@ static func WritePartyOnline() -> void:
 
 
 static func WriteCouncilMessage(message:String) -> void:
+	if not _validate_text_fields([message]):
+		return
 	_log_outgoing_packet("CouncilMessage", "message: " + message)
 	_writer.put_u8(Enums.ClientPacketID.CouncilMessage)
 	Utils.PutUnicodeString(_writer, message)
@@ -453,6 +492,8 @@ static func WriteGuildFundate() -> void:
 	_writer.put_u8(Enums.ClientPacketID.GuildFundate)
 
 static func WriteRoleMasterRequest(question:String) -> void:
+	if not _validate_text_fields([question]):
+		return
 	_log_outgoing_packet("RoleMasterRequest", "question: " + question)
 	_writer.put_u8(Enums.ClientPacketID.RoleMasterRequest)
 	Utils.PutUnicodeString(_writer, question)
@@ -464,6 +505,8 @@ static func WriteGMRequest() -> void:
 
 
 static func WriteBugReport(description:String) -> void:
+	if not _validate_text_fields([description]):
+		return
 	_log_outgoing_packet("BugReport", "description: " + description)
 	_writer.put_u8(Enums.ClientPacketID.BugReport)
 	Utils.PutUnicodeString(_writer, description)
@@ -472,12 +515,16 @@ static func WriteBugReport(description:String) -> void:
 
 # ===== COMANDOS DE CLAN =====
 static func WriteGuildVote(nickname:String) -> void:
+	if not _validate_text_fields([nickname]):
+		return
 	_log_outgoing_packet("GuildVote", "nickname: " + nickname)
 	_writer.put_u8(Enums.ClientPacketID.GuildVote)
 	Utils.PutUnicodeString(_writer, nickname)
 
 
 static func WritePunishments(nickname:String) -> void:
+	if not _validate_text_fields([nickname]):
+		return
 	_log_outgoing_packet("Punishments", "nickname: " + nickname)
 	_writer.put_u8(Enums.ClientPacketID.Punishments)
 	Utils.PutUnicodeString(_writer, nickname)
@@ -490,12 +537,16 @@ static func WriteLeaveFaction() -> void:
 
 
 static func WriteDenounce(denounce_text:String) -> void:
+	if not _validate_text_fields([denounce_text]):
+		return
 	_log_outgoing_packet("Denounce", "denounce_text: " + denounce_text)
 	_writer.put_u8(Enums.ClientPacketID.Denounce)
 	Utils.PutUnicodeString(_writer, denounce_text)
 
 
 static func WriteChangePassword(current_password:String, new_password:String) -> void:
+	if not _validate_text_fields([current_password, new_password]):
+		return
 	_log_outgoing_packet("ChangePassword", "current_password: [HIDDEN], new_password: [HIDDEN]")
 	_writer.put_u8(Enums.ClientPacketID.ChangePassword)
 	Utils.PutUnicodeString(_writer, current_password)
@@ -504,6 +555,8 @@ static func WriteChangePassword(current_password:String, new_password:String) ->
 
 # ===== COMANDOS GM =====
 static func WriteTeleportChar(username:String, map:int, x:int, y:int) -> void:
+	if not _validate_text_fields([username]):
+		return
 	_log_outgoing_packet("TeleportChar", "username: " + username + ", map: " + str(map) + ", x: " + str(x) + ", y: " + str(y))
 	_writer.put_u8(Enums.ClientPacketID.GMCommands)
 	_writer.put_u8(Enums.EGMCommands.WARP_CHAR)
@@ -517,3 +570,13 @@ static func WriteWarpMeToTarget() -> void:
 	_log_outgoing_packet("WarpMeToTarget")
 	_writer.put_u8(Enums.ClientPacketID.GMCommands)
 	_writer.put_u8(Enums.EGMCommands.WARP_ME_TO_TARGET)
+
+static func _validate_text_fields(values: Array[String]) -> bool:
+	for value in values:
+		if not Utils.CanEncodeLatin1(value):
+			ClientInterface.serialization_failed.emit("El texto contiene caracteres fuera de Latin-1; no se envió el comando")
+			return false
+		if value.length() > 1024:
+			ClientInterface.serialization_failed.emit("El texto supera el límite del protocolo; no se envió el comando")
+			return false
+	return true
