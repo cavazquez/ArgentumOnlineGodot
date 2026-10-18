@@ -49,6 +49,7 @@ func _ready() -> void:
 		var update := ChangeInventorySlot.new(reader)
 		check(update.slot == slot and update.name == "Poción", "Reader inventario incompatible")
 		check(reader.get_available_bytes() == 0, "Reader inventario dejó bytes pendientes")
+	_verify_skills(by_name)
 	_verify_text_policy()
 	_verify_capabilities()
 	_verify_inventory()
@@ -224,3 +225,42 @@ func _verify_capabilities() -> void:
 	check(skills_window.accept_button.disabled and GameProtocol.IsEmpty(), "La ventana de skills permite una asignación sin backend")
 	skills_window.free()
 	Global.skillPoints = previous_points
+
+func _verify_skills(fixtures: Dictionary) -> void:
+	for key in ["skills_legacy", "skills_catalog_v1"]:
+		var reader := StreamPeerBuffer.new()
+		reader.data_array = fixtures[key]
+		reader.get_u8()
+		var update: SendSkills = SkillCatalogPacket.new(reader) if key == "skills_catalog_v1" else SendSkills.new(reader)
+		check(update.valid and update.skills.size() == 22 and reader.get_available_bytes() == 0, "Reader de skills no consume exactamente la fixture")
+		check(update.skills[20].level == 5 and update.skills[21].level == 3, "Se perdieron robustez/agilidad propias de pyao")
+		if key == "skills_catalog_v1":
+			check(update.free_points == 4 and update.skills[8].level == 2 and update.skills[8].experience == 75, "Se confundió XP acumulada con nivel/porcentaje")
+		var combined: PackedByteArray = fixtures[key].duplicate()
+		combined.append_array(fixtures.change_map)
+		for split in range(1, combined.size()):
+			var framer := AOPacketFramer.new()
+			var packets := framer.feed(combined.slice(0, split))
+			packets.append_array(framer.feed(combined.slice(split)))
+			check(packets.size() == 2 and packets[0] == fixtures[key] and packets[1] == fixtures.change_map, "Skills consumió bytes de ChangeMap")
+	var invalid: PackedByteArray = fixtures.skills_catalog_v1.duplicate()
+	invalid[4] = 22  # ID repetido/fuera del orden canónico.
+	var reader := StreamPeerBuffer.new()
+	reader.data_array = invalid
+	reader.get_u8()
+	check(not SkillCatalogPacket.new(reader).valid, "Catálogo con IDs corruptos fue aceptado")
+	ClientInterface._reset()
+	var counts := {"failure": 0, "data": 0}
+	var failed := func(_message): counts.failure += 1
+	var received := func(_packet): counts.data += 1
+	ClientInterface.connection_failed.connect(failed)
+	ClientInterface.dataReceived.connect(received)
+	ClientInterface._AcceptIncomingData(fixtures.skills_catalog_v1)
+	check(counts.failure == 1 and counts.data == 0, "Extensión no negociada fue entregada")
+	ClientInterface.capabilities.begin()
+	ClientInterface.capabilities.accept(PackedByteArray([250, 1, 1, 0, 0, 0]))
+	ClientInterface._AcceptIncomingData(fixtures.skills_catalog_v1)
+	check(counts.data == 1, "Se rechazó el catálogo solicitado y negociado")
+	ClientInterface.connection_failed.disconnect(failed)
+	ClientInterface.dataReceived.disconnect(received)
+	ClientInterface._reset()

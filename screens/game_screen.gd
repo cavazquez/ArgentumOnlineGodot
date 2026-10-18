@@ -166,6 +166,14 @@ var pcg:Array[String]
 
 func _HandleOnePacket(stream:StreamPeerBuffer) -> void:
 	var packetId = stream.get_u8()
+	if packetId == 251:
+		var update := SkillCatalogPacket.new(stream)
+		if not update.valid:
+			ClientInterface._fail("Catálogo de habilidades inválido")
+			return
+		Global.skillPoints = update.free_points
+		_HandleSendSkills(update)
+		return
 	var pname = ""
 	if packetId < Enums.ServerPacketID.keys().size():
 		pname = Enums.ServerPacketID.keys()[packetId]
@@ -596,6 +604,9 @@ func _HandleLevelUp(p:LevelUp) -> void:
 	pass
 
 func _HandleSendSkills(p:SendSkills) -> void:
+	if not p.valid:
+		ClientInterface._fail("Estado de habilidades inválido")
+		return
 	_gameInput._show_skills_window(p.skills)
 	# Actualizar también la ventana de estadísticas si está abierta
 	_gameInput.update_stats_skills(p.skills)
