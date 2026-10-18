@@ -14,6 +14,13 @@ func _ready() -> void:
 	ClientInterface.connected.connect(_OnConnected)
 	ClientInterface.disconnected.connect(_OnDisconnected)
 	ClientInterface.dataReceived.connect(_OnDataReceived)
+	ClientInterface.connection_failed.connect(_OnConnectionFailed)
+	var preferences := ConnectionPreferences.load_preferences()
+	%Ip.text = preferences.host
+	%Port.value = preferences.port
+	%UseTLS.button_pressed = preferences.tls
+	%CaPath.text = preferences.ca_path
+	%CancelConnection.pressed.connect(ClientInterface.DisconnectFromHost)
 	
 	_loginPanel.error.connect(func(message): 
 		Utils.ShowAlertDialog("Login", message, self)) 
@@ -27,13 +34,27 @@ func _OnConnected() -> void:
 		_Flush()
 	
 func _OnDisconnected() -> void:
+	_SetEndpointControls(true)
 	_state = State.None
 	_loginPanel.EnableAuthControls()
 	
+func _OnConnectionFailed(message: String) -> void:
+	_OnDisconnected()
+	Utils.ShowAlertDialog("Conexión", message, self)
+
+func _SetEndpointControls(enabled: bool) -> void:
+	%Ip.editable = enabled
+	%Port.editable = enabled
+	%UseTLS.disabled = not enabled
+	%CaPath.editable = enabled
+	%CancelConnection.visible = not enabled
+
 func _GetEnpoint() -> Dictionary:
 	return {
-		"ip": %Ip.text,
-		"port": int(%Port.value)
+		"host": %Ip.text,
+		"port": int(%Port.value),
+		"tls": %UseTLS.button_pressed,
+		"ca_path": %CaPath.text.strip_edges()
 	}
 
 func _OnDataReceived(data:PackedByteArray) -> void:
@@ -65,15 +86,21 @@ func _OnLoginPanelSubmit() -> void:
 func _OnLoginPanelRegister() -> void:
 	_ConnectToHost(State.NewPj)
 		
-func _ConnectToHost(state:State) -> void:
-	#if ClientInterface.IsConnected():
-	#	ClientInterface.DisconnectFromHost()
-		
+func _ConnectToHost(state: State) -> void:
+	var endpoint = _GetEnpoint()
+	var ca: X509Certificate
+	if endpoint.tls and not endpoint.ca_path.is_empty():
+		ca = X509Certificate.new()
+		if ca.load(endpoint.ca_path) != OK:
+			_OnConnectionFailed("No se pudo cargar el certificado de la CA elegida")
+			return
+	if ConnectionPreferences.save_preferences(endpoint) != OK:
+		_OnConnectionFailed("No se pudo guardar la configuración de conexión")
+		return
 	_state = state
 	_loginPanel.DisableAuthControls()
-	
-	var endpoint = _GetEnpoint()
-	ClientInterface.ConnectToHost(endpoint.ip, endpoint.port)
+	_SetEndpointControls(false)
+	ClientInterface.ConnectToHost(endpoint.host, endpoint.port, endpoint.tls, ca)
 
 func _Flush() -> void:
 	ClientInterface.Send(GameProtocol.Flush());

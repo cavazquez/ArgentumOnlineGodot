@@ -36,3 +36,17 @@ El plan de la 1.0 está definido; su implementación y aprobación siguen pendie
 Para repetir la comprobación del motor: `GODOT_BIN=/ruta/godot ./tools/smoke-godot.sh`. Para exportar Linux, seguir [docs/GODOT.md](docs/GODOT.md).
 
 El cliente sólo recuerda el nombre de usuario. Al abrir una instalación antigua migra `saved_credentials.dat` a `login_preferences.cfg` y elimina el archivo legado con contraseña. Los logs de autenticación conservan únicamente el tipo de operación.
+
+El formulario conecta por **TLS con verificación de certificado y hostname** de
+forma predeterminada. Usar el nombre presente en el certificado del servidor;
+para una CA privada, indicar su archivo PEM en `CA propia`. Sin ese campo se usa
+la confianza estándar de Godot. Un certificado inválido, vencido o de otro nombre
+produce error visible y no envía credenciales ni cambia automáticamente a TCP.
+El intento completo, incluido el handshake, vence a los 10 segundos y admite
+cancelación y reintento. Para desarrollo local en claro, desmarcar explícitamente
+TLS; la elección, endpoint y ruta de CA se guardan sin contraseñas.
+
+`GODOT_BIN=/ruta/godot python3 tools/smoke-tls.py` genera certificados temporales y
+comprueba Godot real contra endpoints locales: confianza, nombre, vencimiento,
+plazo, cancelación, recuperación del formulario y segundo intento. La integración
+completa del juego sobre este transporte se valida con el recorrido de #60.

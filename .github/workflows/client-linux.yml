@@ -30,6 +30,11 @@ jobs:
           set -o pipefail
           mkdir -p build
           tools/smoke-godot.sh 2>&1 | tee build/import-and-smoke.log
+      - name: Verificar certificados TLS, cancelación y reintentos
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 tools/smoke-tls.py 2>&1 | tee build/tls-smoke.log
       - name: Exportar Linux con templates de la misma versión
         run: tools/export-linux.sh
       - name: Conservar logs y ejecutable
