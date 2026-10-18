@@ -82,3 +82,9 @@ func DropItem(destination: int, data: Variant) -> void:
 		return
 	# Sin cambios optimistas: sólo ChangeInventorySlot puede actualizar el modelo.
 	GameProtocol.WriteMoveItem(int(data.source) + 1, destination + 1)
+
+func ClearSelection() -> void:
+	var selected := GetInventorySlot(_selectedSlot)
+	if selected != null:
+		selected.SetSelected(false)
+	_selectedSlot = -1

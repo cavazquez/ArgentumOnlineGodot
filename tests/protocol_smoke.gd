@@ -54,6 +54,7 @@ func _ready() -> void:
 	_verify_capabilities()
 	_verify_drag()
 	_verify_inventory()
+	_verify_ui()
 	_verify_screen_handoff()
 	print("PROTOCOL_SMOKE: ", "FAIL" if failed else "PASS")
 	get_tree().quit(1 if failed else 0)
@@ -301,3 +302,67 @@ func _verify_drag() -> void:
 	check(selected.count == 1 and merchant.GetSelectedSlot() == 0 and GameProtocol.IsEmpty(), "Se perdió la selección propia de comerciantes/banco")
 	grid.free()
 	merchant.free()
+
+func _verify_ui() -> void:
+	ClientInterface.capabilities.clear()
+	GameProtocol.Clear()
+	var game = load("res://screens/game_screen.tscn").instantiate()
+	add_child(game)
+	game.set_process(false)
+	var hub: HubController = game._gameInput
+	hub._consoleInputLineEdit.show()
+	hub._consoleInputLineEdit.text = "no atacar"
+	check(hub.IsWorldInputBlocked(), "El chat deja pasar movimiento")
+	game._gameContext.usingSkill = 1
+	hub.RouteEscape()
+	check(game._gameContext.usingSkill == 0 and hub._consoleInputLineEdit.visible, "Escape debe cancelar sólo la captura")
+	hub.RouteEscape()
+	check(not hub._consoleInputLineEdit.visible and hub._consoleInputLineEdit.text.is_empty(), "Escape no cerró el chat")
+	hub.RouteEscape()
+	check(hub._options_window.visible and hub.IsWorldInputBlocked(), "Escape no abrió el menú o deja pasar acciones")
+	hub.RouteEscape()
+	check(not hub._options_window.visible, "Escape no cerró el modal superior")
+	hub.OpenMerchant()
+	var merchant: MerchantPanel = hub._currentPanel
+	check(merchant is Window and hub.IsWorldInputBlocked(), "Comercio no bloquea el mundo")
+	check(merchant._actionButton.disabled, "Comercio permite operar sin selección")
+	merchant._merchantInventoryContainer._InventorySlotOnPressed(0)
+	check(merchant._actionButton.disabled, "Slot vacío permite comprar")
+	var item := Item.new()
+	item.index = 1
+	item.name = "Objeto impar"
+	item.salePrice = 11
+	game._gameContext.playerInventory.SetSlot(29, ItemStack.new(5, false, item))
+	game._gameContext.merchantInventory.SetSlot(0, ItemStack.new(5, false, item))
+	merchant._merchantInventoryContainer._InventorySlotOnPressed(0)
+	merchant._quantitySpinBox.value = 3
+	check(merchant._Quote() == 33 and merchant._actionButton.text == "Comprar", "Cotización de compra incorrecta")
+	merchant._playerInventoryContainer._InventorySlotOnPressed(29)
+	check(merchant._merchantInventoryContainer.GetSelectedSlot() == -1 and merchant._Quote() == 15, "Venta impar o selección exclusiva incorrecta")
+	merchant._Submit()
+	merchant._Submit()
+	check(GameProtocol.Flush() == PackedByteArray([42, 30, 3, 0]), "Venta debe generar una petición y conservar slot 30")
+	check(game._gameContext.playerInventory.GetSlot(29).quantity == 5, "Venta alteró inventario antes de confirmación")
+	game._gameContext.playerInventory.SetSlot(29, ItemStack.new(2, false, item))
+	check(merchant._actionButton.disabled, "Cantidad obsoleta no deshabilita la acción")
+	merchant.SetPlayerInventory(game._gameContext.playerInventory)
+	check(merchant._playerInventoryContainer.get_child_count() == 30, "Reconectar inventario duplica nodos")
+	merchant.size = Vector2i(420, 340)
+	var escape := InputEventKey.new()
+	escape.keycode = KEY_ESCAPE
+	escape.pressed = true
+	merchant.push_input(escape)
+	check(hub._currentPanel == null, "Escape del viewport nativo no llegó al router")
+	merchant.RequestClose()
+	check(GameProtocol.Flush() == PackedByteArray([17]), "Cerrar comercio duplica CommerceEnd")
+	check(not game._gameContext.trading, "Cerrar comercio deja bloqueado el mundo")
+	hub.OpenBank()
+	var bank := hub._currentPanel
+	hub.RouteEscape()
+	bank.RequestClose()
+	check(GameProtocol.Flush() == PackedByteArray([21]), "Cerrar banco duplica BankEnd")
+	var bank_reader := StreamPeerBuffer.new()
+	BankInit.new(bank_reader)
+	check(bank_reader.get_position() == 0, "BANK_INIT consume saldo inexistente")
+	game.free()
+	GameProtocol.Clear()

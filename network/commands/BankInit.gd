@@ -1,10 +1,6 @@
 extends RefCounted
 class_name BankInit
 
-var gold:int 
-
-func _init(reader:StreamPeerBuffer = null) -> void:
-	if reader: Deserialize(reader)
-
-func Deserialize(reader:StreamPeerBuffer) -> void:
-	gold = reader.get_32() 
+# BANK_INIT sólo abre la ventana; BANK_GOLD actualiza el saldo por separado.
+func _init(_reader: StreamPeerBuffer = null) -> void:
+	pass

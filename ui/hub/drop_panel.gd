@@ -4,6 +4,7 @@ extends Window
 var slot:int
 
 func _ready():
+	close_requested.connect(queue_free)
 	# Solo hacer focus una vez, sin señales
 	call_deferred("_do_focus")
 
