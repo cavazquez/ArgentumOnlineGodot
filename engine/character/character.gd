@@ -24,6 +24,8 @@ var priv:int
 
 func _ready() -> void:
 	Global.connect("dialog_font_size_changed", Callable(self, "_on_dialog_font_size_changed"))
+	Global.preferences_changed.connect(_apply_preferences)
+	_apply_preferences()
 	if _isPlayer:
 		_apply_outline_effect()
 
@@ -57,7 +59,7 @@ func GetCharacterInvisible() -> bool:
 func SetCharacterInvisible(v:bool) -> void:
 	_charInvisible = v
 	renderer.visible = not v
-	_nameLabel.visible = not v
+	_nameLabel.visible = not v and Global.showNames
 
 func MoveTo(heading:int) -> void:
 	if isMoving:
@@ -96,7 +98,7 @@ func PlayWalkSound() -> void:
 	AudioManager.PlayAudio(Consts.Paso1 if _pasoDerecho else Consts.Paso2)
 	
 func PlayNavigationSound() -> void:
-	AudioManager.PlayAudio(Consts.PasoNavegando);
+	AudioManager.PlayAudio(Consts.PasoNavegando, true);
 
 func Say(text:String, color:Color) -> void:
 	_dialogLabel.label_settings.font_size = Global.dialogFontSize
@@ -127,3 +129,7 @@ func _ProcessMovement(delta:float) -> void:
 func _on_dialog_font_size_changed(value: int) -> void:
 	_dialogLabel.label_settings.font_size = value
 	_dialogShadowLabel.label_settings.font_size = value
+
+func _apply_preferences() -> void:
+	_nameLabel.visible = not _charInvisible and Global.showNames
+	_nameLabel.add_theme_font_size_override("font_size", Global.nameFontSize)

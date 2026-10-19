@@ -16,7 +16,13 @@ func run(owner: Node) -> bool:
 func _packet(data: PackedByteArray) -> void:
 	if capture_label.is_empty() or data.is_empty():
 		return
-	if data[0] == Enums.ServerPacketID.CreateFX and data.size() == 7:
+	if data[0] in [246, 247]:
+		var stream := StreamPeerBuffer.new()
+		stream.data_array = data
+		stream.seek(1)
+		var visual := AOVisualEvent.new(int(data[0]), stream)
+		packets.append({"kind":"visual_damage" if data[0] == 246 else "projectile", "event":visual.event_id, "valid":visual.valid, "source":visual.source, "target":visual.target, "actor":visual.actor, "amount":visual.amount, "visual_kind":visual.kind, "map":visual.map_id, "label":capture_label})
+	elif data[0] == Enums.ServerPacketID.CreateFX and data.size() == 7:
 		packets.append({"kind": "fx", "char_index": data.decode_s16(1), "fx": data.decode_s16(3), "loops": data.decode_s16(5), "label": capture_label})
 	elif data[0] == Enums.ServerPacketID.PlayWave:
 		packets.append({"kind": "sound", "bytes": Array(data), "label": capture_label})
@@ -61,6 +67,13 @@ func snapshot() -> Dictionary:
 	for actor in ScreenController.currentScreen._gameWorld.GetMapContainer()._characterCollection:
 		view.actor_visibility[str(actor.instanceId)] = {"renderer_visible": actor.renderer.visible, "visible_in_tree": actor.renderer.is_visible_in_tree(), "name_visible": actor._nameLabel.visible, "internal_invisible": actor.GetCharacterInvisible()}
 	view.sailing = context.userNavegando
+	view.status_text = hub._status_label.text
+	view.ping_status = Global.pingStatus
+	view.visual_nodes = ScreenController.currentScreen._visuals.get_child_count()
+	view.map_cache = ScreenController.currentScreen._gameWorld.GetMapContainer()._cache.snapshot()
+	view.tooltip = hub._inventoryContainer.GetInventorySlot(0).tooltip_text
+	view.effects_mode = Global.effectsMode
+	view.window_size = [host.get_window().size.x, host.get_window().size.y]
 	view.craft = {}
 	if is_instance_valid(hub._crafting_window):
 		var craft = hub._crafting_window
@@ -82,6 +95,29 @@ func snapshot() -> Dictionary:
 	return view
 
 func execute(command: Dictionary) -> bool:
+	if command.op == "ui_phase":
+		var game := ScreenController.currentScreen as GameScreen
+		if game == null: return false
+		host.get_viewport().gui_release_focus()
+		match String(command.action):
+			"map": game._gameInput.OpenWorldMap()
+			"ping": Global.ping_requested.emit()
+			"resize": host.get_window().size = Vector2i(command.width, command.height)
+			"options": game._gameInput._on_btn_options_pressed()
+			"effects": Global.effectsMode = int(command.value)
+			"keyboard_flows":
+				if not await keyboard_flows(game): return false
+			"keyboard":
+				var slot := game._gameInput._inventoryContainer.GetInventorySlot(0)
+				slot.grab_focus()
+				await host.get_tree().process_frame
+				var key := InputEventAction.new()
+				key.action = "ui_accept"
+				key.pressed = true
+				slot._gui_input(key)
+			_: return false
+		await host.get_tree().process_frame
+		return true
 	if command.op == "capture_reset":
 		capture_label = command.label
 		packets.clear()
@@ -152,6 +188,7 @@ func execute(command: Dictionary) -> bool:
 			craft._quantity.value = int(command.quantity)
 			craft._craft.pressed.emit()
 		"close_mechanics":
+			await super.execute({"op":"close"})
 			if is_instance_valid(hub._crafting_window): hub._crafting_window.hide()
 			if is_instance_valid(hub._skills_window): hub._skills_window.hide()
 			if is_instance_valid(hub._stats_window): hub._stats_window.hide()
@@ -178,4 +215,59 @@ func execute(command: Dictionary) -> bool:
 		_:
 			return await super.execute(command)
 	await host.get_tree().process_frame
+	return true
+
+func keyboard_flows(game: GameScreen) -> bool:
+	var hub: HubController = game._gameInput
+	var actor = game._gameWorld.GetCharacter(game._mainCharacterInstanceId)
+	var before: Vector2i = actor.gridPosition
+	var slot := hub._inventoryContainer.GetInventorySlot(0)
+	slot.grab_focus()
+	Input.action_press("ui_right")
+	await host.get_tree().create_timer(0.2).timeout
+	Input.action_release("ui_right")
+	if actor.gridPosition != before or not hub.IsWorldInputBlocked(): return false
+	for action in ["options", "stats", "skills"]:
+		var window: Window
+		match action:
+			"options":
+				hub._on_btn_options_pressed()
+				window = hub._options_window
+			"stats":
+				hub._on_btn_stadistics_pressed()
+				window = hub._stats_window
+			"skills":
+				hub._on_btn_skills_pressed()
+				window = hub._skills_window
+		await host.get_tree().process_frame
+		await host.get_tree().process_frame
+		var tab := InputEventKey.new()
+		tab.keycode = KEY_TAB
+		tab.pressed = true
+		window.push_input(tab)
+		await host.get_tree().process_frame
+		if window.gui_get_focus_owner() == null or not hub.IsWorldInputBlocked(): return false
+		window.close_requested.emit()
+		await host.get_tree().process_frame
+	var controls := ControlsWindow.new()
+	hub.add_child(controls)
+	controls.popup_centered()
+	await host.get_tree().process_frame
+	var original := InputBindings.encode(InputMap.action_get_events(&"Attack")[0])
+	controls._action = &"Attack"
+	InputBindings.capturing = true
+	Input.action_press("ui_right")
+	await host.get_tree().create_timer(0.2).timeout
+	Input.action_release("ui_right")
+	var escape := InputEventKey.new()
+	escape.keycode = KEY_ESCAPE
+	escape.pressed = true
+	controls.push_input(escape)
+	await host.get_tree().process_frame
+	if InputBindings.capturing or actor.gridPosition != before: return false
+	if InputBindings.encode(InputMap.action_get_events(&"Attack")[0]) != original: return false
+	controls.close_requested.emit()
+	await host.get_tree().process_frame
+	host.get_viewport().gui_release_focus()
+	print("KEYBOARD_FLOWS: PASS inventory/options/stats/skills/capture")
 	return true

@@ -18,6 +18,8 @@ var _scaled_crosshair_cursor = null
 var _gameContext:GameContext = GameContext.new()
 var _mainCharacterInstanceId:int = -1
 var networkMessages:Array[PackedByteArray]
+var _dispatcher := AOMessageDispatcher.new()
+var _visuals: CombatVisuals
 
 var _input:Dictionary[String, int] = {
 	"ui_left" = Enums.Heading.West,
@@ -26,7 +28,14 @@ var _input:Dictionary[String, int] = {
 	"ui_down" = Enums.Heading.South,
 }
  
-func _ready() -> void: 
+func _ready() -> void:
+	Global.pingStatus = "Sin medición"
+	Global.ping_requested.connect(_OnPingTimerTimeout)
+	_dispatcher.message_decoded.connect(_OnDecodedMessage)
+	_dispatcher.protocol_error.connect(ClientInterface._fail)
+	_visuals = CombatVisuals.new()
+	_gameWorld.add_child(_visuals)
+
 	ClientInterface.disconnected.connect(_OnDisconnected)
 	ClientInterface.dataReceived.connect(_OnDataReceived)
 	ClientInterface.serialization_failed.connect(_OnSerializationFailed) 
@@ -58,6 +67,8 @@ func _scale_cursor(texture: Texture2D, scale_factor: float) -> Texture2D:
 	return new_texture
 	 
 func _OnDisconnected() -> void:
+	_gameContext.pingTime = 0
+	Global.pingStatus = "Desconectado"
 	set_process(false)
 	networkMessages.clear()
 	var screen = load("uid://cd452cndcck7v").instantiate() 
@@ -68,6 +79,7 @@ func _OnDataReceived(data:PackedByteArray) -> void:
 
 func _process(_delta: float) -> void:
 	_ProccessMessages()
+	_UpdatePingStatus(Time.get_ticks_msec())
 	_CheckKeys()
 	_UpdateCameraPosition()
 	_FlushData()
@@ -120,7 +132,8 @@ func _CanMoveTo(x:int, y:int) -> bool:
 	#End If
 	
 	#Tile Bloqueado?
-	if map.GetTile(x - 1, y - 1) & Enums.TileState.Blocked:
+	var destination := map.GetTile(x - 1, y - 1)
+	if destination & Enums.TileState.Blocked and not (_gameContext.userNavegando and destination & Enums.TileState.Water):
 		return false
 	
 	var character = map.GetCharacterAt(x, y)
@@ -160,233 +173,26 @@ func _ProccessMessages() -> void:
 		_HandleIncomingData(data) 
 
 func _HandleIncomingData(data:PackedByteArray) -> void:
-	var stream = StreamPeerBuffer.new()
-	stream.data_array = data
-	
 	# ClientInterface entrega exactamente un paquete, ya reconstruido y validado.
-	_HandleOnePacket(stream)
+	_dispatcher.dispatch(data)
 
-var pcg:Array[String] 
-
-func _HandleOnePacket(stream:StreamPeerBuffer) -> void:
-	var packetId = stream.get_u8()
-	if packetId == 255:
-		var action := SkillActionState.new(stream)
-		if not action.valid:
-			ClientInterface._fail("Respuesta de habilidad inválida")
-			return
-		_gameInput.ApplySkillAction(action.data)
-		return
-	if packetId == 253:
-		var password_result := PasswordChangeReply.new(stream)
-		if not password_result.valid:
-			ClientInterface._fail("Respuesta de contraseña inválida")
-			return
-		_gameInput.ApplyPasswordReply(password_result)
-		return
-	if packetId == 254:
-		var allocation := SkillAllocationState.new(stream)
-		if not allocation.valid:
-			ClientInterface._fail("Asignación de habilidades inválida")
-			return
-		_gameInput.ApplySkillAllocation(allocation)
-		return
-	if packetId == 252:
-		var trade := TradeSnapshot.new(stream)
-		if not trade.valid:
-			ClientInterface._fail("Estado de intercambio inválido")
-			return
-		_gameInput.ApplyTradeSnapshot(trade.data)
-		return
-	if packetId == 251:
-		var update := SkillCatalogPacket.new(stream)
-		if not update.valid:
-			ClientInterface._fail("Catálogo de habilidades inválido")
-			return
-		Global.skillPoints = update.free_points
-		_HandleSendSkills(update)
-		return
-	var pname = ""
-	if packetId < Enums.ServerPacketID.keys().size():
-		pname = Enums.ServerPacketID.keys()[packetId]
-	else:
-		pname = "Paquete desconocido"
-		print("[DEBUG] Paquete no reconocido recibido. ID: ", packetId, " (0x", "%02X" % packetId, ")")
-		return
-		
-	pcg.append(name)
-	match packetId:
-		Enums.ServerPacketID.MultiMessage:
-			_HandleMultiMessage(MultiMessage.new(stream))
-		Enums.ServerPacketID.ChangeInventorySlot:
-			_HandleChangeInventorySlot(ChangeInventorySlot.new(stream))
-		Enums.ServerPacketID.ChangeSpellSlot:
-			_HandleChangeSpellSlot(ChangeSpellSlot.new(stream))
-		Enums.ServerPacketID.UserIndexInServer:
-			UserIndexInServer.new(stream)
-		Enums.ServerPacketID.ChangeMap:
-			_HandleChangeMap(ChangeMap.new(stream))
-		Enums.ServerPacketID.PlayMIDI:
-			_HandlePlayMidi(PlayMidi.new(stream))
-		Enums.ServerPacketID.ShowGuildAlign:
-			_HandleShowGuildAlign(ShowGuildAlignCommand.from_buffer(stream, self))
-		Enums.ServerPacketID.ShowGuildFundationForm:
-			_HandleShowGuildFundationForm(ShowGuildFundationFormCommand.from_buffer(stream, self))
-		Enums.ServerPacketID.PlayWave:
-			_HandlePlayWave(PlayWave.new(stream))
-		Enums.ServerPacketID.AreaChanged:
-			_HandleAreaChanged(AreaChanged.new(stream))
-		Enums.ServerPacketID.ObjectCreate:
-			_HandleObjectCreate(ObjectCreate.new(stream))
-		Enums.ServerPacketID.ObjectDelete:
-			_HandleObjectDelete(ObjectDelete.new(stream))
-		Enums.ServerPacketID.BlockPosition:
-			_HandleBlockPosition(BlockPosition.new(stream))
-		Enums.ServerPacketID.CharacterCreate:
-			_HandleCharacterCreate(CharacterCreate.new(stream))
-		Enums.ServerPacketID.CharacterMove:
-			_HandleCharacterMove(CharacterMove.new(stream))
-		Enums.ServerPacketID.SetInvisible:
-			_HandleSetInvisible(SetInvisible.new(stream))
-		Enums.ServerPacketID.CreateFX:
-			_HandleCreateFx(CreateFx.new(stream))
-		Enums.ServerPacketID.UserCharIndexInServer:
-			_HandleUserCharIndexInServer(UserCharIndexInServer.new(stream))
-		Enums.ServerPacketID.UpdateUserStats:
-			_HandleUpdateUserStats(UpdateUserStats.new(stream))
-		Enums.ServerPacketID.Atributes:
-			_HandleAtributes(Atributes.new(stream))
-		Enums.ServerPacketID.UpdateHungerAndThirst:
-			_HandleUpdateHungerAndThirst(UpdateHungerAndThirst.new(stream))
-		Enums.ServerPacketID.UpdateStrenghtAndDexterity:
-			_HandleUpdateStrengthAndDexterity(UpdateStrengthAndDexterity.new(stream))
-		Enums.ServerPacketID.GuildDetails:
-			var clan := ClanDetailsPacket.new(stream)
-			if not clan.valid:
-				ClientInterface._fail("Detalles del clan inválidos")
-				return
-			_gameInput.ApplyClanDetails(clan.values)
-		Enums.ServerPacketID.GuildChat:
-			_HandleGuildChat(GuildChat.new(stream))
-		Enums.ServerPacketID.SendSkills:
-			_HandleSendSkills(SendSkills.new(stream))
-		Enums.ServerPacketID.Fame:
-			_HandleFame(Fame.new(stream))
-		Enums.ServerPacketID.MiniStats:
-			_HandleMiniStats(MiniStats.new(stream))
-		Enums.ServerPacketID.LevelUp:
-			_HandleLevelUp(LevelUp.new(stream))
-		Enums.ServerPacketID.Logged:
-			_HandleLogged(Logged.new(stream))
-		Enums.ServerPacketID.RainToggle:
-			pass
-		Enums.ServerPacketID.RemoveDialogs:
-			_HandleRemoveDialogs()
-		Enums.ServerPacketID.UpdateSta:
-			_HandleUpdateSta(UpdateSta.new(stream))
-		Enums.ServerPacketID.ConsoleMsg:
-			_HandleConsoleMessage(ConsoleMessage.new(stream))
-		Enums.ServerPacketID.RemoveCharDialog:
-			_HandleRemoveCharDialog(RemoveCharDialog.new(stream))
-		Enums.ServerPacketID.CharacterRemove:
-			_HandleCharacterRemove(CharacterRemove.new(stream))
-		Enums.ServerPacketID.UpdateHP:
-			_HandleUpdateHP(UpdateHP.new(stream))
-		Enums.ServerPacketID.CharacterChange:
-			_HandleCharacterChange(CharacterChange.new(stream))
-		Enums.ServerPacketID.ForceCharMove:
-			_HandleForceCharMove(ForceCharMove.new(stream))
-		Enums.ServerPacketID.PosUpdate:
-			_HandlePosUpdate(PosUpdate.new(stream))
-		Enums.ServerPacketID.UpdateTagAndStatus:
-			_HandleUpdateTagAndStatus(UpdateTagAndStatus.new(stream))
-		Enums.ServerPacketID.ChatOverHead:
-			_HandleChatOverHead(ChatOverHead.new(stream))
-		Enums.ServerPacketID.ChangeNPCInventorySlot:
-			_HandleChangeNPCInventorySlot(ChangeNPCInventorySlot.new(stream))
-		Enums.ServerPacketID.CommerceInit:
-			_HandleCommerceInit()
-		Enums.ServerPacketID.CommerceEnd:
-			_HandleCommerceEnd()
-		Enums.ServerPacketID.TradeOK:
-			pass
-		Enums.ServerPacketID.BankOK:
-			pass
-		Enums.ServerPacketID.Blind:
-			_handle_blind()
-		Enums.ServerPacketID.BlindNoMore:
-			_handle_blind_no_more()
-		Enums.ServerPacketID.RestOK:
-			_handle_rest_ok()
-		Enums.ServerPacketID.Dumb:
-			_handle_dumb()
-		Enums.ServerPacketID.DumbNoMore:
-			_handle_dumb_no_more()
-		Enums.ServerPacketID.UserCommerceInit:
-			_handle_user_commerce_init(UserCommerceInit.new(stream))
-		Enums.ServerPacketID.UserCommerceEnd:
-			_handle_commerce_end()
-		Enums.ServerPacketID.UserOfferConfirm:
-			_handle_user_offer_confirm()
-		Enums.ServerPacketID.CommerceChat:
-			_handle_commerce_chat(CommerceChat.new(stream))
-		Enums.ServerPacketID.CancelOfferItem:
-			_handle_cancel_offer_item(CancelOfferItem.new(stream))
-		Enums.ServerPacketID.ParalizeOK:
-			_handle_paralize_ok()
-		Enums.ServerPacketID.SendNight:
-			_handle_send_night(SendNight.new(stream))
-		Enums.ServerPacketID.ErrorMsg:
-			_handle_error_message(ErrorMsg.new(stream))
-		Enums.ServerPacketID.ChangeBankSlot:
-			_HandleChangeBankSlot(ChangeBankSlot.new(stream))
-		Enums.ServerPacketID.BankInit:
-			_HandleBankInit(BankInit.new(stream))
-		Enums.ServerPacketID.BankEnd:
-			_HandleBankEnd()
-		Enums.ServerPacketID.UpdateBankGold:
-			_HandleUpdateBankGold(UpdateBankGold.new(stream))
-		Enums.ServerPacketID.UpdateGold:
-			_HandleUpdateGold(UpdateGold.new(stream))
-		Enums.ServerPacketID.UpdateStrenght:
-			_HandleUpdateStrenght(UpdateStrenght.new(stream))
-		Enums.ServerPacketID.UpdateDexterity:
-			_HandleUpdateDexterity(UpdateDexterity.new(stream))
-		Enums.ServerPacketID.Pong:
-			_HandlePong()
-		Enums.ServerPacketID.ShowMessageBox:
-			_HandleShowMessageBox(ShowMessageBox.new(stream))
-		Enums.ServerPacketID.UpdateExp:
-			_HandelUpdateExp(UpdateExp.new(stream))
-		Enums.ServerPacketID.ShowGuildAlign:
-			# Creamos la instancia pasando el nodo padre (este GameScreen)
-			var show_guild_align = ShowGuildAlignCommand.new(self)
-			show_guild_align.handle()
-		Enums.ServerPacketID.MeditateToggle:
-			_handle_meditate_toggle()
-		Enums.ServerPacketID.UpdateMana:
-			_handle_update_mana(UpdateMana.new(stream))
-		Enums.ServerPacketID.NavigateToggle:
-			_handle_navigate_toggle()
-		Enums.ServerPacketID.PauseToggle:
-			_handle_pause_toggle()
-		Enums.ServerPacketID.StopWorking:
-			_handle_stop_working()
-		Enums.ServerPacketID.ShowBlacksmithForm:
-			_handle_show_blacksmith_form()
-		Enums.ServerPacketID.ShowCarpenterForm:
-			_handle_show_carpenter_form()
-		Enums.ServerPacketID.CarpenterObjects:
-			_handle_carpenter_objects(CarpenterObjects.new(stream))
-		Enums.ServerPacketID.BlacksmithWeapons:
-			_handle_blacksmith_weapons(BlacksmithWeapons.new(stream))
-		Enums.ServerPacketID.BlacksmithArmors:
-			_handle_blacksmith_armors(BlacksmithArmors.new(stream))
-		Enums.ServerPacketID.CharacterChangeNick:
-			_handle_character_change_nick(CharacterChangeNick.new(stream))
+func _OnDecodedMessage(handler: StringName, payload: Variant, has_payload: bool) -> void:
+	match handler:
+		&"_ApplySkillAction": _gameInput.ApplySkillAction(payload)
+		&"_ApplyPasswordReply": _gameInput.ApplyPasswordReply(payload)
+		&"_ApplySkillAllocation": _gameInput.ApplySkillAllocation(payload)
+		&"_ApplyTradeSnapshot": _gameInput.ApplyTradeSnapshot(payload)
+		&"_ApplyClanDetails": _gameInput.ApplyClanDetails(payload)
+		&"_ApplySkillCatalog":
+			Global.skillPoints = payload.free_points
+			_HandleSendSkills(payload)
+		&"_ShowGuildAlignment": ShowGuildAlignCommand.new(self).handle()
+		&"_ShowGuildFoundation": ShowGuildFundationFormCommand.new(self).handle()
 		_:
-			print(pname)
-	
+			if has_method(handler):
+				if has_payload: call(handler, payload)
+				else: call(handler)
+
 
 func _handle_character_change_nick(p:CharacterChangeNick) -> void:
 	var character = _gameWorld.GetCharacter(p.char_index)
@@ -448,9 +254,17 @@ func _HandleShowMessageBox(p:ShowMessageBox) -> void:
 	Utils.ShowAlertDialog("Server", p.message, get_parent())
 
 
-func _HandlePong() -> void:
-	print("Ping: %dms" % (Time.get_ticks_msec() - _gameContext.pingTime))
+func _HandlePong(now: int = -1) -> void:
+	if _gameContext.pingTime == 0: return
+	if now < 0: now = Time.get_ticks_msec()
+	var elapsed := now - _gameContext.pingTime
 	_gameContext.pingTime = 0
+	# PONG no tiene identificador. No abrir otra medición hasta drenar el tardío.
+	Global.pingStatus = "%d ms" % elapsed if elapsed <= 5000 else "Sin respuesta"
+
+func _UpdatePingStatus(now: int) -> void:
+	if _gameContext.pingTime != 0 and now - _gameContext.pingTime > 5000:
+		Global.pingStatus = "Sin respuesta"
 
 
 func _handle_navigate_toggle() -> void:
@@ -620,6 +434,7 @@ func _HandleUpdateHP(p:UpdateHP) -> void:
 
 
 func _HandleCharacterRemove(p:CharacterRemove) -> void:
+	_visuals.remove_actor(p.charIndex)
 	_gameWorld.DeleteCharacter(p.charIndex)
 
 
@@ -810,7 +625,7 @@ func _HandleAreaChanged(_p:AreaChanged) -> void:
 
 
 func _HandlePlayMidi(p:PlayMidi) -> void:
-	pass
+	AudioManager.PlayMusic(p.midiId)
 	
 	
 func _handle_show_signal(p:ShowSignal) -> void:
@@ -823,6 +638,8 @@ func _HandlePlayWave(p:PlayWave) -> void:
 
 func _HandleChangeMap(p:ChangeMap) -> void:
 	_gameInput._restore_default_cursor()
+	_visuals.reset(p.mapId)
+	AudioManager.StopAll()
 	_gameWorld.SwitchMap(p.mapId)
 	_gameContext.player_map = p.mapId
 	_gameInput.minimap.load_thumbnail(p.mapId)
@@ -972,10 +789,14 @@ func _HandleShowGuildFundationForm(show_guild_fundation_form) -> void:
 
 
 func _OnPingTimerTimeout() -> void:
-	if _gameContext.pingTime != 0: return
+	if _gameContext.pingTime != 0 or not ClientInterface.IsConnected(): return
 	GameProtocol.WritePing()
 	_FlushData()
-	_gameContext.pingTime = Time.get_ticks_msec()
+	_gameContext.pingTime = maxi(1, Time.get_ticks_msec())
+	Global.pingStatus = "Midiendo…"
 
 func _OnSerializationFailed(message: String) -> void:
 	_gameInput.ShowConsoleMessage(message, GameAssets.FontDataList[Enums.FontTypeNames.FontType_Warning] if GameAssets.FontDataList.size() > Enums.FontTypeNames.FontType_Warning else FontData.new(Color.YELLOW))
+
+func _HandleVisualEvent(event: AOVisualEvent) -> void:
+	_visuals.display(event, _gameWorld)

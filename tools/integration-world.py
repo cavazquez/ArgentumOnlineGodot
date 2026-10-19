@@ -26,7 +26,7 @@ import tomllib
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-SCENARIO_TIMEOUT_SECONDS = {"r10": 900, "skills": 1800, "spells": 1800}
+SCENARIO_TIMEOUT_SECONDS = {"r10": 900, "skills": 1800, "spells": 1800, "full": 7200, "navigation": 900}
 
 
 def verify_wheel_source(project, wheel):
@@ -236,7 +236,11 @@ def worker(args):
     work = Path.cwd()
     output = args.output
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    if args.scenario == "skills":
+    if args.scenario == "navigation":
+        from navigation_world import NavigationWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "full":
+        from full_world import FullWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "skills":
         from skills_world import MechanicsWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "spells":
         from mechanics_world import (
@@ -287,6 +291,7 @@ def worker(args):
             PYAO_REDIS__PORT=str(redis.port),
             PYAO_REDIS__PASSWORD_FILE=str(redis.password_file),
             PYAO_STATE_DIR=str(work / "server-state"),
+            PYAO_METRICS_FILE=str(output / "server-ticks.json"),
             PYAO_DATA_DIR=str(scenario_data),
             PYAO_SECURITY__AUTH_ATTEMPTS_PER_IP="400"
             if args.scenario != "r10"
@@ -379,6 +384,8 @@ def worker(args):
             clients.append(client)
         started = time.monotonic()
         scenario = R10World(redis, work, output, names, clients, server)
+        scenario.server_port = endpoint
+        scenario.benchmark_password = password
 
         def restart_server():
             nonlocal server
@@ -684,7 +691,7 @@ def main():
     parser.add_argument("--seconds", type=int, default=1800)
     parser.add_argument(
         "--scenario",
-        choices=("r10", "skills", "spells"),
+        choices=("r10", "skills", "spells", "full", "navigation"),
         default="r10",
         help="Regresión que se ejecuta antes del período de observación",
     )

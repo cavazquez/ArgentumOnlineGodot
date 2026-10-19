@@ -169,9 +169,27 @@ func execute(command: Dictionary) -> bool:
 				if window is Window and window.visible and not window.is_queued_for_deletion():
 					window.close_requested.emit()
 		"move":
+			host.get_viewport().gui_release_focus()
 			Input.action_press(command.action)
 			await host.get_tree().create_timer(command.get("seconds", 0.15)).timeout
 			Input.action_release(command.action)
+		"step":
+			var step_started := Time.get_ticks_msec()
+			host.get_viewport().gui_release_focus()
+			var actor = game._gameWorld.GetCharacter(game._mainCharacterInstanceId)
+			while actor.isMoving: await host.get_tree().process_frame
+			var previous: Vector2i = actor.gridPosition
+			var previous_map: int = game._gameContext.player_map
+			var deadline := Time.get_ticks_msec() + 2000
+			Input.action_press(command.action)
+			while is_instance_valid(actor) and actor.gridPosition == previous and game._gameContext.player_map == previous_map and Time.get_ticks_msec() < deadline:
+				await host.get_tree().process_frame
+			Input.action_release(command.action)
+			if is_instance_valid(actor) and actor.gridPosition == previous and game._gameContext.player_map == previous_map: return false
+			while is_instance_valid(actor) and actor.isMoving: await host.get_tree().process_frame
+			print("NAV_STEP: elapsed_ms=", Time.get_ticks_msec() - step_started)
+			# La animación y el reloj del servidor no comparten fase de frame.
+			await host.get_tree().create_timer(0.25).timeout
 		"equip", "use", "drop":
 			# Respetar el intervalo del mismo gesto que usa el inventario real.
 			var timer = game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_DOUBLE_CLICK]
@@ -252,6 +270,7 @@ func execute(command: Dictionary) -> bool:
 				"confirm": panel.confirm_button.pressed.emit()
 				"cancel": panel.cancel_button.pressed.emit()
 		"attack":
+			host.get_viewport().gui_release_focus()
 			var intervals: TickIntervals = game._gameContext.tick_intervals
 			var deadline := 0
 			for key in [TickIntervals.ActionTimers.ATTACK, TickIntervals.ActionTimers.ATTACK_WITH_BOW, TickIntervals.ActionTimers.SPELL_ATTACK]:
@@ -260,6 +279,7 @@ func execute(command: Dictionary) -> bool:
 				await host.get_tree().process_frame
 			hub._attack()
 		"cast", "cancel_cast":
+			host.get_viewport().gui_release_focus()
 			var intervals: TickIntervals = game._gameContext.tick_intervals
 			var deadline := 0
 			for key in [TickIntervals.ActionTimers.SPELL, TickIntervals.ActionTimers.ATTACK_WITH_BOW, TickIntervals.ActionTimers.ATTACK_SPELL]:
@@ -276,6 +296,7 @@ func execute(command: Dictionary) -> bool:
 			else:
 				click_tile(hub, Vector2i(command.x, command.y))
 		"work":
+			host.get_viewport().gui_release_focus()
 			if game._gameContext.usingSkill != int(command.skill):
 				return false
 			var timer = game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.WORK]

@@ -4,26 +4,39 @@ class_name MapContainer
 const GridPositionKey = "GridPosition"
 
 var _view:Node2D
+var _map_id := 0
+var _cache: MapViewCache
 
 var _characterCollection:Array[Character]
 var _objectCollection:Array[Node2D]
 var _tiles:PackedByteArray
 
 func _ready() -> void:
+	_cache = MapViewCache.new()
+	add_child(_cache)
 	_tiles.resize(100 * 100)
 	_tiles.fill(Enums.TileState.Blocked)  
 	
 func LoadMap(id:int) -> void:
+	var next_view := _cache.take(id)
+	if next_view == null:
+		var path := "res://Maps/Map%d.tscn" % id
+		if not ResourceLoader.exists(path):
+			push_warning("Vista de mapa no disponible: %d" % id)
+			return
+		var scene := load(path) as PackedScene
+		if scene == null: return
+		next_view = scene.instantiate()
 	_DeleteEntities()
-	
-	if _view:
-		_view.queue_free()
-		
-	_view = load("res://Maps/Map%d.tscn" % id).instantiate()
-	_tiles = _view.get_meta("data")
+	if _view: _cache.keep(_map_id, _view)
+	_view = next_view
+	_map_id = id
+	_tiles = GameAssets.ApplyWaterMask(id, _view.get_meta("data"))
 	%MapView.add_child(_view)
+	_cache.schedule(id)
 
 func GetTile(x:int, y:int) -> int:
+	if x < 0 or y < 0 or x >= 100 or y >= 100: return Enums.TileState.Blocked
 	return _tiles[x + y * 100]
 	
 func SetTile(x:int, y:int, state:int) -> void:
@@ -56,6 +69,7 @@ func GetCharacter(instanceId:int) -> Character:
 func PlayWorldEffect(at: Vector2, fx: int, loops: int) -> void:
 	# El NPC puede desaparecer antes de que llegue el FX del golpe que lo mató.
 	var anchor := Node2D.new()
+	anchor.set_meta("pyao_dynamic_fx", true)
 	anchor.position = at
 	_GetLayer("Layer3").add_child(anchor)
 	var effect := CharacterEffect.new()
@@ -100,6 +114,14 @@ func DeleteObject(x:int, y:int) -> void:
 		node.queue_free()
 	
 func _DeleteEntities() -> void:
+	for entity in _characterCollection + _objectCollection:
+		if is_instance_valid(entity):
+			if entity.get_parent(): entity.get_parent().remove_child(entity)
+			entity.queue_free()
+	if _view:
+		for layer in _view.get_children():
+			for child in layer.get_children():
+				if child.get_meta("pyao_dynamic_fx", false): child.queue_free()
 	_characterCollection.clear()
 	_objectCollection.clear()
 

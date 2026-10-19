@@ -2,6 +2,12 @@ extends CanvasLayer
 class_name HubController
 
 var _target_spell_slot := 0
+var _responsive := ResponsiveHUD.new()
+var _status_label: Label
+var _fps_label: Label
+var _previous_dead := false
+var _console_meta := false
+
 
 # Función para restaurar el cursor al predeterminado
 func _restore_default_cursor() -> void:
@@ -84,6 +90,29 @@ var _user_helmet_slot:int
 var _user_armor_slot:int
 
 func _ready() -> void:
+	minimap.tooltip_text = "Clic derecho: mapa mundial"
+	minimap.gui_input.connect(func(event):
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			OpenWorldMap()
+			minimap.accept_event())
+	_responsive.install(self)
+	get_window().min_size = Vector2i(800, 600)
+	_status_label = Label.new()
+	_status_label.position = Vector2(14, 137)
+	_status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_status_label.add_theme_color_override("font_shadow_color", Color.BLACK)
+	_status_label.add_theme_constant_override("shadow_offset_x", 1)
+	_status_label.add_theme_constant_override("shadow_offset_y", 1)
+	add_child(_status_label)
+	_fps_label = Label.new()
+	_fps_label.position = Vector2(14, 153)
+	_fps_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_fps_label)
+	_consoleRichTextLabel.meta_hover_started.connect(func(_meta): _console_meta = true)
+	_consoleRichTextLabel.meta_hover_ended.connect(func(_meta): _console_meta = false)
+	Global.preferences_changed.connect(_apply_preferences)
+	_apply_preferences()
+
 	_btnOptions.pressed.connect(Callable(self, "_on_btn_options_pressed"))
 	_btnSkills.pressed.connect(Callable(self, "_on_btn_skills_pressed"))
 	_btnStadistics.pressed.connect(Callable(self, "_on_btn_stadistics_pressed"))
@@ -310,7 +339,8 @@ func _handle_key_event(event:InputEventKey) -> void:
 	if event.is_action_pressed("ToggleResuscitationSafe"):
 		GameProtocol.WriteResuscitationToggle()
 	
-func _unhandled_key_input(event: InputEvent) -> void: 
+func _unhandled_key_input(event: InputEvent) -> void:
+	if InputBindings.capturing: return
 	if event is InputEventKey:
 		_handle_key_event(event)	
 	
@@ -651,6 +681,7 @@ func _VisibleModals() -> Array[Window]:
 	return result
 
 func _RegisterModal(window: Window) -> void:
+	Utils.ApplyDialogTheme(window)
 	var router := ModalInputRouter.new()
 	router.route = RouteEscape
 	window.add_child(router)
@@ -659,9 +690,10 @@ func IsWorldInputBlocked() -> bool:
 	if _gameContext == null:
 		return true
 	var focus := get_viewport().gui_get_focus_owner()
-	return _gameContext.trading or _consoleInputLineEdit.visible or focus is LineEdit or focus is TextEdit or not _VisibleModals().is_empty()
+	return InputBindings.capturing or _gameContext.trading or _consoleInputLineEdit.visible or focus != null or (is_instance_valid(_currentPanel) and _currentPanel.visible) or not _VisibleModals().is_empty()
 
 func RouteEscape() -> void:
+	if InputBindings.capturing: return
 	if _gameContext.usingSkill != 0:
 		_restore_default_cursor()
 		return
@@ -684,6 +716,9 @@ func RouteEscape() -> void:
 		_consoleInputLineEdit.hide()
 		get_viewport().gui_release_focus()
 		return
+	if get_viewport().gui_get_focus_owner() != null:
+		get_viewport().gui_release_focus()
+		return
 	_on_btn_options_pressed()
 
 func _input(event: InputEvent) -> void:
@@ -696,8 +731,20 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _on_console_gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		_console_blocked = true
+	if not event is InputEventMouseButton or not event.pressed: return
+	_console_blocked = true
+	if event.button_index != MOUSE_BUTTON_LEFT or event.double_click or _console_meta or not _consoleRichTextLabel.get_selected_text().is_empty() or IsWorldInputBlocked(): return
+	# Sólo el fondo vacío; texto, selección, enlaces y scrollbar conservan su evento.
+	var scrollbar := _consoleRichTextLabel.get_v_scroll_bar()
+	if event.position.y < _consoleRichTextLabel.get_content_height() or event.position.x >= _consoleRichTextLabel.size.x - scrollbar.size.x: return
+	var container := $MainViewportContainer as SubViewportContainer
+	var global_point: Vector2 = _consoleRichTextLabel.get_global_transform_with_canvas() * event.position
+	var local: Vector2 = container.get_global_transform_with_canvas().affine_inverse() * global_point
+	if not Rect2(Vector2.ZERO, container.size).has_point(local): return
+	var forwarded := event.duplicate() as InputEventMouseButton
+	forwarded.position = local
+	_HandleMouseInput(forwarded)
+	_consoleRichTextLabel.accept_event()
 
 func _on_console_mouse_exited() -> void:
 	_console_blocked = false
@@ -784,3 +831,32 @@ func ApplySkillAction(value: Dictionary) -> void:
 		_crafting_window.apply_result(value)
 	if value.has("message"):
 		ShowConsoleMessage(String(value.message))
+
+func _apply_preferences() -> void:
+	_consoleRichTextLabel.add_theme_font_size_override("normal_font_size", Global.consoleFontSize)
+	if _fps_label != null: _fps_label.visible = Global.showFPS
+
+func _process(_delta: float) -> void:
+	if _gameContext == null or _status_label == null: return
+	var states := PackedStringArray()
+	var dead := _gameContext.player_stats.hp <= 0
+	if dead: states.append("Muerto")
+	if _gameContext.userParalizado: states.append("Paralizado")
+	if _gameContext.userCiego: states.append("Ciego")
+	if _gameContext.userEstupido: states.append("Confundido")
+	if _gameContext.userMeditar: states.append("Meditando")
+	if _gameContext.userDescansar: states.append("Descansando")
+	if _gameContext.userNavegando: states.append("Navegando")
+	_status_label.text = " · ".join(states)
+	if _previous_dead != dead:
+		_restore_default_cursor()
+		_previous_dead = dead
+	if Global.showFPS: _fps_label.text = "%d FPS · %s" % [Engine.get_frames_per_second(), Global.pingStatus]
+
+func OpenWorldMap() -> void:
+	if _gameContext == null: return
+	var window := WorldMapWindow.new()
+	window.current_map = _gameContext.player_map
+	add_child(window)
+	_RegisterModal(window)
+	window.popup_centered()

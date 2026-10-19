@@ -148,7 +148,7 @@ async def create_account(port, cert, username, password):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--version", default="1.0.0rc1")
+    parser.add_argument("--version", default="1.0.0rc2")
     parser.add_argument("--server-revision", default="18")
     parser.add_argument("--client-revision", default="3")
     parser.add_argument(

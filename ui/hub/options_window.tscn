@@ -6,17 +6,17 @@
 title = "Opciones"
 position = Vector2i(0, 36)
 size = Vector2i(400, 200)
-visible = true
+visible = false
 script = ExtResource("1")
 
 [node name="VBox" type="VBoxContainer" parent="."]
 anchors_preset = -1
-anchor_right = 1.942
-anchor_bottom = 1.457
+anchor_right = 1.0
+anchor_bottom = 1.0
 offset_left = 8.0
 offset_top = 8.0
-offset_right = 392.0
-offset_bottom = 151.0
+offset_right = -8.0
+offset_bottom = -48.0
 grow_horizontal = 2
 grow_vertical = 2
 

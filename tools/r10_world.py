@@ -284,7 +284,7 @@ class R10World:
             "El NPC no tiene una posición adyacente válida en el mapa propio"
         )
 
-    def run(self, locations):
+    def run(self, locations, *, soak=True):
         self.wait(
             lambda: all(
                 "INTEGRATION_WORLD: READY"
@@ -330,8 +330,9 @@ class R10World:
             self.passed("map_exit", "R04", from_map=map_id, to_map=destination)
             x, y = locations["base"]
             self.relocate(store, {1: (1, x, y), 2: (1, x + 1, y)})
-            for i in (1, 2):
-                self.command(i, "soak")
+            if soak:
+                for i in (1, 2):
+                    self.command(i, "soak")
         return self.steps
 
     def cities(self, store):

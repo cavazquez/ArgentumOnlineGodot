@@ -11,6 +11,25 @@ const DefaultSpriteFramePath = "uid://750ochum2vjs"
 @export var _weaponAnimatedSprite:AnimatedSprite2D
 @export var _shieldAnimatedSprite:AnimatedSprite2D
 
+var _head_base := Vector2.ZERO
+var _helmet_base := Vector2.ZERO
+var _alignment_ready := false
+
+func _ensure_alignment() -> void:
+	if _alignment_ready: return
+	_head_base = _headAnimatedSprite.position
+	_helmet_base = _helmetAnimatedSprite.position
+	_alignment_ready = true
+
+func _align_head() -> void:
+	_ensure_alignment()
+	var offset := Vector2.ZERO
+	if _body > 0 and _body < GameAssets.BodyAnimationList.size():
+		var data = GameAssets.BodyAnimationList[_body]
+		offset = Vector2(data.offsetX, data.offsetY)
+	_headAnimatedSprite.position = _head_base + offset
+	_helmetAnimatedSprite.position = _helmet_base + offset
+
 var _body:int
 var _head:int
 var _helmet:int
@@ -75,14 +94,17 @@ func _set_shield(id:int) -> void:
 
 func _set_helmet(id:int) -> void:
 	_helmet = id
+	_align_head()
 	_helmetAnimatedSprite.sprite_frames = _LoadSpriteFrames("res://Resources/Character/Helmets/helmet_%d.tres" % id)
 
 func _set_head(id:int) -> void:
 	_head = id
+	_align_head()
 	_headAnimatedSprite.sprite_frames = _LoadSpriteFrames("res://Resources/Character/Heads/head_%d.tres" % id)
 
 func _set_body(id:int) -> void:
 	_body = id
+	_align_head()
 	_bodyAnimatedSprite.sprite_frames = _LoadSpriteFrames("res://Resources/Character/Bodies/body_%d.tres" % id)
 	
 	if _verticalAlign:

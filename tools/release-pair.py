@@ -142,7 +142,7 @@ def validate_evidence(manifest, root):
 
 
 def validate(manifest, root, backend):
-    require(manifest["version"] == "1.0.0rc1", "Esta entrega conserva 1.0.0rc1")
+    require(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:rc[0-9]+)?", manifest["version"]), "Versión de entrega inválida")
     require(
         manifest["channel"] == "latest/edge", "Esta entrega se publica en latest/edge"
     )
@@ -182,7 +182,7 @@ def validate(manifest, root, backend):
         }
         require(
             all(metadata.get(k) == v for k, v in expected.items()),
-            f"Metadata Snap incompatible: {path}",
+            f"Metadata Snap incompatible: {path}; versión esperada {manifest["version"]}, recibida {metadata.get("version")}",
         )
         require(
             provenance["commit"] == manifest["sources"][package["name"]]["commit"]

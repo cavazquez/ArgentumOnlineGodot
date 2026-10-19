@@ -15,6 +15,10 @@ var _slot := -1
 var _selected_item := 0
 var _closing := false
 var _pending := false
+var _quick: HBoxContainer
+var _quick_stock := -1
+var _adjusting := false
+var _review_quantity := false
 
 func _ready() -> void:
 	theme = Theme.new()
@@ -41,8 +45,13 @@ func _ready() -> void:
 	_quantitySpinBox = SpinBox.new()
 	_quantitySpinBox.min_value = 1
 	_quantitySpinBox.max_value = 10000
-	_quantitySpinBox.value_changed.connect(func(_value): _Refresh())
+	_quantitySpinBox.value_changed.connect(func(_value):
+		if _adjusting: return
+		_review_quantity = false
+		_Refresh())
 	layout.add_child(_quantitySpinBox)
+	_quick = HBoxContainer.new()
+	layout.add_child(_quick)
 	_actionButton = Button.new()
 	_actionButton.pressed.connect(_Submit)
 	layout.add_child(_actionButton)
@@ -96,6 +105,7 @@ func _ResetSelection() -> void:
 
 func _Select(index: int, source: String) -> void:
 	_source = source
+	_review_quantity = false
 	_slot = index
 	_pending = false
 	var other := _playerInventoryContainer if source == "buy" else _merchantInventoryContainer
@@ -122,14 +132,35 @@ func _Quote() -> int:
 func _ValidSelection() -> bool:
 	var stack := _GetStack()
 	var quantity := int(_quantitySpinBox.value)
-	return not _closing and not _pending and _source in ["buy", "sell"] and stack != null and stack.item != null and stack.item.index > 0 and stack.item.index == _selected_item and quantity > 0 and quantity <= stack.quantity and _Quote() > 0 and not (_source == "sell" and stack.equipped)
+	return not _closing and not _pending and not _review_quantity and _source in ["buy", "sell"] and stack != null and stack.item != null and stack.item.index > 0 and stack.item.index == _selected_item and quantity > 0 and quantity <= stack.quantity and _Quote() > 0 and not (_source == "sell" and stack.equipped)
 
 func _Refresh() -> void:
 	if _actionButton == null:
 		return
 	_actionButton.text = "Comprar" if _source == "buy" else ("Vender" if _source == "sell" else "Seleccioná un objeto")
-	_actionButton.disabled = not _ValidSelection()
 	var stack := _GetStack()
+	var stock := mini(32767, stack.quantity) if stack != null and stack.item != null and stack.item.index == _selected_item else 0
+	if int(_quantitySpinBox.value) > stock and stock != _quick_stock and stock > 0:
+		_review_quantity = true
+	_adjusting = true
+	_quantitySpinBox.max_value = maxi(1, stock)
+	_adjusting = false
+	_quantitySpinBox.editable = stock > 0
+	if _quick_stock != stock:
+		_quick_stock = stock
+		for child in _quick.get_children(): child.free()
+		var seen := {}
+		for count in [1, 10, 100, stock]:
+			if count < 1 or count > stock or seen.has(count): continue
+			seen[count] = true
+			var button := Button.new()
+			button.text = "Máx. %d" % count if count == stock else str(count)
+			button.pressed.connect(func():
+				_review_quantity = false
+				_quantitySpinBox.value = count
+				_Refresh())
+			_quick.add_child(button)
+	_actionButton.disabled = not _ValidSelection()
 	_actionButton.tooltip_text = "Desequipá el objeto antes de venderlo." if _source == "sell" and stack != null and stack.equipped else ""
 	_infoLabel.text = "%s · Total: %d oro" % [stack.item.name, _Quote()] if stack != null and stack.item != null and stack.item.index > 0 else "Seleccioná un objeto del mercader o de tu inventario."
 

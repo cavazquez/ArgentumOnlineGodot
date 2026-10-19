@@ -4,7 +4,16 @@ var username:String = ""
 var skillPoints:int = 0
 
 # Control de logging para paquetes salientes al servidor
-var log_outgoing_packets:bool = true
+var log_outgoing_packets:bool = false
+
+signal ping_requested
+signal ping_updated(value: String)
+var pingStatus := "Sin medición":
+	set(value):
+		pingStatus = value
+		ping_updated.emit(value)
+
+signal preferences_changed
 
 signal dialog_font_size_changed(value:int)
 signal custom_cursor_changed(value:bool)
@@ -15,7 +24,7 @@ var _chromaticMode:int = 0
 
 var chromaticMode:int:
 	set(value):
-		_chromaticMode = value
+		_chromaticMode = clampi(value, 0, 3)
 		emit_signal("chromatic_mode_changed", _chromaticMode)
 	get:
 		return _chromaticMode
@@ -60,4 +69,53 @@ func _ready() -> void:
 		# Cargar configuración de modo cromático
 		var saved_chromaticMode = cfg.get_value("ui", "chromatic_mode", chromaticMode)
 		chromaticMode = int(saved_chromaticMode)
+		consoleFontSize = int(cfg.get_value("ui", "console_font_size", 12))
+		nameFontSize = int(cfg.get_value("ui", "name_font_size", 12))
+		showNames = bool(cfg.get_value("ui", "show_names", true))
+		showFPS = bool(cfg.get_value("ui", "show_fps", false))
+		effectsMode = int(cfg.get_value("ui", "effects", 2))
+		musicVolume = float(cfg.get_value("audio", "music_volume", 0.65))
 		
+
+var consoleFontSize := 12:
+	set(value):
+		consoleFontSize = clampi(value, 10, 24)
+		preferences_changed.emit()
+var nameFontSize := 12:
+	set(value):
+		nameFontSize = clampi(value, 10, 24)
+		preferences_changed.emit()
+var showNames := true:
+	set(value):
+		showNames = value
+		preferences_changed.emit()
+var showFPS := false:
+	set(value):
+		showFPS = value
+		preferences_changed.emit()
+var effectsMode := 2:
+	set(value):
+		effectsMode = clampi(value, 0, 2)
+		preferences_changed.emit()
+var musicVolume := 0.65:
+	set(value):
+		musicVolume = clampf(value, 0.0, 1.0)
+		preferences_changed.emit()
+
+func save_preferences() -> Error:
+	var cfg := ConfigFile.new()
+	var loaded := cfg.load("user://options.cfg")
+	if loaded != OK and loaded != ERR_FILE_NOT_FOUND: return loaded
+	cfg.set_value("ui", "dialog_font_size", dialogFontSize)
+	cfg.set_value("ui", "console_font_size", consoleFontSize)
+	cfg.set_value("ui", "name_font_size", nameFontSize)
+	cfg.set_value("ui", "show_names", showNames)
+	cfg.set_value("ui", "show_fps", showFPS)
+	cfg.set_value("ui", "effects", effectsMode)
+	cfg.set_value("ui", "use_custom_cursor", useCustomCursor)
+	cfg.set_value("ui", "chromatic_mode", chromaticMode)
+	cfg.set_value("audio", "volume_db", AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Master")))
+	cfg.set_value("audio", "music_volume", musicVolume)
+	var error := cfg.save("user://options.cfg.tmp")
+	if error != OK: return error
+	return DirAccess.rename_absolute("user://options.cfg.tmp", "user://options.cfg")

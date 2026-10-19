@@ -51,6 +51,7 @@ func _ready() -> void:
 	close_requested.connect(self.hide)
 	# Recalcular fuentes al cambiar tamaño de la ventana
 	size_changed.connect(_update_font_scale)
+	Global.dialog_font_size_changed.connect(func(_value): _update_font_scale())
 
 	var explanation := Label.new()
 	explanation.name = "ProgressionExplanation"
@@ -91,7 +92,7 @@ func _resolve_ui_refs() -> void:
 
 func _update_font_scale() -> void:
 	var factor: float = clamp(float(size.x) / BASE_WIDTH, 0.75, 1.0)
-	var fsize: int = int(round(BASE_FONT * factor))
+	var fsize: int = int(round((BASE_FONT + Global.dialogFontSize - 12) * factor))
 	if fsize < MIN_FONT:
 		fsize = MIN_FONT
 	_apply_font_size(fsize)

@@ -17,6 +17,7 @@ fi
 pyao_export_commit=$(git -C "$project_root" rev-parse HEAD)
 pyao_export_clean=false
 if [[ -z $(git -C "$project_root" status --porcelain) ]]; then pyao_export_clean=true; fi
+python3 "$project_root/tools/write-build-info.py"
 "$project_root/tools/check-godot.sh" --templates
 mkdir -p "$project_root/build"
 mkdir -p "$output_dir"

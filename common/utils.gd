@@ -121,6 +121,7 @@ static func LegalCharacter(text:String) -> bool:
 	
 static func ShowAlertDialog(title:String, message:String, parent:Node) -> AcceptDialog:
 	var dialog = AcceptDialog.new()
+	ApplyDialogTheme(dialog)
 	parent.add_child(dialog)
 	
 	dialog.canceled.connect(dialog.queue_free)
@@ -131,3 +132,14 @@ static func ShowAlertDialog(title:String, message:String, parent:Node) -> Accept
 	dialog.popup_centered();
 	
 	return dialog
+
+static func ApplyDialogTheme(window: Window) -> void:
+	if window.has_meta("pyao_dialog_theme"): return
+	window.set_meta("pyao_dialog_theme", true)
+	window.theme = window.theme.duplicate() if window.theme else Theme.new()
+	window.theme.default_font_size = Global.dialogFontSize
+	var update := func(value: int):
+		if is_instance_valid(window): window.theme.default_font_size = value
+	Global.dialog_font_size_changed.connect(update)
+	window.tree_exiting.connect(func():
+		if Global.dialog_font_size_changed.is_connected(update): Global.dialog_font_size_changed.disconnect(update))

@@ -75,11 +75,21 @@ func GetMap(fileId:int) -> MapData:
 				if  stream.get_16() in [1, 2, 4]:
 					mapData.flags[index] |= Enums.TileState.Roof 
 			
-			if ((mapData.layer1[index] >= 1505 && mapData.layer1[index] <= 1520) || \
-				(mapData.layer1[index] >= 5665 && mapData.layer1[index] <= 5680) || \
-				(mapData.layer1[index] >= 13547 && mapData.layer1[index] <= 13562)) && mapData.layer2[index] == 0:
-					mapData.flags[index] |= Enums.TileState.Water 
+	mapData.flags = ApplyWaterMask(fileId, mapData.flags)
 	return mapData;
+
+var _water_masks := {}
+
+func ApplyWaterMask(map_id: int, flags: PackedByteArray) -> PackedByteArray:
+	if _water_masks.is_empty():
+		_water_masks = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/water-masks.json"))
+	var encoded: String = _water_masks.get("maps", {}).get(str(map_id), "")
+	var mask := Marshalls.base64_to_raw(encoded)
+	if mask.size() != 10000 or flags.size() != 10000:
+		push_error("Máscara acuática ausente o inválida para el mapa %d" % map_id)
+		return flags
+	for index in 10000: flags[index] = (flags[index] & ~Enums.TileState.Water) | mask[index]
+	return flags
 
 func _LoadColours() -> void:
 	var initReader = ConfigFile.new()

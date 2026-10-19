@@ -6,6 +6,15 @@ signal activated
 var _drag_started := false
    
 var index:int = -1
+
+func _ready() -> void:
+	focus_mode = Control.FOCUS_ALL
+	focus_entered.connect(func(): SetSelected(true))
+	focus_exited.connect(func(): SetSelected(false))
+
+func SetDescription(stack: ItemStack) -> void:
+	tooltip_text = "%s × %d" % [stack.item.name, stack.quantity] if stack != null and stack.item != null and stack.item.index > 0 and stack.quantity > 0 else ""
+
   
 func SetQuantity(quantity:int) -> void:
 	%Quantity.text = str(quantity) if quantity > 1 else ""
@@ -20,6 +29,11 @@ func SetSelected(selected:bool) -> void:
 	%Selected.visible = selected
 
 func _gui_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_accept"):
+		pressed.emit()
+		activated.emit()
+		accept_event()
+		return
 	if event is InputEventMouseButton:
 		if event.pressed && event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
 			_drag_started = false

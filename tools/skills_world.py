@@ -103,6 +103,9 @@ class MechanicsWorld(SpellWorld):
         def seed():
             for index in positions:
                 uid = self.ids[index]
+                # Login deriva la clase del personaje persistido en la cuenta.
+                # Sembrar sólo user_stats se sobrescribe legítimamente al entrar.
+                store.hset(f"account:{self.names[index-1]}:data", "char_job", int((stats or {}).get("class_id", 1)))
                 current = store.hgetall(f"player:{uid}:user_stats")
                 store.hset(
                     f"player:{uid}:user_stats",
@@ -431,7 +434,7 @@ class MechanicsWorld(SpellWorld):
             )
 
     def personal(self, store, x, y):
-        self.reset(store)
+        self.reset(store, stats={"class_id": 5})
         before = self.skill_state(store)
         for _ in range(30):
             self.command(1, "ability", skill=7)

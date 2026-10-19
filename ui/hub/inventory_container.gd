@@ -29,6 +29,7 @@ func SetInventory(inventory:Inventory) -> void:
 
 	for i in _inventory.GetSize():
 		var inventorySlot = InventorySlotScene.instantiate() as InventorySlot
+		inventorySlot.name = "Slot%d" % i
 		add_child(inventorySlot)
 		
 		inventorySlot.index = i
@@ -36,6 +37,8 @@ func SetInventory(inventory:Inventory) -> void:
 		inventorySlot.activated.connect(func(): slotActivated.emit(inventorySlot.index))
 		_OnSlotChanged(i, _inventory.GetSlot(i))
 		inventorySlot.SetSelected(i == _selectedSlot)
+		for info in [["focus_neighbor_left", i - 1], ["focus_neighbor_right", i + 1], ["focus_neighbor_top", i - columns], ["focus_neighbor_bottom", i + columns]]:
+			if info[1] >= 0 and info[1] < inventory.GetSize(): inventorySlot.set(info[0], NodePath("../Slot%d" % info[1]))
 
 func GetInventorySlot(index:int) -> InventorySlot:
 	for child in get_children():
@@ -46,7 +49,8 @@ func GetInventorySlot(index:int) -> InventorySlot:
 func _OnSlotChanged(index:int, itemStack:ItemStack) -> void:
 	var inventorySlot = GetInventorySlot(index) 
 	if inventorySlot:
-		inventorySlot.SetIcon(itemStack.item.icon)
+		inventorySlot.SetDescription(itemStack)
+		inventorySlot.SetIcon(itemStack.item.icon if itemStack != null and itemStack.item != null else null)
 		inventorySlot.SetQuantity(itemStack.quantity)
 		inventorySlot.SetEquipped(itemStack.equipped)
 		
