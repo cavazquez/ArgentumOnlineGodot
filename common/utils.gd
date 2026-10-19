@@ -1,6 +1,21 @@
 extends RefCounted
 class_name Utils
 
+static var _active_alert: WeakRef
+
+static func DismissAlerts(parent: Node = null) -> void:
+	if _active_alert == null:
+		return
+	var dialog = _active_alert.get_ref()
+	if not is_instance_valid(dialog):
+		_active_alert = null
+		return
+	if parent != null and not parent.is_ancestor_of(dialog):
+		return
+	dialog.hide()
+	dialog.queue_free()
+	_active_alert = null
+
 static func GetFilesInDirectory(path:String) -> Array[String]:
 	var files:Array[String] = []
 	var dir = DirAccess.open(path)
@@ -120,9 +135,11 @@ static func LegalCharacter(text:String) -> bool:
 	return true
 	
 static func ShowAlertDialog(title:String, message:String, parent:Node) -> AcceptDialog:
+	DismissAlerts()
 	var dialog = AcceptDialog.new()
 	ApplyDialogTheme(dialog)
 	parent.add_child(dialog)
+	_active_alert = weakref(dialog)
 	
 	dialog.canceled.connect(dialog.queue_free)
 	dialog.confirmed.connect(dialog.queue_free)

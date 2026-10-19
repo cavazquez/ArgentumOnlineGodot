@@ -18,8 +18,14 @@ func _ready() -> void:
 			defaults[action] = InputMap.action_get_events(action).duplicate(true)
 	for action in [&"ui_left", &"ui_right", &"ui_up", &"ui_down"]:
 		defaults[action] = InputMap.action_get_events(action).duplicate(true)
+	reload_profile()
+
+func reload_profile() -> void:
+	for action in defaults: _install(action, defaults[action])
 	var cfg := ConfigFile.new()
-	if cfg.load(PATH) != OK: return
+	if WebPreferences.load_config(cfg, PATH) != OK:
+		bindings_changed.emit()
+		return
 	for action in defaults:
 		var encoded = cfg.get_value("bindings", String(action), null)
 		if encoded == null: continue
@@ -33,6 +39,7 @@ func _ready() -> void:
 				break
 			events.append(event)
 		if valid and not events.is_empty(): _install(action, events)
+	bindings_changed.emit()
 
 func decode(row: Variant) -> InputEvent:
 	if not row is Dictionary: return null
@@ -116,6 +123,7 @@ func save() -> Error:
 		var events := []
 		for event in InputMap.action_get_events(action): events.append(encode(event))
 		cfg.set_value("bindings", String(action), events)
+	if OS.has_feature("web"): return WebPreferences.save_config(cfg, PATH)
 	var error := cfg.save(PATH + ".tmp")
 	if error != OK: return error
 	return DirAccess.rename_absolute(PATH + ".tmp", PATH)

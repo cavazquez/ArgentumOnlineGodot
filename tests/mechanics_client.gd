@@ -5,6 +5,7 @@ var capture_label := ""
 var packets: Array = []
 var frames: Array = []
 var audio_frames: Array = []
+var platform_probe: Dictionary = {}
 var seen := {}
 var server_console_count := 0
 
@@ -15,6 +16,15 @@ func run(owner: Node) -> bool:
 	return await super.run(owner)
 
 func _packet(data: PackedByteArray) -> void:
+	if not data.is_empty() and data[0] == 248:
+		var stream := StreamPeerBuffer.new()
+		stream.data_array = data
+		stream.seek(1)
+		var state := WorldStatePacket.new(stream)
+		if state.valid and state.data.kind == "chat" and state.data.data.channel == "system":
+			server_console_count += 1
+			if not capture_label.is_empty(): packets.append({"kind": "console", "message": state.data.data.text, "label": capture_label})
+		return
 	if not data.is_empty() and data[0] == Enums.ServerPacketID.ConsoleMsg:
 		server_console_count += 1
 	if capture_label.is_empty() or data.is_empty():
@@ -58,6 +68,7 @@ func _observe() -> void:
 
 func snapshot() -> Dictionary:
 	var view := super.snapshot()
+	view.platform_probe = platform_probe.duplicate(true)
 	view.fx_packets = packets.duplicate(true)
 	view.server_console_count = server_console_count
 	view.fx_frames = frames.duplicate(true)
@@ -99,6 +110,35 @@ func snapshot() -> Dictionary:
 	return view
 
 func execute(command: Dictionary) -> bool:
+	if command.op == "platform_probe":
+		var original_size := Global.dialogFontSize
+		Global.dialogFontSize = 14
+		if Global.save_preferences() != OK: return false
+		Global.dialogFontSize = 12
+		Global.reload_preferences()
+		var saved := Global.dialogFontSize == 14
+		Global.dialogFontSize = original_size
+		if Global.save_preferences() != OK: return false
+		var previous := InputBindings.encode(InputMap.action_get_events(&"Attack")[0])
+		var key := InputEventKey.new()
+		key.physical_keycode = KEY_F8
+		if InputBindings.assign(&"Attack", key) != OK: return false
+		InputBindings.reload_profile()
+		var input_saved: bool = InputBindings.encode(InputMap.action_get_events(&"Attack")[0]).get("physical") == KEY_F8
+		if InputBindings.assign(&"Attack", InputBindings.decode(previous)) != OK: return false
+		var game := ScreenController.currentScreen as GameScreen
+		if game == null: return false
+		var keyboard := await keyboard_flows(game)
+		AudioManager.PlayAudio(17)
+		await host.get_tree().create_timer(0.05).timeout
+		var audio := false
+		for player in AudioManager.get_children():
+			if player is AudioStreamPlayer and player.playing and player.stream != null and player.get_playback_position() > 0: audio = true
+		await RenderingServer.frame_post_draw
+		var image := host.get_viewport().get_texture().get_image()
+		var rendered := DisplayServer.get_name() != "headless" and image != null and image.get_width() >= 640
+		platform_probe = {"rendering": rendered, "audio": audio, "input": input_saved and keyboard, "preferences": saved, "display_driver": DisplayServer.get_name(), "audio_driver": AudioServer.get_driver_name()}
+		return rendered and audio and input_saved and keyboard and saved
 	if command.op == "ui_phase":
 		var game := ScreenController.currentScreen as GameScreen
 		if game == null: return false

@@ -21,6 +21,10 @@ func _ready() -> void:
 	%Port.value = preferences.port
 	%UseTLS.button_pressed = preferences.tls
 	%CaPath.text = preferences.ca_path
+	if OS.has_feature("web"):
+		%UseTLS.button_pressed = true
+		%UseTLS.disabled = true
+		%CaPath.visible = false
 	%CancelConnection.pressed.connect(ClientInterface.DisconnectFromHost)
 	
 	_loginPanel.error.connect(func(message): 
@@ -47,7 +51,7 @@ func _OnConnectionFailed(message: String) -> void:
 func _SetEndpointControls(enabled: bool) -> void:
 	%Ip.editable = enabled
 	%Port.editable = enabled
-	%UseTLS.disabled = not enabled
+	%UseTLS.disabled = OS.has_feature("web") or not enabled
 	%CaPath.editable = enabled
 	%CancelConnection.visible = not enabled
 
@@ -100,6 +104,8 @@ func _ConnectToHost(state: State) -> void:
 	if ConnectionPreferences.save_preferences(endpoint) != OK:
 		_OnConnectionFailed("No se pudo guardar la configuración de conexión")
 		return
+	if OS.has_feature("web"):
+		WebPreferences.select_endpoint(endpoint.host if endpoint.host.begins_with("wss://") else "wss://%s:%d" % [endpoint.host, endpoint.port])
 	_state = state
 	_loginPanel.DisableAuthControls()
 	_SetEndpointControls(false)

@@ -14,7 +14,9 @@ if [[ ${1:-} == --templates ]]; then
   [[ $(cat "$templates_dir/version.txt") == "$expected.stable" ]] || {
     echo "Templates de una versión distinta en $templates_dir" >&2; exit 1;
   }
-  for template in linux_debug.x86_64 linux_release.x86_64; do
+  pyao_arch=x86_64
+  if [[ $(uname -m) == aarch64 || $(uname -m) == arm64 ]]; then pyao_arch=arm64; fi
+  for template in linux_debug.$pyao_arch linux_release.$pyao_arch; do
     [[ -s "$templates_dir/$template" ]] || { echo "Falta $template" >&2; exit 1; }
   done
 fi

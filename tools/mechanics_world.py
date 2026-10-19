@@ -13,7 +13,7 @@ from src.runtime_paths import data_dir
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 SKILLS = json.loads((ROOT / "protocol/skills.json").read_text())["skills"]
-SPELLS = tomllib.loads((data_dir() / "spells.toml").read_text())["spell"]
+SPELLS = [row for row in tomllib.loads((data_dir() / "spells.toml").read_text())["spell"] if row["id"] <= 46]  # Los nuevos 47–51 tienen aceptación específica en phase50_world.
 SELECTED = {
     int(v) for v in os.environ.get("AO_MECHANICS_SPELL_IDS", "").split(",") if v
 }

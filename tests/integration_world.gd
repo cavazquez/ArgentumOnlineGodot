@@ -81,7 +81,13 @@ func _ready() -> void:
 	var until := started + duration * 1000
 	var actions := ["ui_right", "ui_down", "ui_left", "ui_up"]
 	var sequence := 0
+	var next_capture := started + 300000
 	while Time.get_ticks_msec() < until:
+		if Time.get_ticks_msec() >= next_capture and DisplayServer.get_name() != "headless":
+			await RenderingServer.frame_post_draw
+			var path := OS.get_environment("PYAO_TEST_SCREENSHOT")
+			if not path.is_empty(): get_viewport().get_texture().get_image().save_png(path.get_basename() + "-%04ds.png" % int((Time.get_ticks_msec() - started) / 1000))
+			next_capture += 300000
 		if not ClientInterface.IsConnected() or not is_instance_valid(game) or game._gameContext.player_stats.hp <= 0:
 			push_error("INTEGRATION_WORLD: sesión o personaje perdido")
 			get_tree().quit(1)

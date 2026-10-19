@@ -186,6 +186,11 @@ class PairReleaseTests(unittest.TestCase):
             ("requirements", requirements),
         ):
             self.manifest["evidence"][key] = self.evidence(key, value)
+        records = []
+        for scenario in sorted(release.CAMPAIGN_SCENARIOS):
+            evidence = self.manifest["evidence"]["r10"] if scenario == "full" else self.evidence(scenario, {**commits, "release_version": "1.0.0rc1", "regression_passed": True, "native_export": True, "installed_wheel": True, "tls": True})
+            records.append({"scenario": scenario, "proof": evidence["file"], "sha256": evidence["sha256"]})
+        self.manifest["evidence"]["campaign"] = self.evidence("campaign", {"passed": True, "sources": {"server": "a" * 40, "client": "b" * 40}, "records": records})
         self.path = self.root / "pair.json"
         self.stage = self.root / "staged"
 
@@ -204,13 +209,27 @@ class PairReleaseTests(unittest.TestCase):
         self.assertEqual(self.store.current, baseline)
         result = release.promote(self.stage / "state.json", self.store)
         self.assertEqual(result["status"], "published")
-        self.assertEqual(self.store.events, ["upload"] * 3 + ["release"] * 3)
+        self.assertEqual(self.store.events, ["upload"] * len(release.PACKAGES) + ["release"] * len(release.PACKAGES))
         self.assertEqual(self.store.current, result["candidates"])
         self.assertIn("promotion_completed_at", result)
 
     def test_missing_package_or_different_version_never_uploads(self):
         self.manifest["packages"].pop()
         with self.assertRaisesRegex(RuntimeError, "incompleto"):
+            self.prepare()
+        self.assertFalse(self.store.events)
+
+    def test_missing_current_campaign_never_uploads(self):
+        self.manifest["evidence"].pop("campaign")
+        with self.assertRaisesRegex(RuntimeError, "campaña completa"):
+            self.prepare()
+        self.assertFalse(self.store.events)
+
+    def test_missing_campaign_scenario_never_uploads(self):
+        value = release.read(Path(self.manifest["evidence"]["campaign"]["file"]))
+        value["records"].pop()
+        self.manifest["evidence"]["campaign"] = self.evidence("campaign", value)
+        with self.assertRaisesRegex(RuntimeError, "Campaña incompleta"):
             self.prepare()
         self.assertFalse(self.store.events)
 
@@ -297,7 +316,7 @@ class PairReleaseTests(unittest.TestCase):
         self.assertEqual(self.store.current, baseline)
         receipt = release.read(self.stage / "state.json")
         self.assertEqual(receipt["status"], "rolled-back")
-        self.assertEqual(self.store.events.count("release"), 5)
+        self.assertEqual(self.store.events.count("release"), 2 + len(release.PACKAGES))
 
     def test_snap_metadata_supports_real_snapcraft_block_architectures(self):
         with patch.object(
@@ -340,7 +359,7 @@ class PairReleaseTests(unittest.TestCase):
         self.store.current["pyao/amd64"]["revision"] = 999
         with self.assertRaisesRegex(RuntimeError, "recibo viejo"):
             release.execute(args, self.store)
-        self.assertEqual(self.store.events.count("release"), 3)
+        self.assertEqual(self.store.events.count("release"), len(release.PACKAGES))
         self.store.current = receipt["candidates"]
         with patch("builtins.print"):
             release.execute(args, self.store)

@@ -36,6 +36,10 @@ SCENARIO_TIMEOUT_SECONDS = {
     "economy": 1200,
     "economy-ui": 600,
     "npcs": 600,
+    "platform": 600,
+    "potions": 1200,
+    "expansion": 1200,
+    "npc-policy": 1200,
 }
 
 
@@ -127,7 +131,7 @@ def port():
 
 def stop(process):
     if process.poll() is None:
-        process.send_signal(signal.SIGTERM)
+        process.send_signal(signal.CTRL_BREAK_EVENT if os.name == "nt" else signal.SIGTERM)
         try:
             process.wait(timeout=20)
         except subprocess.TimeoutExpired:
@@ -162,6 +166,14 @@ class NativeRedis:
             str(runtime / "lib") + ":" + str(runtime / "usr-lib"),
             str(runtime / "redis-server"),
         ]
+        native = runtime / "runtime.json"
+        wsl_runtime = bool(json.loads(native.read_text()).get("wsl")) if native.exists() else False
+        def native_path(path):
+            if wsl_runtime:
+                return subprocess.check_output(["wsl", "--exec", "wslpath", "-u", str(path)], text=True).strip()
+            return str(path)
+        if native.exists():
+            command = (["wsl", "--exec"] if wsl_runtime else []) + [native_path(runtime / "redis-server")]
         version = subprocess.check_output([*command, "--version"], text=True)
         if "v=8.10.2 " not in version:
             raise RuntimeError("La fixture requiere Redis 8.10.2")
@@ -177,19 +189,19 @@ class NativeRedis:
         config.write_text(
             (resource_root() / "redis/redis.conf")
             .read_text()
-            .replace("dir /data", "dir " + str(self.root))
+            .replace("dir /data", 'dir "' + native_path(self.root).replace('\\', '/') + '"')
         )
         self.log = (self.root / "redis.log").open("wb")
         self.process = subprocess.Popen(
             [
                 *command,
-                str(config),
+                native_path(config),
                 "--bind",
                 "127.0.0.1",
                 "--port",
                 str(self.port),
                 "--aclfile",
-                str(acl),
+                native_path(acl),
             ],
             stdout=self.log,
             stderr=subprocess.STDOUT,
@@ -227,6 +239,8 @@ class NativeRedis:
 
     def __exit__(self, *_):
         if self.process is not None:
+            with contextlib.suppress(Exception):
+                with self.client() as client: client.shutdown(save=True)
             stop(self.process)
         self.log.close()
 
@@ -238,6 +252,7 @@ def worker(args):
         raise InterruptedError("Ensayo interrumpido; se limpian los procesos propios")
 
     signal.signal(signal.SIGTERM, interrupted)
+    if os.name == "nt": signal.signal(signal.SIGBREAK, interrupted)
     from src.operations.redis_sandbox import RedisSandbox
     from importlib.metadata import version
 
@@ -246,7 +261,15 @@ def worker(args):
     work = Path.cwd()
     output = args.output
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    if args.scenario == "npcs":
+    if args.scenario == "npc-policy":
+        from npc_policy_world import NPCPolicyWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "potions":
+        from potion_world import PotionWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "expansion":
+        from phase50_world import Phase50World as R10World, acceptance, prepare_fixture
+    elif args.scenario == "platform":
+        from platform_world import PlatformWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "npcs":
         from npc_world import NPCWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "economy-ui":
         from economy_world import EconomyUIWorld as R10World, ui_acceptance as acceptance, prepare_fixture
@@ -323,7 +346,7 @@ def worker(args):
             else "40",
         )
         server_log = stack.enter_context((output / "server.log").open("wb"))
-        entry = Path(sys.executable).parent / "pyao-server"
+        entry = Path(sys.executable).parent / ("pyao-server.exe" if os.name == "nt" else "pyao-server")
         server_entry = [sys.executable, "-m", "src.run_server"] if args.source else [str(entry)]
         server = subprocess.Popen(
             [
@@ -343,6 +366,7 @@ def worker(args):
             env=environment,
             stdout=server_log,
             stderr=subprocess.STDOUT,
+            **({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {}),
         )
         stack.callback(stop, server)
         deadline = time.monotonic() + 60
@@ -387,12 +411,8 @@ def worker(args):
                 if args.client_executable
                 else [str(args.godot), "--path", str(ROOT)]
             )
-            command += [
-                "--audio-driver",
-                "Dummy",
-                "--rendering-method",
-                "gl_compatibility",
-            ]
+            if args.scenario != "platform": command += ["--audio-driver", "Dummy"]
+            command += ["--rendering-method", "gl_compatibility"]
             if not args.client_executable:
                 command += ["res://tests/integration_world.tscn"]
             if args.headless:
@@ -421,6 +441,7 @@ def worker(args):
                 env=environment,
                 stdout=server_log,
                 stderr=subprocess.STDOUT,
+                **({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {}),
             )
             stack.callback(stop, server)
             deadline = time.monotonic() + 60
@@ -486,7 +507,7 @@ def worker(args):
                 raise RuntimeError(f"Godot {index} no acredita la prueba completa")
             if password in log:
                 raise RuntimeError("Se filtró una credencial sintética en el log")
-            if args.client_executable and "R10_NATIVE: true" not in log:
+            if args.client_executable and args.scenario != "platform" and "R10_NATIVE: true" not in log:
                 raise RuntimeError(
                     "El export no ejecutó el perfil nativo de aceptación"
                 )
@@ -720,7 +741,7 @@ def main():
     parser.add_argument("--seconds", type=int, default=1800)
     parser.add_argument(
         "--scenario",
-        choices=("r10", "skills", "spells", "full", "navigation", "duel", "economy", "economy-ui", "npcs"),
+        choices=tuple(SCENARIO_TIMEOUT_SECONDS),
         default="r10",
         help="Regresión que se ejecuta antes del período de observación",
     )
@@ -832,7 +853,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="pyao-godot-world-") as temporary:
         work = Path(temporary)
         if args.source:
-            python = args.server_project / ".venv/bin/python"
+            python = args.server_project / (".venv/Scripts/python.exe" if os.name == "nt" else ".venv/bin/python")
             if not python.is_file():
                 parser.error("El modo fuente necesita el entorno uv .venv del servidor")
             environment["PYTHONPATH"] = str(args.server_project)
@@ -842,7 +863,7 @@ def main():
                 cwd=work,
                 env=environment,
             )
-            python = work / "venv/bin/python"
+            python = work / ("venv/Scripts/python.exe" if os.name == "nt" else "venv/bin/python")
             runtime = subprocess.check_output(
                 ["uv", "export", "--locked", "--no-dev", "--no-emit-project"],
                 cwd=args.server_project,
@@ -908,7 +929,7 @@ def main():
         arguments += ["--snap-audio", args.snap_audio]
         arguments += ["--snap-source", args.snap_source]
         child = subprocess.Popen(
-            arguments, cwd=work, env=environment, start_new_session=True
+            arguments, cwd=work, env=environment, **({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True})
         )
         try:
             if (
@@ -922,12 +943,13 @@ def main():
                 )
         finally:
             if child.poll() is None:
-                child.send_signal(signal.SIGTERM)
+                child.send_signal(signal.CTRL_BREAK_EVENT if os.name == "nt" else signal.SIGTERM)
                 try:
                     child.wait(timeout=120)
                 except subprocess.TimeoutExpired:
                     # El grupo contiene únicamente worker, servidor, Redis y Godot propios.
-                    os.killpg(child.pid, signal.SIGKILL)
+                    if os.name == "nt": child.kill()
+                    else: os.killpg(child.pid, signal.SIGKILL)
                     child.wait(timeout=5)
 
 

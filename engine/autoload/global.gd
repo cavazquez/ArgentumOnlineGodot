@@ -60,9 +60,28 @@ func _ready() -> void:
 	if not preferences_changed.is_connected(_apply_accessibility):
 		_normal_root_theme = get_tree().root.theme
 		preferences_changed.connect(_apply_accessibility)
+	reload_preferences()
+
+func reload_preferences() -> void:
+	# Missing values use project defaults, never another server's preferences.
+	dialogFontSize = 12
+	consoleFontSize = 12
+	nameFontSize = 12
+	showNames = true
+	showFPS = false
+	effectsMode = 2
+	useCustomCursor = false
+	chromaticMode = 0
+	musicVolume = 0.65
+	animateDialogs = true
+	highContrast = false
+	rainIntensity = 1.0
+	peripheralFog = 0.0
+	transitionEffects = true
+	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), 0.0)
 	# Cargar configuración guardada
 	var cfg = ConfigFile.new()
-	if cfg.load("user://options.cfg") == OK:
+	if WebPreferences.load_config(cfg, "user://options.cfg") == OK:
 		var bus = AudioServer.get_bus_index("Master")
 		var saved_db = cfg.get_value("audio", "volume_db", AudioServer.get_bus_volume_db(bus))
 		AudioServer.set_bus_volume_db(bus, saved_db)
@@ -117,7 +136,7 @@ var musicVolume := 0.65:
 
 func save_preferences() -> Error:
 	var cfg := ConfigFile.new()
-	var loaded := cfg.load("user://options.cfg")
+	var loaded := WebPreferences.load_config(cfg, "user://options.cfg")
 	if loaded != OK and loaded != ERR_FILE_NOT_FOUND: return loaded
 	cfg.set_value("ui", "dialog_font_size", dialogFontSize)
 	cfg.set_value("ui", "animate_dialogs", animateDialogs)
@@ -134,9 +153,25 @@ func save_preferences() -> Error:
 	cfg.set_value("ui", "chromatic_mode", chromaticMode)
 	cfg.set_value("audio", "volume_db", AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Master")))
 	cfg.set_value("audio", "music_volume", musicVolume)
+	if OS.has_feature("web"): return WebPreferences.save_config(cfg, "user://options.cfg")
 	var error := cfg.save("user://options.cfg.tmp")
 	if error != OK: return error
 	return DirAccess.rename_absolute("user://options.cfg.tmp", "user://options.cfg")
+
+func show_storage_warning(message: String) -> void:
+	var existing := get_tree().root.get_node_or_null("BrowserStorageWarning")
+	if existing != null: return
+	var layer := CanvasLayer.new()
+	layer.name = "BrowserStorageWarning"
+	layer.layer = 100
+	var label := Label.new()
+	label.text = message
+	label.add_theme_color_override("font_color", Color.YELLOW)
+	label.add_theme_color_override("font_shadow_color", Color.BLACK)
+	label.add_theme_constant_override("shadow_outline_size", 4)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(label)
+	get_tree().root.add_child(layer)
 
 
 var animateDialogs := true:

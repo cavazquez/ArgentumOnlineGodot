@@ -194,6 +194,29 @@ func execute(command: Dictionary) -> bool:
 				if button == null or button.disabled: return false
 				button.pressed.emit()
 				if window._confirmation.visible: window._confirmation.confirmed.emit()
+			elif window is ExpansionWindow:
+				for key in command.get("controls", {}):
+					if not window._controls.has(key): return false
+					var control: Control = window._controls[key]
+					if control is SpinBox: control.value = command.controls[key]
+					elif control is LineEdit: control.text = str(command.controls[key])
+					elif control is OptionButton: control.select(int(command.controls[key]))
+				for index in window._list.item_count:
+					var row: Dictionary = window._list.get_item_metadata(index)
+					if str(row.get(command.get("select_key", "id"), "")) == str(command.get("select", "")):
+						window._list.select(index)
+						window._select(index)
+				if command.has("second") and window._second != null:
+					for index in window._second.item_count:
+						var row: Dictionary = window._second.get_item_metadata(index)
+						if int(row.get("id", row.get("slot", -1))) == int(command.second):
+							window._second.select(index)
+							window._second.item_selected.emit(index)
+				window._update_actions()
+				var button: Button = window._buttons.get(command.action)
+				if button == null or button.disabled: return false
+				button.pressed.emit()
+				if window._confirmation.visible: window._confirmation.confirmed.emit()
 			else: return false
 		"snapshot", "soak":
 			pass
@@ -347,7 +370,12 @@ func execute(command: Dictionary) -> bool:
 				escape.pressed = true
 				hub._input(escape)
 			else:
-				click_tile(hub, Vector2i(command.x, command.y))
+				var tile := Vector2i(command.x, command.y)
+				if command.has("actor"):
+					var target_actor = game._gameWorld.GetCharacter(int(command.actor))
+					if target_actor == null: return false
+					tile = target_actor.gridPosition
+				click_tile(hub, tile)
 		"work":
 			host.get_viewport().gui_release_focus()
 			if game._gameContext.usingSkill != int(command.skill):

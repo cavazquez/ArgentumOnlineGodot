@@ -14,6 +14,9 @@ platforms:
   amd64:
     build-on: [amd64]
     build-for: [amd64]
+  arm64:
+    build-on: [arm64]
+    build-for: [arm64]
 apps:
   pyao-client:
     command: bin/pyao-client-launch
@@ -34,7 +37,9 @@ parts:
       export GODOT_BIN XDG_DATA_HOME="$engine_dir/data"
       tools/smoke-godot.sh
       tools/export-linux.sh
-      install -Dm755 build/pyao-client.x86_64 "$CRAFT_PART_INSTALL/bin/pyao-client"
+      client_arch=x86_64
+      if [ "$CRAFT_ARCH_BUILD_FOR" = arm64 ]; then client_arch=arm64; fi
+      install -Dm755 "build/pyao-client.$client_arch" "$CRAFT_PART_INSTALL/bin/pyao-client"
       install -Dm755 snap/local/pyao-client-launch "$CRAFT_PART_INSTALL/bin/pyao-client-launch"
       install -Dm644 snap/gui/pyao-client.desktop "$CRAFT_PART_INSTALL/share/applications/pyao-client.desktop"
       install -Dm644 icon.svg "$CRAFT_PART_INSTALL/meta/gui/pyao-client.svg"

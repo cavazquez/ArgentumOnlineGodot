@@ -42,9 +42,12 @@ jobs:
         run: |
           gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN" > run.json
           gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN/jobs?per_page=100" > jobs.json
-          python3 tools/github_release.py check-run --run run.json --jobs jobs.json --commit "$RELEASE_COMMIT" --workflow client-linux.yml --required quality --required import-and-export --required package-snap --required integration-world --required 'mechanics-world (skills)' --required 'mechanics-world (spells)' --required 'mechanics-world (navigation)' --required 'mechanics-world (duel)'
+          python3 tools/github_release.py check-run --run run.json --jobs jobs.json --commit "$RELEASE_COMMIT" --workflow client-linux.yml --required quality --required import-and-export --required 'package-snap*' --required 'portable-native*' --required web-browser --required integration-world --required 'mechanics-world (skills)' --required 'mechanics-world (spells)' --required 'mechanics-world (navigation)' --required 'mechanics-world (duel)' --required 'mechanics-world (potions)' --required 'mechanics-world (expansion)' --required 'mechanics-world (npc-policy)' --required 'mechanics-world (economy)' --required 'mechanics-world (npcs)'
           gh run download "$BUILD_RUN" --repo "$GH_REPO" --name "pyao-client-linux-$RELEASE_COMMIT" --dir incoming/native
-          gh run download "$BUILD_RUN" --repo "$GH_REPO" --name "pyao-client-snap-$RELEASE_COMMIT" --dir incoming/amd64
+          gh run download "$BUILD_RUN" --repo "$GH_REPO" --name "pyao-client-snap-amd64-$RELEASE_COMMIT" --dir incoming/amd64
+          gh run download "$BUILD_RUN" --repo "$GH_REPO" --name "pyao-client-snap-arm64-$RELEASE_COMMIT" --dir incoming/arm64
+          gh run download "$BUILD_RUN" --repo "$GH_REPO" --pattern "portable-*-$RELEASE_COMMIT" --dir incoming/portables
+          gh run download "$BUILD_RUN" --repo "$GH_REPO" --name "web-$RELEASE_COMMIT" --dir incoming/portables/web
       - name: Preparar hashes y procedencia sin recompilar
         run: python3 tools/github_release.py prepare --directory incoming --output release-dist --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --role client
       - name: Crear borrador completo sin sobreescribir una release existente

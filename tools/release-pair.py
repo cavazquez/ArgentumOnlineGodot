@@ -2,7 +2,7 @@
 """Prepara y promueve una entrega Snap conjunta, con recibos y recuperación.
 
 La Store no ofrece una transacción entre nombres. Nunca se usa upload --release:
-primero se revisan los tres paquetes y luego se promueven desde un único proceso.
+primero se revisan los cuatro paquetes y luego se promueven desde un único proceso.
 Si una promoción falla (incluso después de aplicarse), se restaura el par previo.
 """
 
@@ -20,11 +20,12 @@ import time
 
 from r10_world import REQUIRED_SCENARIOS
 
-PACKAGES = {"pyao/amd64", "pyao/arm64", "pyao-client/amd64"}
+PACKAGES = {"pyao/amd64", "pyao/arm64", "pyao-client/amd64", "pyao-client/arm64"}
 REPOSITORIES = {
     "pyao": ("cavazquez/pyao-server", {"CI", "Server Snap"}),
     "pyao-client": ("cavazquez/ArgentumOnlineGodot", {"Cliente Linux"}),
 }
+CAMPAIGN_SCENARIOS = {"full", "potions", "expansion", "economy", "npcs", "npc-policy"}
 
 
 def require(condition, message):
@@ -139,6 +140,27 @@ def validate_evidence(manifest, root):
             reference(
                 item, reference(manifest["evidence"]["requirements"], root).parent
             )
+    validate_campaign(manifest, root)
+
+
+def validate_campaign(manifest, root):
+    """No publica esta fase con sólo la aceptación anterior de R10."""
+    require("campaign" in manifest["evidence"], "Falta la campaña completa de esta fase")
+    path = reference(manifest["evidence"]["campaign"], root)
+    campaign = read(path)
+    sources = manifest["sources"]
+    expected = {"server": sources["pyao"]["commit"], "client": sources["pyao-client"]["commit"]}
+    require(campaign.get("passed") is True and campaign.get("sources") == expected, "Campaña fallida o de otros commits")
+    rows = campaign.get("records", [])
+    require(len(rows) == len(CAMPAIGN_SCENARIOS) and {row["scenario"] for row in rows} == CAMPAIGN_SCENARIOS, "Campaña incompleta")
+    for row in rows:
+        result = read(reference({"file": row["proof"], "sha256": row["sha256"]}, path.parent))
+        require(result.get("passed", result.get("regression_passed")) is True, "Escenario fallido: " + row["scenario"])
+        require(result.get("server_commit") == expected["server"] and result.get("client_commit") == expected["client"], "Escenario de otros commits")
+        require(result.get("release_version") == manifest["version"], "Escenario de otra versión")
+        require(result.get("native_export") is True and result.get("installed_wheel") is True and result.get("tls") is True, "Escenario sin binarios instalados y TLS")
+        if row["scenario"] == "full":
+            require(row["sha256"] == manifest["evidence"]["r10"]["sha256"], "La campaña y R10 deben referenciar la misma aceptación completa")
 
 
 def validate(manifest, root, backend):

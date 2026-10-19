@@ -13,6 +13,18 @@
     "Godot_v4.7.2-stable_export_templates.tpz": {
       "url": "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz",
       "sha256": "f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011"
+    },
+    "Godot_v4.7.2-stable_linux.arm64.zip": {
+      "url": "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.arm64.zip",
+      "sha256": "5dd0d86405cf7e8adf79fb6377b38ba682a2846cb378ffe5364f38c01ad29b9d"
+    },
+    "Godot_v4.7.2-stable_macos.universal.zip": {
+      "url": "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_macos.universal.zip",
+      "sha256": "c58a24e31d720be9d62f60cb5627c4e695fb72f21b0cfe1bc9ccaa9a3b3ba63e"
+    },
+    "Godot_v4.7.2-stable_win64.exe.zip": {
+      "url": "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_win64.exe.zip",
+      "sha256": "731980f9608d61333e5baf54a2ef17210acc7a538446c0cb9969f002aca1e953"
     }
   }
 }
