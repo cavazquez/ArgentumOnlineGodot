@@ -6,9 +6,7 @@ const MAX_BYTES := 67108864
 var _views := {}
 var _order: Array[int] = []
 var _queue: Array[int] = []
-var _requested := ""
 var _generation := 0
-var _request_generation := 0
 var _bytes := 0
 var _costs := {}
 var _topology: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/world-topology.json"))
@@ -79,24 +77,17 @@ func _evict(id: int) -> void:
 	view.queue_free()
 
 func _process(_delta: float) -> void:
-	if not _requested.is_empty():
-		var status := ResourceLoader.load_threaded_get_status(_requested)
-		if status == ResourceLoader.THREAD_LOAD_IN_PROGRESS: return
-		var path := _requested
-		_requested = ""
-		if status != ResourceLoader.THREAD_LOAD_LOADED: return
-		var scene := ResourceLoader.load_threaded_get(path) as PackedScene
-		if scene == null or _request_generation != _generation: return
-		var id := int(path.get_file().trim_prefix("Map").trim_suffix(".tscn"))
-		keep(id, scene.instantiate())
-		return # Como máximo una instancia por frame.
 	if _queue.is_empty() or _views.size() >= MAX_VIEWS or _bytes >= MAX_BYTES: return
 	var id: int = _queue.pop_front()
 	var path := "res://Maps/Map%d.tscn" % id
 	if not ResourceLoader.exists(path): return
-	_request_generation = _generation
-	if ResourceLoader.load_threaded_request(path, "PackedScene") == OK:
-		_requested = path
+	var generation := _generation
+	# Los mapas comparten Tilesets/texturas con la vista activa. Cargar esos
+	# recursos desde otro hilo mientras el login los usa o libera produce RIDs
+	# todavía no inicializados. La precarga sigue diferida y acotada por frame.
+	var scene := ResourceLoader.load(path, "PackedScene") as PackedScene
+	if scene == null or generation != _generation or not is_inside_tree(): return
+	keep(id, scene.instantiate())
 
 func snapshot() -> Dictionary:
 	return {"views": _views.size(), "estimated_bytes": _bytes, "limit_views": MAX_VIEWS, "limit_bytes": MAX_BYTES}
@@ -104,7 +95,3 @@ func snapshot() -> Dictionary:
 func _exit_tree() -> void:
 	_generation += 1
 	_queue.clear()
-	# Godot no cancela cargas thread-safe: drenar antes de destruir recursos al salir.
-	if not _requested.is_empty():
-		ResourceLoader.load_threaded_get(_requested)
-		_requested = ""

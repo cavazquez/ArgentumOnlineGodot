@@ -34,6 +34,17 @@ conserva como máximo tres vistas vecinas y limita su estimación de nodos/celda
 promover una vista se retiran entidades anteriores y se conserva el estado
 confirmado de puertas y objetos del mapa activo.
 
+La precarga se difiere al hilo principal: mapas vecinos y activos comparten
+Tilesets y texturas. Evitar cargas concurrentes de esos recursos elimina los
+bloqueos y RIDs gráficos sin inicializar observados al reconectar. La regresión
+gráfica usa el export nativo con OpenGL real, recorre mapas y destruye sus
+viewports en 80 ciclos; falla ante cualquier error de Godot:
+
+```sh
+python3 tools/smoke-map-cache.py --client-executable build/r10/pyao-client-r10.x86_64 \
+  --output build/map-cache-stress --cycles 80
+```
+
 Las máscaras de agua también proceden del servidor. `tools/build-water-masks.py
 --source ../pyao-server/map_data` actualiza únicamente ese bit de las escenas y
 genera `protocol/water-masks.json`. `--check` verifica las 290 escenas sin escribir.

@@ -43,6 +43,8 @@ jobs:
         run: |
           tools/export-linux.sh
           tools/export-linux.sh --r10
+      - name: Probar caché y teardown con renderizado nativo real
+        run: python3 tools/smoke-map-cache.py --client-executable build/r10/pyao-client-r10.x86_64 --output build/map-cache-stress --cycles 80
       - name: Conservar logs y ejecutable
         if: always()
         uses: actions/upload-artifact@v7

@@ -244,6 +244,9 @@ class MechanicsWorld(SpellWorld):
             self.navigation(store, locations)
             self.leadership(store, locations)
             self.level_and_reconnect(store, locations)
+            # El NPC usado para Domar ocupa x+1,y; el primer paso de la
+            # observación corta debe quedar libre para ambos participantes.
+            self.base = {1: (2, x + 4, y), 2: (2, x + 4, y + 2)}
             self.reset(store)
             for index in (1, 2):
                 self.command(index, "soak")
