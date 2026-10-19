@@ -17,6 +17,7 @@ var _pending_id := ""
 var _pending_action := ""
 var _pending_params: Dictionary = {}
 var _deadline := 0
+var _context_valid := false
 
 func _ready() -> void:
 	size = Vector2i(510, 400)
@@ -65,6 +66,7 @@ func open_skill(value: String) -> void:
 		_status.text = "Hay una operación pendiente; espera la respuesta o reinténtala."
 		return
 	skill = value
+	_context_valid = true
 	title = {"herreria": "Herrería", "carpinteria": "Carpintería", "mineria": "Fundición"}.get(skill, "Fabricación")
 	_help.text = {
 		"herreria": "Usá un martillo de herrero junto a un yunque.",
@@ -116,9 +118,13 @@ func apply_result(value: Dictionary) -> void:
 			_list.select(0)
 			_select_recipe(0)
 	else:
+		if _pending_action == "recipes":
+			recipes.clear()
+			_list.clear()
+			_details.text = ""
 		_next.disabled = recipes.size() < 4
 	_previous.disabled = page == 0
-	_craft.disabled = recipes.is_empty() or _list.get_selected_items().is_empty()
+	_craft.disabled = not _context_valid or recipes.is_empty() or _list.get_selected_items().is_empty()
 	_status.text = String(value.get("message", "Seleccioná una receta y la cantidad."))
 
 func _select_recipe(index: int) -> void:
@@ -128,10 +134,16 @@ func _select_recipe(index: int) -> void:
 	for material in recipes[index].materials:
 		materials.append("%d × %s" % [int(material.quantity), String(material.get("name", "Material"))])
 	_details.text = "Por unidad: %s. Éxito base: %d%%. Un fallo consume la mitad de los materiales." % [", ".join(materials), int(recipes[index].success_rate)]
-	_craft.disabled = not _pending_id.is_empty()
+	_craft.disabled = not _context_valid or not _pending_id.is_empty()
 
 func _submit() -> void:
-	if not _pending_id.is_empty() or _list.get_selected_items().is_empty():
+	if not _context_valid or not _pending_id.is_empty() or _list.get_selected_items().is_empty():
 		return
 	var index := _list.get_selected_items()[0]
 	_send("craft", {"recipe": recipes[index].id, "quantity": int(_quantity.value)})
+
+func invalidate_context() -> void:
+	_context_valid = false
+	_craft.disabled = true
+	_status.text = "Cambió tu posición. Abrí nuevamente la fabricación para consultar las recetas."
+	hide()

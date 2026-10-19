@@ -13,6 +13,7 @@ func _ready() -> void:
 
 func load_thumbnail(map_id: int) -> void:
 	texture = null
+	_player_tile = Vector2i.ZERO
 	_selected_tile = Vector2i.ZERO
 	var path := "res://Assets/minimap_thumbnails/%d.bmp" % map_id
 	if FileAccess.file_exists(path):
@@ -71,8 +72,9 @@ func _draw() -> void:
 	if texture == null:
 		draw_rect(area, Color(0.08, 0.08, 0.08))
 		draw_rect(area, Color.GRAY, false)
-	var marker := Rect2(TileToPoint(_player_tile) - Vector2(2, 2), Vector2(4, 4))
-	draw_rect(marker.intersection(area), Color.RED)
+	if _player_tile != Vector2i.ZERO:
+		var marker := Rect2(TileToPoint(_player_tile) - Vector2(2, 2), Vector2(4, 4))
+		draw_rect(marker.intersection(area), Color.RED)
 	if _selected_tile != Vector2i.ZERO:
 		draw_circle(TileToPoint(_selected_tile), 3.0, Color.YELLOW, false, 1.0)
 

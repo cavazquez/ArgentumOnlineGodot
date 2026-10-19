@@ -17,15 +17,15 @@ func _ready() -> void:
 	_tiles.resize(100 * 100)
 	_tiles.fill(Enums.TileState.Blocked)  
 	
-func LoadMap(id:int) -> void:
+func LoadMap(id:int) -> bool:
 	var next_view := _cache.take(id)
 	if next_view == null:
 		var path := "res://Maps/Map%d.tscn" % id
 		if not ResourceLoader.exists(path):
 			push_warning("Vista de mapa no disponible: %d" % id)
-			return
+			return false
 		var scene := load(path) as PackedScene
-		if scene == null: return
+		if scene == null: return false
 		next_view = scene.instantiate()
 	_DeleteEntities()
 	if _view: _cache.keep(_map_id, _view)
@@ -34,6 +34,7 @@ func LoadMap(id:int) -> void:
 	_tiles = GameAssets.ApplyWaterMask(id, _view.get_meta("data"))
 	%MapView.add_child(_view)
 	_cache.schedule(id)
+	return true
 
 func GetTile(x:int, y:int) -> int:
 	if x < 0 or y < 0 or x >= 100 or y >= 100: return Enums.TileState.Blocked
@@ -149,3 +150,8 @@ func _GetLayer(layerName: String) -> Node2D:
 			
 	push_error("MapContainer: layer %s not found" % layerName)
 	return null
+
+
+func ClearDialogs() -> void:
+	for character in _characterCollection:
+		character.ClearDialog()

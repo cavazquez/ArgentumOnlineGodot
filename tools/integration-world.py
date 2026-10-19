@@ -33,6 +33,8 @@ SCENARIO_TIMEOUT_SECONDS = {
     "full": 7200,
     "navigation": 900,
     "duel": 900,
+    "economy": 1200,
+    "economy-ui": 600,
 }
 
 
@@ -238,12 +240,16 @@ def worker(args):
     from src.operations.redis_sandbox import RedisSandbox
     from importlib.metadata import version
 
-    if version("pyao-server") != args.release_version:
+    if not args.source and version("pyao-server") != args.release_version:
         raise RuntimeError("El wheel no corresponde a la versión común del par")
     work = Path.cwd()
     output = args.output
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    if args.scenario == "duel":
+    if args.scenario == "economy-ui":
+        from economy_world import EconomyUIWorld as R10World, ui_acceptance as acceptance, prepare_fixture
+    elif args.scenario == "economy":
+        from economy_world import EconomyWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "duel":
         from duel_world import DuelWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "navigation":
         from navigation_world import (
@@ -315,9 +321,10 @@ def worker(args):
         )
         server_log = stack.enter_context((output / "server.log").open("wb"))
         entry = Path(sys.executable).parent / "pyao-server"
+        server_entry = [sys.executable, "-m", "src.run_server"] if args.source else [str(entry)]
         server = subprocess.Popen(
             [
-                str(entry),
+                *server_entry,
                 *(["--debug", "--log-format", "json"] if args.server_debug else []),
                 "--host",
                 "127.0.0.1",
@@ -639,10 +646,11 @@ def worker(args):
             "completed_at": datetime.now(UTC).isoformat(),
             "long_acceptance": args.seconds >= 1800 and not args.headless,
             "tls": True,
-            "installed_wheel": True,
+            "installed_wheel": not args.source,
+            "source_checkout": args.source,
             "server_commit": args.server_commit,
             "client_commit": args.client_commit,
-            "wheel_sha256": hashlib.sha256(args.wheel.read_bytes()).hexdigest(),
+            "wheel_sha256": hashlib.sha256(args.wheel.read_bytes()).hexdigest() if args.wheel else None,
             "redis": "8.10.2",
             "godot": args.godot_version,
             "graceful_sigterm": True,
@@ -696,7 +704,9 @@ def worker(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--server-project", type=Path, required=True)
-    parser.add_argument("--wheel", type=Path, required=True)
+    origin = parser.add_mutually_exclusive_group(required=True)
+    origin.add_argument("--wheel", type=Path)
+    origin.add_argument("--source", action="store_true", help="Prueba el checkout con su entorno uv existente, sin construir paquetes")
     parser.add_argument("--godot", type=Path, required=True)
     parser.add_argument(
         "--client-executable",
@@ -707,7 +717,7 @@ def main():
     parser.add_argument("--seconds", type=int, default=1800)
     parser.add_argument(
         "--scenario",
-        choices=("r10", "skills", "spells", "full", "navigation", "duel"),
+        choices=("r10", "skills", "spells", "full", "navigation", "duel", "economy", "economy-ui"),
         default="r10",
         help="Regresión que se ejecuta antes del período de observación",
     )
@@ -750,10 +760,14 @@ def main():
             "La salida debe ser nueva para no confundir evidencia de ejecuciones anteriores"
         )
     args.output.mkdir(parents=True, exist_ok=True)
-    source_proof = verify_wheel_source(args.server_project, args.wheel)
-    (args.output / "wheel-source.json").write_text(
-        json.dumps(source_proof, indent=2) + "\n"
-    )
+    if not args.source:
+        source_proof = verify_wheel_source(args.server_project, args.wheel)
+        (args.output / "wheel-source.json").write_text(json.dumps(source_proof, indent=2) + "\n")
+    else:
+        for project, label in ((args.server_project, "server"), (ROOT, "client")):
+            files = subprocess.check_output(["git", "-C", str(project), "ls-files", "-co", "--exclude-standard"], text=True).splitlines()
+            proof = {name: hashlib.sha256((project / name).read_bytes()).hexdigest() for name in sorted(set(files)) if (project / name).is_file()}
+            (args.output / (label + "-source.json")).write_text(json.dumps(proof, indent=2) + "\n")
     args.server_commit = subprocess.check_output(
         ["git", "-C", str(args.server_project), "rev-parse", "HEAD"], text=True
     ).strip()
@@ -814,45 +828,51 @@ def main():
     environment.update(PYTHONPATH="", PYTHONNOUSERSITE="1")
     with tempfile.TemporaryDirectory(prefix="pyao-godot-world-") as temporary:
         work = Path(temporary)
-        run(
-            ["uv", "venv", "--python", sys.executable, str(work / "venv")],
-            cwd=work,
-            env=environment,
-        )
-        python = work / "venv/bin/python"
-        runtime = subprocess.check_output(
-            ["uv", "export", "--locked", "--no-dev", "--no-emit-project"],
-            cwd=args.server_project,
-            text=True,
-        )
-        run(
-            [
-                "uv",
-                "pip",
-                "install",
-                "--python",
-                str(python),
-                "--require-hashes",
-                "-r",
-                "-",
-            ],
-            input=runtime,
-            cwd=work,
-            env=environment,
-        )
-        run(
-            [
-                "uv",
-                "pip",
-                "install",
-                "--python",
-                str(python),
-                "--no-deps",
-                str(args.wheel),
-            ],
-            cwd=work,
-            env=environment,
-        )
+        if args.source:
+            python = args.server_project / ".venv/bin/python"
+            if not python.is_file():
+                parser.error("El modo fuente necesita el entorno uv .venv del servidor")
+            environment["PYTHONPATH"] = str(args.server_project)
+        else:
+            run(
+                ["uv", "venv", "--python", sys.executable, str(work / "venv")],
+                cwd=work,
+                env=environment,
+            )
+            python = work / "venv/bin/python"
+            runtime = subprocess.check_output(
+                ["uv", "export", "--locked", "--no-dev", "--no-emit-project"],
+                cwd=args.server_project,
+                text=True,
+            )
+            run(
+                [
+                    "uv",
+                    "pip",
+                    "install",
+                    "--python",
+                    str(python),
+                    "--require-hashes",
+                    "-r",
+                    "-",
+                ],
+                input=runtime,
+                cwd=work,
+                env=environment,
+            )
+            run(
+                [
+                    "uv",
+                    "pip",
+                    "install",
+                    "--python",
+                    str(python),
+                    "--no-deps",
+                    str(args.wheel),
+                ],
+                cwd=work,
+                env=environment,
+            )
         # Argumentos absolutos para que el proceso instalado trabaje fuera de los checkouts.
         arguments = [
             str(python),
@@ -860,8 +880,6 @@ def main():
             "--worker",
             "--server-project",
             str(args.server_project),
-            "--wheel",
-            str(args.wheel),
             "--godot",
             str(args.godot),
             "--output",
@@ -871,6 +889,7 @@ def main():
             "--scenario",
             args.scenario,
         ]
+        arguments += ["--source"] if args.source else ["--wheel", str(args.wheel)]
         if args.headless:
             arguments.append("--headless")
         if args.server_debug:

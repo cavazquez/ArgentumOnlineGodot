@@ -7,6 +7,7 @@ var _status_label: Label
 var _fps_label: Label
 var _previous_dead := false
 var _console_meta := false
+var _chat_helper: ChatInputHelper
 
 
 # Función para restaurar el cursor al predeterminado
@@ -77,12 +78,18 @@ var _currentPanel:Node
 var _options_window 
 var _skills_window
 var _crafting_window: CraftingWindow
+
+func InvalidateCrafting() -> void:
+	if _crafting_window != null: _crafting_window.invalidate_context()
+
 var _password_change_window
 var _guild_foundation_window
 var _clan_details_window: ClanDetailsWindow
 var _saved_screenshots := {}
 var _trade_sequences := {}
 var _stats_window
+var _world_windows: Dictionary = {}
+var _world_buttons: Array[Button] = []
 
 var _user_weapon_slot:int
 var _user_shield_slot:int
@@ -95,6 +102,9 @@ func _ready() -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 			OpenWorldMap()
 			minimap.accept_event())
+	_chat_helper = ChatInputHelper.new()
+	_chat_helper.install(_consoleInputLineEdit)
+	_install_world_buttons()
 	_responsive.install(self)
 	get_window().min_size = Vector2i(800, 600)
 	_status_label = Label.new()
@@ -354,6 +364,7 @@ func _OnConsoleInputTextSubmitted(newText: String) -> void:
 		_consoleInputLineEdit.release_focus()
 		return
 	
+	if _chat_helper != null: _chat_helper.record(newText)
 	if newText.begins_with("\\"):
 		var msg = newText.substr(1).strip_edges()
 		var space_idx = msg.find(" ")
@@ -647,6 +658,9 @@ func show_password_change_window() -> void:
 
 # Muestra la ventana de fundación de clan
 func show_guild_foundation_window() -> void:
+	if ClientInterface.capabilities.has_feature(ClientCapabilities.WORLD_STATE):
+		OpenWorldTopic("clan")
+		return
 	if _guild_foundation_window == null:
 		_guild_foundation_window = GuildFoundationWindowScene.instantiate()
 		_guild_foundation_window.form_submitted.connect(_on_guild_foundation_submitted)
@@ -671,7 +685,8 @@ func _on_guild_foundation_submitted(clan_name: String, clan_abbreviation: String
 		return
 	
 	
-	ShowConsoleMessage("¡Solicitud de fundación de clan enviada al consejo real!", GameAssets.FontDataList[Enums.FontTypeNames.FontType_Info])
+	GameProtocol.WriteTalk("/CREARCLAN " + clan_name.strip_edges() + " " + description.strip_edges())
+	ShowConsoleMessage("Solicitud enviada; esperando la respuesta del servidor.")
 
 func _VisibleModals() -> Array[Window]:
 	var result: Array[Window] = []
@@ -693,6 +708,7 @@ func IsWorldInputBlocked() -> bool:
 	return InputBindings.capturing or _gameContext.trading or _consoleInputLineEdit.visible or focus != null or (is_instance_valid(_currentPanel) and _currentPanel.visible) or not _VisibleModals().is_empty()
 
 func RouteEscape() -> void:
+	if _chat_helper != null and _chat_helper.dismiss_completion(): return
 	if InputBindings.capturing: return
 	if _gameContext.usingSkill != 0:
 		_restore_default_cursor()
@@ -777,6 +793,9 @@ func ApplyTradeSnapshot(value: Dictionary) -> void:
 	_currentPanel.ApplySnapshot(value)
 
 func OpenClanDetails() -> void:
+	if ClientInterface.capabilities.has_feature(ClientCapabilities.WORLD_STATE):
+		OpenWorldTopic("clan")
+		return
 	if not is_instance_valid(_clan_details_window):
 		_clan_details_window = ClanDetailsWindow.new()
 		add_child(_clan_details_window)
@@ -861,3 +880,46 @@ func OpenWorldMap() -> void:
 	add_child(window)
 	_RegisterModal(window)
 	window.popup_centered()
+
+
+func _install_world_buttons() -> void:
+	for info in [["Buttons-Misc/btnGroups", "party"], ["Buttons-Misc/btnGuilds", "clan"]]:
+		var control := get_node_or_null(info[0]) as BaseButton
+		if control != null: control.pressed.connect(OpenWorldTopic.bind(info[1]))
+	var row := HBoxContainer.new()
+	row.name = "WorldActions"
+	row.position = Vector2(565, 110)
+	row.size = Vector2(220, 24)
+	add_child(row)
+	for info in [["Devaluación", "tax"], ["Mascotas", "pets"]]:
+		var control := Button.new()
+		control.text = info[0]
+		control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		control.pressed.connect(OpenWorldTopic.bind(info[1]))
+		row.add_child(control)
+		_world_buttons.append(control)
+	ClientInterface.capabilities_changed.connect(_update_world_buttons)
+	_update_world_buttons()
+
+func _update_world_buttons() -> void:
+	for control in _world_buttons:
+		control.disabled = not ClientInterface.capabilities.has_feature(ClientCapabilities.WORLD_STATE)
+
+func OpenWorldTopic(topic: String) -> void:
+	if not ClientInterface.capabilities.has_feature(ClientCapabilities.WORLD_STATE):
+		ShowConsoleMessage("Esta ventana requiere el servidor actualizado.")
+		return
+	if not _world_windows.has(topic) or not is_instance_valid(_world_windows[topic]):
+		var window: WorldStateWindow
+		match topic:
+			"tax": window = TaxWindow.new()
+			"pets": window = PetsWindow.new()
+			_: window = SocialWindow.new(topic)
+		_world_windows[topic] = window
+		add_child(window)
+		_RegisterModal(window)
+	_world_windows[topic].Open()
+
+func ApplyWorldState(value: Dictionary) -> void:
+	if value.kind == "trade" and is_instance_valid(_currentPanel) and _currentPanel is PlayerTradePanel:
+		_currentPanel.ApplyMetadata(value.data)

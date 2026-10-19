@@ -79,9 +79,9 @@ func AddObject(grhId:int, x:int, y:int) -> void:
 	DeleteObject(x, y);
 	_mapContainer.AddObject(grhId, x, y)
 	
-func SwitchMap(id:int) -> void:
+func SwitchMap(id:int) -> bool:
 	_recent_removed.clear()
-	_mapContainer.LoadMap(id)
+	return _mapContainer.LoadMap(id)
 
 func _PlayerWalkSound(character:Character) -> void:
 	if character.IsDead():

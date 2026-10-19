@@ -25,6 +25,7 @@ func _ready() -> void:
 	var bus = AudioServer.get_bus_index("Master")
 	sliderVolume.value = db_to_linear(AudioServer.get_bus_volume_db(bus))
 	sliderVolume.connect("value_changed", Callable(self, "_on_slider_value_changed"))
+	sliderFontSize.max_value = 24
 	sliderFontSize.value = Global.dialogFontSize
 	sliderFontSize.connect("value_changed", Callable(self, "_on_slider_font_size_changed"))
 	
@@ -84,7 +85,7 @@ func _add_extended_options() -> void:
 	size_changed.connect(layout)
 	layout.call()
 
-	for info in [["Mostrar nombres", "showNames"], ["Mostrar FPS", "showFPS"]]:
+	for info in [["Mostrar nombres", "showNames"], ["Mostrar FPS", "showFPS"], ["Animar diálogos", "animateDialogs"], ["Alto contraste", "highContrast"], ["Transiciones suaves", "transitionEffects"]]:
 		var check := CheckBox.new()
 		check.text = info[0]
 		check.button_pressed = Global.get(info[1])
@@ -118,6 +119,8 @@ func _add_extended_options() -> void:
 	music.tooltip_text = "Volumen de música"
 	music.value_changed.connect(func(value): Global.musicVolume = value)
 	_content.add_child(music)
+	_visual_slider("Intensidad de lluvia", "rainIntensity")
+	_visual_slider("Niebla periférica", "peripheralFog")
 	var controls := Button.new()
 	controls.text = "Configurar controles"
 	controls.pressed.connect(func():
@@ -151,3 +154,19 @@ func _build_commit() -> String:
 
 func _update_ping(value: String) -> void:
 	if is_instance_valid(_ping_label): _ping_label.text = value
+
+
+func _visual_slider(caption: String, property: String) -> void:
+	var row := HBoxContainer.new()
+	_content.add_child(row)
+	var name := Label.new()
+	name.text = caption
+	row.add_child(name)
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.1
+	slider.custom_minimum_size.x = 150
+	slider.value = Global.get(property)
+	slider.value_changed.connect(func(value): Global.set(property, value))
+	row.add_child(slider)

@@ -11,6 +11,8 @@ import tempfile
 
 PROJECT = Path(__file__).resolve().parent.parent
 CANARY = b"SYNTHETIC_TLS_CANARY_3"
+# WORLD_STATE (512) está incluido; WEATHER (64) sigue reservado.
+BURST_CAPABILITIES = b"\xfa\x01\xbf\x03\x00\x00"
 
 
 def certificates(root: Path) -> dict[str, ssl.SSLContext]:
@@ -67,13 +69,13 @@ async def run() -> None:
                             await writer.drain()
                             request = await reader.readexactly(6)
                             captured[case].extend(request)
-                            if request != b"\xfa\x01\xbf\x01\x00\x00":
+                            if request != BURST_CAPABILITIES:
                                 raise RuntimeError("El cliente no negoció después de Logged")
                             for _ in range(480):
                                 writer.write(b"\x58")
                                 await writer.drain()
                                 await asyncio.sleep(0)
-                            writer.write(b"\xfa\x01\xbf\x01\x00\x00")
+                            writer.write(BURST_CAPABILITIES)
                             await writer.drain()
                         elif case != "stall":
                             writer.write(b"\x58")

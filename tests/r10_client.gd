@@ -80,6 +80,18 @@ func snapshot() -> Dictionary:
 			result.panel = str(panel)
 	if is_instance_valid(hub._clan_details_window) and hub._clan_details_window.visible:
 		result.clan_details = hub._clan_details_window.details.text
+	result.world_states = ClientInterface.world_state.states.duplicate(true)
+	for topic in hub._world_windows:
+		var window: WorldStateWindow = hub._world_windows[topic]
+		if is_instance_valid(window) and window.visible:
+			result["world_window"] = topic
+			result["world_window_state"] = window.state.duplicate(true)
+			result["world_pending"] = window.pending()
+			result["world_status"] = window.status.text
+			if window is SocialWindow and topic == "clan": result.clan_details = window._summary.text
+	if is_instance_valid(hub._currentPanel) and hub._currentPanel is PlayerTradePanel:
+		result["trade_metadata_ready"] = hub._currentPanel._metadata_ready()
+		result["trade_confirm_disabled"] = hub._currentPanel.confirm_button.disabled
 	if is_instance_valid(hub._skills_window):
 		result.skills = {"ready": not hub._skills_window.operation_id.is_empty(),
 			"points": hub._skills_window.current_free_skills, "values": hub._skills_window.skill_values}
@@ -150,6 +162,39 @@ func execute(command: Dictionary) -> bool:
 	var hub: HubController = game._gameInput
 	var inventory: InventoryContainer = hub._inventoryContainer
 	match command.op:
+		"capture":
+			var capture := OS.get_environment("PYAO_TEST_SCREENSHOT")
+			var label: String = command.get("label", "ui")
+			if label.length() > 40 or not label.replace("-", "").is_valid_identifier(): return false
+			if not capture.is_empty() and DisplayServer.get_name() != "headless":
+				await RenderingServer.frame_post_draw
+				if host.get_viewport().get_texture().get_image().save_png(capture.get_basename() + "-" + label + ".png") != OK: return false
+		"world_open":
+			hub.OpenWorldTopic(command.topic)
+		"world_action":
+			var window: WorldStateWindow = hub._world_windows.get(command.topic)
+			if not is_instance_valid(window) or not window.visible: return false
+			if window is SocialWindow:
+				var button: Button
+				match command.action:
+					"create":
+						window._name.text = command.get("name", "")
+						window._description.text = "Ensayo aislado"
+						button = window._create
+					"invite":
+						window._target.text = command.username
+						button = window._invite
+					"accept": button = window._accept
+					"reject": button = window._reject
+					"leave": button = window._leave
+					_:
+						window._selected_member = int(command.user)
+						window._refresh_buttons()
+						button = window._member_actions.get(command.action)
+				if button == null or button.disabled: return false
+				button.pressed.emit()
+				if window._confirmation.visible: window._confirmation.confirmed.emit()
+			else: return false
 		"snapshot", "soak":
 			pass
 		"chat":
@@ -193,6 +238,11 @@ func execute(command: Dictionary) -> bool:
 			# La animación y el reloj del servidor no comparten fase de frame.
 			await host.get_tree().create_timer(0.25).timeout
 			Global.log_outgoing_packets = false
+		"drop_gold":
+			hub._on_btn_drop_gold_pressed()
+			for window in game.get_children():
+				if window is Window and window.get_script() != null and window.get_script().resource_path.ends_with("/drop_panel.gd"):
+					window.drop(int(command.amount))
 		"equip", "use", "drop":
 			# Respetar el intervalo del mismo gesto que usa el inventario real.
 			var timer = game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_DOUBLE_CLICK]

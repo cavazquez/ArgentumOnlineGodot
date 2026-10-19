@@ -21,6 +21,10 @@ var instanceId:int
 var gridPosition:Vector2i
 var isMoving:bool
 var priv:int
+var _dialog_revealing := false
+var _dialog_progress := 0.0
+var _dialog_length := 0
+var _spawn_fade: Tween
 
 func _ready() -> void:
 	Global.connect("dialog_font_size_changed", Callable(self, "_on_dialog_font_size_changed"))
@@ -32,6 +36,11 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_ProcessAnimation()
 	_ProcessMovement(delta)
+	if _dialog_revealing:
+		_dialog_progress += delta * 35.0
+		_dialogLabel.visible_characters = mini(_dialog_length, int(_dialog_progress))
+		_dialogShadowLabel.visible_characters = _dialogLabel.visible_characters
+		if int(_dialog_progress) >= _dialog_length: _reveal_dialog()
 
 func SetAsPlayer(isPlayer: bool = true) -> void:
 	_isPlayer = isPlayer
@@ -58,8 +67,19 @@ func GetCharacterInvisible() -> bool:
 	
 func SetCharacterInvisible(v:bool) -> void:
 	_charInvisible = v
+	if _spawn_fade != null: _spawn_fade.kill()
+	renderer.modulate.a = 1.0
 	renderer.visible = not v
 	_nameLabel.visible = not v and Global.showNames
+
+func FadeIn() -> void:
+	if _spawn_fade != null: _spawn_fade.kill()
+	if _charInvisible or not Global.transitionEffects or Global.effectsMode == 0:
+		renderer.modulate.a = 1.0
+		return
+	renderer.modulate.a = 0.0
+	_spawn_fade = create_tween()
+	_spawn_fade.tween_property(renderer, "modulate:a", 1.0, 0.12)
 
 func MoveTo(heading:int) -> void:
 	if isMoving:
@@ -101,17 +121,42 @@ func PlayNavigationSound() -> void:
 	AudioManager.PlayAudio(Consts.PasoNavegando, true);
 
 func Say(text:String, color:Color) -> void:
+	_dialogClearTimer.stop()
+	_dialog_revealing = false
+	_dialog_progress = 0.0
+	_dialog_length = text.length()
 	_dialogLabel.label_settings.font_size = Global.dialogFontSize
 	_dialogLabel.text = text
 	_dialogShadowLabel.label_settings.font_size = _dialogLabel.label_settings.font_size
-	_dialogShadowLabel.text = _dialogLabel.text
+	_dialogShadowLabel.text = text
 	_dialogLabel.modulate = color
-	_dialogClearTimer.start()
+	_dialog_revealing = Global.animateDialogs and not text.is_empty()
+	_dialogLabel.visible_characters = 0 if _dialog_revealing else -1
+	_dialogShadowLabel.visible_characters = _dialogLabel.visible_characters
+	if not _dialog_revealing and not text.is_empty(): _reveal_dialog()
 
-func _OnDialogClearTimerTimeout() -> void:
+func _reveal_dialog() -> void:
+	_dialog_revealing = false
+	_dialogLabel.visible_characters = -1
+	_dialogShadowLabel.visible_characters = -1
+	_dialogClearTimer.wait_time = clampf(2.0 + float(_dialog_length) / 40.0, 2.0, 6.0)
+	if _dialog_length > 0: _dialogClearTimer.start()
+
+func ClearDialog() -> void:
+	_dialog_revealing = false
+	_dialog_progress = 0.0
+	_dialog_length = 0
+	_dialogClearTimer.stop()
 	_dialogLabel.text = ""
 	_dialogShadowLabel.text = ""
-	
+
+func _OnDialogClearTimerTimeout() -> void:
+	ClearDialog()
+
+func _exit_tree() -> void:
+	_dialog_revealing = false
+	if is_instance_valid(_dialogClearTimer): _dialogClearTimer.stop()
+
 func _ProcessAnimation() -> void:
 	if isMoving:
 		renderer.Play()
@@ -131,5 +176,6 @@ func _on_dialog_font_size_changed(value: int) -> void:
 	_dialogShadowLabel.label_settings.font_size = value
 
 func _apply_preferences() -> void:
+	if _dialog_revealing and not Global.animateDialogs: _reveal_dialog()
 	_nameLabel.visible = not _charInvisible and Global.showNames
 	_nameLabel.add_theme_font_size_override("font_size", Global.nameFontSize)

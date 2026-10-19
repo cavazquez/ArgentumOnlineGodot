@@ -21,6 +21,13 @@ func _emit(handler: StringName, payload: Variant = null, has_payload: bool = tru
 
 func dispatch_stream(stream: StreamPeerBuffer) -> void:
 	var packetId = stream.get_u8()
+	if packetId == 248:
+		var state := WorldStatePacket.new(stream)
+		if not state.valid:
+			protocol_error.emit("Estado de interfaz inválido")
+			return
+		_emit(&"_ApplyWorldState", state.data)
+		return
 	if packetId in [246, 247]:
 		var visual := AOVisualEvent.new(packetId, stream)
 		if not visual.valid:

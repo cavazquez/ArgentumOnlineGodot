@@ -12,12 +12,20 @@ extends Node
 
 @export var _submitButton:Button
 @export var _attributeContainer:VBoxContainer
+var _preview: Character
+var _preview_caption: Label
+var _selected_head := 1
+var _preview_heading := Enums.Heading.South
+var _preview_home := -1
+var _homes: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/home-preview.json")).homes
+const HEAD_RANGES := [[[1, 40], [101, 122], [201, 221], [401, 416], [301, 319]], [[70, 89], [170, 188], [270, 288], [470, 484], [370, 384]]]
 
 func _ready() -> void:
 	ClientInterface.disconnected.connect(_OnDisconnected)
 	ClientInterface.dataReceived.connect(_OnDataReceivedd) 
 	
 	_Init()
+	_BuildPreview()
 
 func _Init() -> void:
 	for i in range(1, Consts.NumClases + 1):
@@ -86,7 +94,7 @@ func _OnSubmitButtonPressed() -> void:
 		_raceOptionButton.selected + 1, \
 		_genderOptionButton.selected + 1, \
 		_homeOptionButton.selected + 1, \
-		_GetHead(_raceOptionButton.selected + 1, _genderOptionButton.selected))
+		_selected_head)
 	_Flush()
 
 func _Exit() -> void:
@@ -129,3 +137,82 @@ func _GetHead(race:int, gender:int) -> int:
 					
 	push_error("CLASE O RAZA INVALIDA")
 	return 0
+
+func _BuildPreview() -> void:
+	var panel := HBoxContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	panel.position = Vector2(-145, 8)
+	panel.custom_minimum_size = Vector2(290, 125)
+	$CanvasLayer.add_child(panel)
+	var view := SubViewportContainer.new()
+	view.custom_minimum_size = Vector2(100, 120)
+	view.stretch = true
+	view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(view)
+	var viewport := SubViewport.new()
+	viewport.size = Vector2i(100, 120)
+	viewport.transparent_bg = true
+	viewport.world_2d = World2D.new()
+	view.add_child(viewport)
+	_preview = preload("res://engine/character/character.tscn").instantiate()
+	viewport.add_child(_preview)
+	_preview.position = Vector2(50, 100)
+	_preview.scale = Vector2(2, 2)
+	var controls := VBoxContainer.new()
+	panel.add_child(controls)
+	_preview_caption = Label.new()
+	controls.add_child(_preview_caption)
+	var heads := HBoxContainer.new()
+	controls.add_child(heads)
+	for step in [-1, 1]:
+		var button := Button.new()
+		button.text = "Cabeza anterior" if step == -1 else "Siguiente"
+		button.pressed.connect(_ChangeHead.bind(step))
+		heads.add_child(button)
+	var turn := Button.new()
+	turn.text = "Girar personaje"
+	turn.pressed.connect(func():
+		_preview_heading = _preview_heading % 4 + 1
+		_UpdatePreview())
+	controls.add_child(turn)
+	_raceOptionButton.item_selected.connect(func(_index): _SelectHead())
+	_genderOptionButton.item_selected.connect(func(_index): _SelectHead())
+	_classOptionButton.item_selected.connect(func(_index): _UpdatePreview())
+	_homeOptionButton.item_selected.connect(func(_index): _UpdatePreview())
+	_SelectHead()
+
+func _SelectHead() -> void:
+	_selected_head = _GetHead(_raceOptionButton.selected + 1, _genderOptionButton.selected)
+	_UpdatePreview()
+
+func _ChangeHead(step: int) -> void:
+	var bounds: Array = HEAD_RANGES[_genderOptionButton.selected][_raceOptionButton.selected]
+	_selected_head = wrapi(_selected_head + step, bounds[0], bounds[1] + 1)
+	_UpdatePreview()
+
+func _UpdatePreview() -> void:
+	if _preview == null: return
+	# pyao usa el ID de raza como cuerpo inicial; la clase no inventa equipo.
+	_preview.renderer.body = _raceOptionButton.selected + 1
+	_preview.renderer.head = _selected_head
+	_preview.renderer.heading = _preview_heading
+	_preview.renderer.Stop()
+	_preview_caption.text = "%s · %s\nCabeza %d · %s" % [_raceOptionButton.get_item_text(_raceOptionButton.selected), _classOptionButton.get_item_text(_classOptionButton.selected), _selected_head, _homeOptionButton.get_item_text(_homeOptionButton.selected)]
+	var home := _homeOptionButton.selected + 1
+	if home == _preview_home: return
+	_preview_home = home
+	var spawn: Dictionary = _homes.get(str(home), _homes["1"])
+	var path := "res://Maps/Map%d.tscn" % int(spawn.map)
+	if not ResourceLoader.exists(path):
+		path = "res://Maps/Map1.tscn"
+		spawn = _homes["1"]
+	var scene := load(path) as PackedScene
+	if scene == null: return
+	var old := get_node_or_null("MapView")
+	if old != null:
+		remove_child(old)
+		old.queue_free()
+	var map := scene.instantiate()
+	map.name = "MapView"
+	add_child(map)
+	$Camera2D.position = Vector2(int(spawn.x) * 32 - 16, int(spawn.y) * 32)
