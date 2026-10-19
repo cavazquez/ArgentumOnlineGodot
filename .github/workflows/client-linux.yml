@@ -104,7 +104,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: cavazquez/pyao-server
-          ref: 05c9c2621cf46d0725886582cb78d9d8a25a5099
+          ref: ece8d5b489c500fbd611a7bf2c7f308ab831a510
           path: build/server-under-test
       - uses: astral-sh/setup-uv@v7
         with:
@@ -192,7 +192,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: cavazquez/pyao-server
-          ref: 05c9c2621cf46d0725886582cb78d9d8a25a5099
+          ref: ece8d5b489c500fbd611a7bf2c7f308ab831a510
           path: build/server-under-test
       - uses: astral-sh/setup-uv@v7
         with:
@@ -216,7 +216,7 @@ jobs:
           uv sync --project build/server-under-test --locked --group build
           uv build --project build/server-under-test --wheel --out-dir "$RUNNER_TEMP/pyao-wheel"
           chmod +x build/native-export/r10/pyao-client-r10.x86_64
-          xvfb-run -a -s '-screen 0 800x600x24' uv run --project build/server-under-test --locked python tools/integration-world.py --scenario "$MECHANICS_SCENARIO" --server-project build/server-under-test --wheel "$RUNNER_TEMP/pyao-wheel/pyao_server-1.0.0rc2-py3-none-any.whl" --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --client-executable build/native-export/r10/pyao-client-r10.x86_64 --output "build/mechanics-$MECHANICS_SCENARIO" --seconds 30
+          xvfb-run -a -s '-screen 0 2560x1440x24' uv run --project build/server-under-test --locked python tools/integration-world.py --scenario "$MECHANICS_SCENARIO" --server-project build/server-under-test --wheel "$RUNNER_TEMP/pyao-wheel/pyao_server-1.0.0rc2-py3-none-any.whl" --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --client-executable build/native-export/r10/pyao-client-r10.x86_64 --output "build/mechanics-$MECHANICS_SCENARIO" --seconds 30
       - uses: actions/upload-artifact@v7
         if: always()
         with:

@@ -9,6 +9,7 @@ static func _log_outgoing_packet(packet_name: String, params: String = "") -> vo
 		var log_message = "[OUTGOING] " + packet_name
 		if params != "":
 			log_message += " | " + params
+		log_message += " | tick=%d" % Time.get_ticks_msec()
 		print(log_message)
 
 static func Flush() -> PackedByteArray:

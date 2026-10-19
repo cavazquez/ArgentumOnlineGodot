@@ -52,6 +52,36 @@ func _run() -> void:
 	_check(InputBindings.decode({"type":"joy_button", "button":-1}) == null, "Se aceptó un botón inválido")
 	_check(InputBindings.restore(&"Attack") == OK, "No se restauró el preset")
 	_check(InputMap.action_get_events(&"Attack").size() == original.size(), "Restauración incompleta")
+	var controls := ControlsWindow.new()
+	add_child(controls)
+	controls.popup_centered()
+	await get_tree().process_frame
+	var previous_file := FileAccess.get_file_as_string(InputBindings.PATH)
+	controls._action = &"Attack"
+	InputBindings.capturing = true
+	key.pressed = true
+	controls._input(key)
+	_check(controls._confirmation.visible and controls._confirmation.dialog_text.contains("Equipar objeto"), "La colisión no se mostró antes de aplicar")
+	controls._confirmation.get_cancel_button().pressed.emit()
+	await get_tree().process_frame
+	_check(FileAccess.get_file_as_string(InputBindings.PATH) == previous_file, "Cancelar una colisión modificó los controles")
+	controls._action = &"Attack"
+	InputBindings.capturing = true
+	var replacement := InputEventKey.new()
+	replacement.physical_keycode = KEY_Z
+	replacement.ctrl_pressed = true
+	replacement.alt_pressed = true
+	replacement.pressed = true
+	controls._input(replacement)
+	_check(InputMap.action_get_events(&"Attack")[0].physical_keycode == KEY_Z, "No se aplicó la reasignación desde la ventana")
+	InputBindings._install(&"Attack", original)
+	var reload = load("res://engine/autoload/input_bindings.gd").new()
+	add_child(reload)
+	_check(InputMap.action_get_events(&"Attack")[0].physical_keycode == KEY_Z and InputMap.action_get_events(&"Attack")[0].ctrl_pressed, "El reinicio perdió el binding guardado")
+	reload.restore(&"Attack")
+	reload.queue_free()
+	controls.close_requested.emit()
+	await get_tree().process_frame
 	# El mismo slot deja de mostrar información vieja al vaciarse.
 	var slot: InventorySlot = load("res://ui/hub/inventory_slot.tscn").instantiate()
 	add_child(slot)
@@ -85,6 +115,34 @@ func _run() -> void:
 	# Cambios repetidos de apariencia no acumulan offset de cabeza/casco.
 	var character: Character = load("res://engine/character/character.tscn").instantiate()
 	add_child(character)
+	var cfg := ConfigFile.new()
+	cfg.set_value("foreign", "keep", 99)
+	cfg.set_value("audio", "volume_db", -7.5)
+	cfg.set_value("ui", "use_custom_cursor", true)
+	cfg.set_value("ui", "console_font_size", 99)
+	cfg.save("user://options.cfg")
+	Global._ready()
+	_check(Global.consoleFontSize == 24 and Global.useCustomCursor, "No se normalizó la preferencia anterior")
+	Global.nameFontSize = 18
+	Global.showNames = false
+	Global.showFPS = true
+	_check(not character._nameLabel.visible and character._nameLabel.get_theme_font_size("font_size") == 18, "Las preferencias no llegaron al personaje existente")
+	_check(Global.save_preferences() == OK, "No se guardaron preferencias")
+	Global.nameFontSize = 12
+	Global.showNames = true
+	Global._ready()
+	cfg.load("user://options.cfg")
+	_check(Global.nameFontSize == 18 and not Global.showNames and Global.showFPS, "Reiniciar perdió las preferencias visuales")
+	_check(cfg.get_value("foreign", "keep") == 99 and cfg.get_value("audio", "volume_db") == -7.5, "La migración perdió claves o volumen anteriores")
+	var newcomer: Character = load("res://engine/character/character.tscn").instantiate()
+	add_child(newcomer)
+	_check(not newcomer._nameLabel.visible and newcomer._nameLabel.get_theme_font_size("font_size") == 18, "Los personajes nuevos ignoran las preferencias")
+	newcomer.queue_free()
+	Global.consoleFontSize = 12
+	Global.nameFontSize = 12
+	Global.showNames = true
+	Global.showFPS = false
+	Global.useCustomCursor = false
 	character.renderer.body = 1
 	character.renderer.head = 1
 	character.renderer.helmet = 1

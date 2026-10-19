@@ -305,7 +305,7 @@ def worker(args):
         server = subprocess.Popen(
             [
                 str(entry),
-                *(["--debug"] if args.server_debug else []),
+                *(["--debug", "--log-format", "json"] if args.server_debug else []),
                 "--host",
                 "127.0.0.1",
                 "--port",
@@ -673,7 +673,9 @@ def worker(args):
             )
         if args.scenario != "r10":
             proof["scenario"] = args.scenario
-            proof["regression_passed"] = proof.pop("passed")
+            proof["regression_passed"] = proof["passed"]
+            if args.scenario != "full":
+                proof.pop("passed")
         (output / "result.json").write_text(json.dumps(proof, indent=2) + "\n")
         print(json.dumps(proof))
 

@@ -6,6 +6,7 @@ var packets: Array = []
 var frames: Array = []
 var audio_frames: Array = []
 var seen := {}
+var server_console_count := 0
 
 func run(owner: Node) -> bool:
 	host = owner
@@ -14,6 +15,8 @@ func run(owner: Node) -> bool:
 	return await super.run(owner)
 
 func _packet(data: PackedByteArray) -> void:
+	if not data.is_empty() and data[0] == Enums.ServerPacketID.ConsoleMsg:
+		server_console_count += 1
 	if capture_label.is_empty() or data.is_empty():
 		return
 	if data[0] in [246, 247]:
@@ -56,6 +59,7 @@ func _observe() -> void:
 func snapshot() -> Dictionary:
 	var view := super.snapshot()
 	view.fx_packets = packets.duplicate(true)
+	view.server_console_count = server_console_count
 	view.fx_frames = frames.duplicate(true)
 	view.audio_playback = audio_frames.duplicate(true)
 	if not view.in_game:
@@ -100,9 +104,21 @@ func execute(command: Dictionary) -> bool:
 		if game == null: return false
 		host.get_viewport().gui_release_focus()
 		match String(command.action):
-			"map": game._gameInput.OpenWorldMap()
+			"map":
+				var click := InputEventMouseButton.new()
+				click.button_index = MOUSE_BUTTON_RIGHT
+				click.pressed = true
+				click.position = game._gameInput.minimap.size / 2
+				game._gameInput.minimap.gui_input.emit(click)
 			"ping": Global.ping_requested.emit()
-			"resize": host.get_window().size = Vector2i(command.width, command.height)
+			"resize":
+				host.get_window().size = Vector2i(command.width, command.height)
+				await host.get_tree().process_frame
+				await host.get_tree().process_frame
+				await host.get_tree().process_frame
+				if not verify_layout(game): return false
+			"layout":
+				if not verify_layout(game): return false
 			"options": game._gameInput._on_btn_options_pressed()
 			"effects": Global.effectsMode = int(command.value)
 			"keyboard_flows":
@@ -215,6 +231,19 @@ func execute(command: Dictionary) -> bool:
 		_:
 			return await super.execute(command)
 	await host.get_tree().process_frame
+	return true
+
+func verify_layout(game: GameScreen) -> bool:
+	var hub: HubController = game._gameInput
+	hub._responsive.layout()
+	var viewport := host.get_viewport().get_visible_rect().grow(1)
+	for record in hub._responsive.records:
+		var control: Control = record.node
+		if not control.is_visible_in_tree() or not control.size.x > 0 or not control.size.y > 0: continue
+		if not viewport.encloses(control.get_global_rect()):
+			push_error("HUD fuera de pantalla: %s %s en %s" % [control.name, control.get_global_rect(), viewport])
+			return false
+	print("HUD_LAYOUT: PASS %s" % viewport.size)
 	return true
 
 func keyboard_flows(game: GameScreen) -> bool:

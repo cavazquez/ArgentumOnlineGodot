@@ -175,6 +175,8 @@ func execute(command: Dictionary) -> bool:
 			Input.action_release(command.action)
 		"step":
 			var step_started := Time.get_ticks_msec()
+			print("NAV_BEGIN: tick=", step_started)
+			Global.log_outgoing_packets = true
 			host.get_viewport().gui_release_focus()
 			var actor = game._gameWorld.GetCharacter(game._mainCharacterInstanceId)
 			while actor.isMoving: await host.get_tree().process_frame
@@ -190,6 +192,7 @@ func execute(command: Dictionary) -> bool:
 			print("NAV_STEP: elapsed_ms=", Time.get_ticks_msec() - step_started)
 			# La animación y el reloj del servidor no comparten fase de frame.
 			await host.get_tree().create_timer(0.25).timeout
+			Global.log_outgoing_packets = false
 		"equip", "use", "drop":
 			# Respetar el intervalo del mismo gesto que usa el inventario real.
 			var timer = game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_DOUBLE_CLICK]

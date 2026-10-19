@@ -589,8 +589,8 @@ func _on_btn_stadistics_pressed() -> void:
 	# Enviar solicitudes para poblar la ventana de estadísticas
 	GameProtocol.WriteRequestAtributes()
 	GameProtocol.WriteRequestSkills()
-	GameProtocol.WriteRequestMiniStats()
-	GameProtocol.WriteRequestFame()
+	if ClientInterface.capabilities.can_send(Enums.ClientPacketID.RequestMiniStats): GameProtocol.WriteRequestMiniStats()
+	if ClientInterface.capabilities.can_send(Enums.ClientPacketID.RequestFame): GameProtocol.WriteRequestFame()
 	# Mostrar/crear la ventana
 	if _stats_window == null:
 		_stats_window = StatsWindowScene.instantiate()
@@ -837,6 +837,7 @@ func _apply_preferences() -> void:
 	if _fps_label != null: _fps_label.visible = Global.showFPS
 
 func _process(_delta: float) -> void:
+	_responsive.layout()
 	if _gameContext == null or _status_label == null: return
 	var states := PackedStringArray()
 	var dead := _gameContext.player_stats.hp <= 0
