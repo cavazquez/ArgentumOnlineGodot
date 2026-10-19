@@ -19,4 +19,4 @@ func _render() -> void:
 	if state.is_empty(): return
 	_summary.text = "Impuesto diario: %.2f%% · %s" % [float(state.rate_bps) / 100.0, "activo" if state.enabled else "desactivado"]
 	_balances.text = "Bolsillo: %d oro\nBanco: %d oro\nTotal: %d oro" % [int(state.wallet), int(state.bank), int(state.wallet) + int(state.bank)]
-	_last.text = "Último cobro: %d oro por %d días\nTotal pagado: %d oro\nPróximo corte: %s UTC" % [int(state.last_charge), maxi(0, int(state.last_day) - int(state.from_day)), int(state.total_paid), Time.get_datetime_string_from_unix_time(int(state.next_cutoff), true)]
+	_last.text = "Último impuesto cobrado: %d oro\nTotal pagado: %d oro\nPróximo corte: %s UTC" % [int(state.last_charge), int(state.total_paid), Time.get_datetime_string_from_unix_time(int(state.next_cutoff), true)]

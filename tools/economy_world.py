@@ -1,6 +1,5 @@
 """Regresión de economía y ventanas con dos Godot y Redis descartable propios."""
 
-from decimal import Decimal
 import time
 
 from r10_world import R10World, acceptance as r10_acceptance, prepare_fixture
@@ -76,29 +75,25 @@ class EconomyWorld(R10World):
         user = self.ids[1]
         self.command(1, "logout")
         self.wait(lambda: not store.exists(f"session:{user}:owner"), "liberar sesión fiscal")
-        store.hset("config:economy:daily_tax", "activation_day", day - 90)
+        store.hset("config:economy:daily_tax", "activation_day", day - 1)
         store.hset(f"player:{user}:user_stats", "gold", 1000)
         store.set(f"bank:{user}:gold", 2000)
-        store.hset(f"tax:{user}:state", mapping={"version": 1, "last_day": day-90, "remainder": 0, "total_paid": 0, "last_receipt": "", "last_charge": 0})
-        total, fractional = 3000, Decimal(0)
-        for _ in range(90):
-            amount = Decimal(total) / 100 + fractional
-            charge = int(amount)
-            fractional = amount - charge
-            total -= charge
+        store.hset(f"tax:{user}:state", mapping={"version": 1, "last_day": day-1, "remainder": 0, "total_paid": 0, "last_receipt": "", "last_charge": 0})
+        total = 2970  # Un corte: 1% de 3000 oro, repartido entre bolsillo y banco.
         self.command(1, "login")
         self.open(1, "tax")
-        view = self.changed(1, lambda s: s.get("wallet", 0) + s.get("bank", 0) == total and s.get("last_day") == day, "90 días offline en el panel fiscal")
+        view = self.changed(1, lambda s: s.get("wallet", 0) + s.get("bank", 0) == total and s.get("last_day") == day, "impuesto del 1% de un día offline en el panel fiscal")
         status = view["world_window_state"]
         self.command(1, "capture", label="tax")
         assert view["gold"] == status["wallet"]
+        assert (status["wallet"], status["bank"]) == (990, 1980)
         assert status["total_paid"] == 3000-total
         assert status["rate_bps"] == 100 and status["scope"] == "wallet_and_bank"
         paid = store.hget(f"tax:{user}:state", "total_paid")
         self.open(1, "tax")
         self.open(1, "tax")
         assert store.hget(f"tax:{user}:state", "total_paid") == paid
-        self.passed("economy-offline-tax", "1% diario", days=90, initial_total=3000, final_total=total, rereads_do_not_charge=True)
+        self.passed("economy-offline-tax", "1% diario", days=1, initial_total=3000, final_total=total, rereads_do_not_charge=True)
         self.command(1, "close")
         x, y = locations["base"]
         self.bank(store, x, y)
