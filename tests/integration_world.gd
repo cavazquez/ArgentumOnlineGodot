@@ -159,5 +159,7 @@ func _ready() -> void:
 	# Completar queue_free de la pantalla y la retirada del playback en el mixer.
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if not await wait_for(AudioManager.IsDrained, "liberación del mixer de audio al cerrar", 2.0):
+		return
 	print("INTEGRATION_WORLD: PASS seconds=", (Time.get_ticks_msec() - started) / 1000)
 	get_tree().quit(0)

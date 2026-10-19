@@ -108,7 +108,9 @@ func _verify_screen_handoff() -> void:
 	check(ClientInterface._framer.pending_size() == 2, "Se perdió el ChangeMap parcial en la transición")
 	ClientInterface._AcceptIncomingData(PackedByteArray([0, 0, 0, 88]))
 	check(ScreenController.currentScreen == game and game.networkMessages.size() == 3, "El login anterior recibió paquetes después del cambio")
-	game.set_process(false)
+	game._OnDisconnected()
+	check(not game.is_processing() and game.networkMessages.is_empty(), "La pantalla desconectada sigue procesando mensajes")
+	ScreenController.currentScreen.free()
 	game.free()
 	ScreenController.currentScreen = null
 	ClientInterface._reset()

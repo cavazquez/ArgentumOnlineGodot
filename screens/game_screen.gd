@@ -58,6 +58,8 @@ func _scale_cursor(texture: Texture2D, scale_factor: float) -> Texture2D:
 	return new_texture
 	 
 func _OnDisconnected() -> void:
+	set_process(false)
+	networkMessages.clear()
 	var screen = load("uid://cd452cndcck7v").instantiate() 
 	ScreenController.SwitchScreen(screen)
 	

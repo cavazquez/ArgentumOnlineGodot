@@ -141,5 +141,6 @@ func _run() -> void:
 	while (stream_ref.get_ref() != null or playback_ref.get_ref() != null) and Time.get_ticks_msec() < deadline:
 		await get_tree().process_frame
 	_check(stream_ref.get_ref() == null and playback_ref.get_ref() == null, "La desconexión retuvo recursos de audio")
+	_check(AudioManager.IsDrained(), "El mixer conserva reproducciones al cerrar")
 	print("MECHANICS_SMOKE: ", "FAIL" if _failed else "PASS")
 	get_tree().quit(1 if _failed else 0)
