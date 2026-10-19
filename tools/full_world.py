@@ -560,12 +560,22 @@ class FullWorld(SkillsWorld):
                 ),
                 "reordenar inventario en 1080p",
             )
+            self.view(
+                i,
+                lambda v: v["items"].get("3", [])[:2] == [139, 2],
+                "primer arrastre visible antes de mover de nuevo",
+            )
             self.command(i, "drag", source=3, destination=1)
             self.wait(
                 lambda i=i: (
                     store.hget(f"player:{self.ids[i]}:inventory", "slot_1") == "139:2"
                 ),
                 "restaurar orden en 1080p",
+            )
+            self.view(
+                i,
+                lambda v: v["items"].get("1", [])[:2] == [139, 2],
+                "orden restaurado en la interfaz",
             )
             victim = 3 - i
             hp = self.stats(store, victim)["min_hp"]
