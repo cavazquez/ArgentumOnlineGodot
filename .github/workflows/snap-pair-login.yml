@@ -48,13 +48,13 @@ jobs:
       SERVER_SHA256: ${{ inputs.server_sha256 }}
       CLIENT_SHA256: ${{ inputs.client_sha256 }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: cavazquez/pyao-server
           ref: ${{ env.SERVER_COMMIT }}
           path: build/fixture-tools
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: '0.13.1'
           enable-cache: false
@@ -70,7 +70,8 @@ jobs:
           snap list pyao pyao-client | tee build/snap-pair-login/installed.txt
           snap connections pyao-client | tee build/snap-pair-login/client-connections.txt
           sudo install -d -m 700 -o "$(id -u)" -g "$(id -g)" "/run/user/$(id -u)"
-          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          export XDG_RUNTIME_DIR
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=pyao_test
           echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
@@ -81,7 +82,7 @@ jobs:
         run: |
           uv sync --project build/fixture-tools --locked --no-dev
           xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/fixture-tools --locked --no-dev python tools/snap-pair-login.py --version "$RELEASE_VERSION" --output build/snap-pair-login --server-revision "$SERVER_REVISION" --client-revision "$CLIENT_REVISION" --server-commit "$SERVER_COMMIT" --client-commit "$CLIENT_COMMIT" --server-sha256 "$SERVER_SHA256" --client-sha256 "$CLIENT_SHA256"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: snap-pair-login-${{ github.run_id }}-${{ github.run_attempt }}

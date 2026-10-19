@@ -20,18 +20,29 @@ concurrency:
 jobs:
   quality:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Regresiones de herramientas y validadores
         run: python3 -m unittest discover -s tools/tests
+      - name: Instalar herramientas gráficas de prueba
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
+      - name: Descargar Godot oficial verificado (sin exportar)
+        run: python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
+      - name: Comprobar importación, scripts, escenas, protocolo y privacidad
+        run: |
+          tools/smoke-godot.sh
+          python3 tools/smoke-tls.py
+          git diff --exit-code
+          test -z "$(git ls-files --others --exclude-standard)"
 
   import-and-export:
     if: github.event_name == 'workflow_dispatch' && inputs.build_packages
+    needs: quality
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Comprobar clasificación estricta de logs de exportación
@@ -57,11 +68,12 @@ jobs:
         run: |
           tools/export-linux.sh
           tools/export-linux.sh --r10
+          python3 tools/github_release.py snapshot --directory build
       - name: Probar caché y teardown con renderizado nativo real
         run: python3 tools/smoke-map-cache.py --client-executable build/r10/pyao-client-r10.x86_64 --output build/map-cache-stress --cycles 80
       - name: Conservar logs y ejecutable
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pyao-client-linux-${{ github.event.pull_request.head.sha || github.sha }}
           path: build/
@@ -74,7 +86,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Preparar LXD en el runner descartable
@@ -97,7 +109,7 @@ jobs:
           sha256sum pyao-client_*_amd64.snap > build/snap-sha256.txt
       - name: Conservar paquete y procedencia
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pyao-client-snap-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
@@ -114,26 +126,26 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: cavazquez/pyao-server
           ref: ece8d5b489c500fbd611a7bf2c7f308ab831a510
           path: build/server-under-test
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: "0.13.1"
           enable-cache: false
       - run: uv python install 3.14
       - name: Instalar OpenGL software y Xvfb
         run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils squashfs-tools
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: pyao-client-linux-${{ github.event.pull_request.head.sha || github.sha }}
           path: build/native-export
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: pyao-client-snap-${{ github.event.pull_request.head.sha || github.sha }}
           path: build/snap-package
@@ -152,7 +164,7 @@ jobs:
             fi
           fi
           if [ "$source" = artifact ]; then
-            sudo snap install build/snap-package/pyao-client_1.0.0rc2_amd64.snap --dangerous
+            sudo snap install build/snap-package/pyao-client_*_amd64.snap --dangerous
           fi
           echo "SNAP_INSTALL_SOURCE=$source" >> "$GITHUB_ENV"
           sudo snap connect pyao-client:gpu-2404 mesa-2404:gpu-2404
@@ -160,7 +172,8 @@ jobs:
       - name: Preparar audio aislado con un sink de prueba
         run: |
           sudo install -d -m 700 -o "$(id -u)" -g "$(id -g)" "/run/user/$(id -u)"
-          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          export XDG_RUNTIME_DIR
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=pyao_test
           echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
@@ -175,18 +188,18 @@ jobs:
           uv sync --project build/server-under-test --locked --group build
           uv build --project build/server-under-test --out-dir "$RUNNER_TEMP/pyao-wheel"
           chmod +x build/native-export/r10/pyao-client-r10.x86_64
-          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/server-under-test --locked python tools/integration-world.py --server-project build/server-under-test --wheel "$RUNNER_TEMP/pyao-wheel/pyao_server-1.0.0rc2-py3-none-any.whl" --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --client-executable build/native-export/r10/pyao-client-r10.x86_64 --output build/integration --seconds 60 --snap-installed --snap-audio PulseAudio --snap-source "$SNAP_INSTALL_SOURCE"
+          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/server-under-test --locked python tools/integration-world.py --server-project build/server-under-test --wheel "$RUNNER_TEMP"/pyao-wheel/pyao_server-*-py3-none-any.whl --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --client-executable build/native-export/r10/pyao-client-r10.x86_64 --output build/integration --seconds 60 --snap-installed --snap-audio PulseAudio --snap-source "$SNAP_INSTALL_SOURCE"
       - name: Verificar que una actualización local conserva preferencias
         run: |
           profile="$HOME/snap/pyao-client/common/data/godot/app_userdata/ArgentumOnlineGodot/connection.cfg"
           sha256sum "$profile" > "$RUNNER_TEMP/pyao-preferences.sha256"
           pyao_before_revision=$(snap list pyao-client --unicode=never | awk 'NR==2 {print $3}')
           # Los archivos locales se actualizan con install; refresh usa la Store.
-          sudo snap install build/snap-package/pyao-client_1.0.0rc2_amd64.snap --dangerous
+          sudo snap install build/snap-package/pyao-client_*_amd64.snap --dangerous
           pyao_after_revision=$(snap list pyao-client --unicode=never | awk 'NR==2 {print $3}')
           test "$pyao_before_revision" != "$pyao_after_revision"
           sha256sum -c "$RUNNER_TEMP/pyao-preferences.sha256"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: godot-world-integration-${{ github.run_attempt }}
@@ -202,15 +215,15 @@ jobs:
       matrix:
         scenario: [skills, spells, navigation, duel]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: cavazquez/pyao-server
           ref: ece8d5b489c500fbd611a7bf2c7f308ab831a510
           path: build/server-under-test
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: "0.13.1"
           enable-cache: false
@@ -219,7 +232,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
           python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: pyao-client-linux-${{ github.event.pull_request.head.sha || github.sha }}
           path: build/native-export
@@ -232,8 +245,8 @@ jobs:
           uv sync --project build/server-under-test --locked --group build
           uv build --project build/server-under-test --wheel --out-dir "$RUNNER_TEMP/pyao-wheel"
           chmod +x build/native-export/r10/pyao-client-r10.x86_64
-          xvfb-run -a -s '-screen 0 2560x1440x24' uv run --project build/server-under-test --locked python tools/integration-world.py --scenario "$MECHANICS_SCENARIO" --server-project build/server-under-test --wheel "$RUNNER_TEMP/pyao-wheel/pyao_server-1.0.0rc2-py3-none-any.whl" --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --client-executable build/native-export/r10/pyao-client-r10.x86_64 --output "build/mechanics-$MECHANICS_SCENARIO" --seconds 30
-      - uses: actions/upload-artifact@v7
+          xvfb-run -a -s '-screen 0 2560x1440x24' uv run --project build/server-under-test --locked python tools/integration-world.py --scenario "$MECHANICS_SCENARIO" --server-project build/server-under-test --wheel "$RUNNER_TEMP"/pyao-wheel/pyao_server-*-py3-none-any.whl --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --client-executable build/native-export/r10/pyao-client-r10.x86_64 --output "build/mechanics-$MECHANICS_SCENARIO" --seconds 30
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: mechanics-${{ matrix.scenario }}-${{ github.run_attempt }}
