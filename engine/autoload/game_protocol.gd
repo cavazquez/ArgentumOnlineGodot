@@ -823,3 +823,22 @@ static func WriteGuildRequestDetails() -> bool:
 		return false
 	_writer.put_u8(69)
 	return true
+
+
+static func NewSkillActionId() -> String:
+	return "%d.%s" % [int(Time.get_unix_time_from_system()), Crypto.new().generate_random_bytes(16).hex_encode()]
+
+static func WriteSkillAction(action: String, params: Dictionary, identity: String = "") -> bool:
+	if not _can_write(251):
+		return false
+	if identity.is_empty():
+		identity = NewSkillActionId()
+	if not SkillAllocationState.valid_identity(identity):
+		return false
+	var request := JSON.stringify({"id": identity, "action": action, "params": params})
+	if request.length() > 1020 or not Utils.CanEncodeLatin1(request):
+		return false
+	_writer.put_u8(251)
+	_writer.put_u8(1)
+	Utils.PutUnicodeString(_writer, request)
+	return true

@@ -58,6 +58,8 @@ func _scale_cursor(texture: Texture2D, scale_factor: float) -> Texture2D:
 	return new_texture
 	 
 func _OnDisconnected() -> void:
+	set_process(false)
+	networkMessages.clear()
 	var screen = load("uid://cd452cndcck7v").instantiate() 
 	ScreenController.SwitchScreen(screen)
 	
@@ -168,6 +170,13 @@ var pcg:Array[String]
 
 func _HandleOnePacket(stream:StreamPeerBuffer) -> void:
 	var packetId = stream.get_u8()
+	if packetId == 255:
+		var action := SkillActionState.new(stream)
+		if not action.valid:
+			ClientInterface._fail("Respuesta de habilidad inválida")
+			return
+		_gameInput.ApplySkillAction(action.data)
+		return
 	if packetId == 253:
 		var password_result := PasswordChangeReply.new(stream)
 		if not password_result.valid:
@@ -632,13 +641,15 @@ func _HandleRemoveDialogs() -> void:
 	pass
 
 func _HandleLevelUp(p:LevelUp) -> void:
-	pass
+	GameProtocol.WriteRequestSkills()
 
 func _HandleSendSkills(p:SendSkills) -> void:
 	if not p.valid:
 		ClientInterface._fail("Estado de habilidades inválido")
 		return
 	_gameInput._show_skills_window(p.skills)
+	if is_instance_valid(_gameInput._skills_window):
+		_gameInput._skills_window.ApplyProgressUpdate(p.skills)
 	# Actualizar también la ventana de estadísticas si está abierta
 	_gameInput.update_stats_skills(p.skills)
 
@@ -734,15 +745,13 @@ func _HandleUserCharIndexInServer(p:UserCharIndexInServer) -> void:
 
 
 func _HandleCreateFx(p:CreateFx) -> void:
-	var character = _gameWorld.GetCharacter(p.charIndex)
-	if character:
-		character.effect.play_effect(p.fx, p.fxLoops)
+	_gameWorld.PlayCharacterEffect(p.charIndex, p.fx, p.fxLoops)
 
 
 func _HandleSetInvisible(p:SetInvisible) -> void:
 	var character = _gameWorld.GetCharacter(p.charIndex)
 	if character:
-		character.SetCharacterInvisible(!p.invisible)
+		character.SetCharacterInvisible(p.invisible)
 				
 func _HandleCharacterCreate(p:CharacterCreate) -> void:
 	var privileges = p.privileges

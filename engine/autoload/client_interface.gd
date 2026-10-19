@@ -9,6 +9,9 @@ signal dataReceived(data: PackedByteArray)
 
 enum State { DISCONNECTED, CONNECTING, TLS_HANDSHAKING, CONNECTED }
 
+const MAX_READS_PER_FRAME := 256
+const MAX_RECEIVED_BYTES_PER_FRAME := 65536
+
 var _socket: StreamPeerTCP = StreamPeerTCP.new()
 var _tls: StreamPeerTLS
 var _transport: StreamPeer
@@ -125,13 +128,35 @@ func _process(_delta: float) -> void:
 	# Un listener de connected puede cerrar o cambiar de pantalla.
 	if _state != State.CONNECTED or _transport == null:
 		return
-	var available := _transport.get_available_bytes()
-	if available > 0:
-		var response := _transport.get_partial_data(mini(available, 65536))
+	_ReadAvailableData()
+
+func _ReadAvailableData() -> void:
+	# TLS puede exponer un solo registro por poll. Leer uno por cuadro convierte
+	# los mensajes pequeños del login en segundos de espera, aunque ya llegaron.
+	var generation := _generation
+	var remaining := MAX_RECEIVED_BYTES_PER_FRAME
+	for _read in MAX_READS_PER_FRAME:
+		if generation != _generation or _state != State.CONNECTED or _transport == null:
+			return
+		if _tls != null:
+			_tls.poll()
+			if _tls.get_status() != StreamPeerTLS.STATUS_CONNECTED:
+				_fail("La conexión TLS con el servidor se cerró")
+				return
+		var available := _transport.get_available_bytes()
+		if available <= 0:
+			return
+		var response := _transport.get_partial_data(mini(available, remaining))
 		if response[0] != OK:
 			_fail("No se pudieron recibir datos del servidor")
 			return
-		_AcceptIncomingData(response[1])
+		var data: PackedByteArray = response[1]
+		if data.is_empty():
+			return
+		remaining -= data.size()
+		_AcceptIncomingData(data)
+		if remaining <= 0:
+			return
 
 func _AcceptIncomingData(data: PackedByteArray) -> void:
 	var generation := _generation

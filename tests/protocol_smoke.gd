@@ -64,6 +64,7 @@ func _ready() -> void:
 	_verify_trade()
 	_verify_ui()
 	_verify_screen_handoff()
+	_verify_receive_reconnection()
 	print("PROTOCOL_SMOKE: ", "FAIL" if failed else "PASS")
 	get_tree().quit(1 if failed else 0)
 
@@ -84,7 +85,7 @@ func _verify_framing(fixtures: Array) -> void:
 		for value in bytes:
 			count += bytewise.feed(PackedByteArray([value])).size()
 		check(count == 1 and bytewise.pending_size() == 0, "Reensamblado byte a byte " + fixture.name)
-	for invalid in [PackedByteArray([255]), PackedByteArray([24, 255, 255]), PackedByteArray([104, 255])]:
+	for invalid in [PackedByteArray([249]), PackedByteArray([24, 255, 255]), PackedByteArray([104, 255])]:
 		var framer := AOPacketFramer.new()
 		check(framer.feed(invalid).is_empty() and not framer.error.is_empty(), "Se aceptó ID, longitud o subtipo inválido")
 	var large := PackedByteArray()
@@ -107,9 +108,31 @@ func _verify_screen_handoff() -> void:
 	check(ClientInterface._framer.pending_size() == 2, "Se perdió el ChangeMap parcial en la transición")
 	ClientInterface._AcceptIncomingData(PackedByteArray([0, 0, 0, 88]))
 	check(ScreenController.currentScreen == game and game.networkMessages.size() == 3, "El login anterior recibió paquetes después del cambio")
-	game.set_process(false)
+	game._OnDisconnected()
+	check(not game.is_processing() and game.networkMessages.is_empty(), "La pantalla desconectada sigue procesando mensajes")
+	ScreenController.currentScreen.free()
 	game.free()
 	ScreenController.currentScreen = null
+	ClientInterface._reset()
+
+func _verify_receive_reconnection() -> void:
+	ClientInterface._reset()
+	var old_stream := StreamPeerBuffer.new()
+	old_stream.data_array = PackedByteArray([88, 88])
+	var new_stream := StreamPeerBuffer.new()
+	new_stream.data_array = PackedByteArray([88])
+	var seen := [0]
+	var reconnect := func(_packet):
+		seen[0] += 1
+		ClientInterface._reset()
+		ClientInterface._transport = new_stream
+		ClientInterface._state = ClientInterface.State.CONNECTED
+	ClientInterface._transport = old_stream
+	ClientInterface._state = ClientInterface.State.CONNECTED
+	ClientInterface.dataReceived.connect(reconnect)
+	ClientInterface._ReadAvailableData()
+	check(seen[0] == 1 and new_stream.get_position() == 0, "La recepción anterior consumió datos de una conexión nueva")
+	ClientInterface.dataReceived.disconnect(reconnect)
 	ClientInterface._reset()
 
 func _verify_inventory() -> void:
@@ -184,22 +207,22 @@ func _verify_text_policy() -> void:
 	panel.free()
 
 func _verify_capabilities() -> void:
-	# Cargar mapa/libro/inventario puede superar 2 s en un equipo lento.
+	# Cargar mapa/libro/inventario puede superar 10 s en un equipo lento.
 	var slow := ClientCapabilities.new()
 	slow.begin()
-	slow._deadline_msec -= 2500
-	check(slow.accept(PackedByteArray([250, 1, 143, 0, 0, 0])), "ACK tras 2,5 s perdió las acciones negociadas")
+	slow._deadline_msec -= 12000
+	check(slow.accept(PackedByteArray([250, 1, 143, 0, 0, 0])), "ACK tras 12 s perdió las acciones negociadas")
 	var legacy := ClientCapabilities.new()
 	var extended := ClientCapabilities.new()
 	check(legacy.enabled == 0, "Se habilitaron funciones sin negociar")
 	var request := extended.begin()
-	check(request == PackedByteArray([250, 1, 143, 0, 0, 0]), "Solicitud de capacidades fuera del contrato")
+	check(request == PackedByteArray([250, 1, 143, 1, 0, 0]), "Solicitud de capacidades fuera del contrato")
 	check(extended.accept(PackedByteArray([250, 1, 1, 0, 0, 0])), "Respuesta válida rechazada")
 	check(extended.has_feature(ClientCapabilities.SKILLS_CATALOG) and legacy.enabled == 0, "Se mezclaron capacidades entre conexiones")
 	extended.clear()
 	check(extended.enabled == 0, "Reconexión conserva capacidades")
 	extended.begin()
-	extended._deadline_msec = 0
+	extended._deadline_msec -= 31000
 	check(not extended.accept(PackedByteArray([250, 1, 255, 0, 0, 0])) and extended.enabled == 0, "Respuesta tardía elevó funciones")
 	for response in [PackedByteArray([250, 2, 1, 0, 0, 0]), PackedByteArray([250, 1, 0, 0, 16, 0]), PackedByteArray([250, 1, 255, 255, 255, 255])]:
 		extended.begin()
@@ -609,7 +632,9 @@ func _verify_allocation(fixtures: Dictionary) -> void:
 	window.ApplyAllocationState(initial)
 	GameProtocol.Clear()
 	window._on_plus_pressed(1)
-	check(window.current_free_skills == 8, "Asigna una habilidad pendiente")
+	check(window.current_free_skills == 7 and window.skill_values[1] == 1, "Robar no admite asignación manual")
+	window._on_minus_pressed(1)
+	check(window.current_free_skills == 8, "Deshacer Robar no devuelve el punto del borrador")
 	window._on_plus_pressed(0)
 	check(window.current_free_skills == 7 and Global.skillPoints == 8, "Borrador cambia presupuesto global")
 	window._on_accept_pressed()

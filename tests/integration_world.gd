@@ -66,7 +66,8 @@ func _ready() -> void:
 		return
 	print("INTEGRATION_WORLD: READY map=", game._gameContext.player_map, " slots=30 tls=true")
 	if not OS.get_environment("PYAO_TEST_CONTROL").is_empty():
-		var scenario = load("res://tests/r10_client.gd").new()
+		var controller_path := "res://tests/mechanics_client.gd" if OS.get_environment("PYAO_TEST_MECHANICS") == "1" else "res://tests/r10_client.gd"
+		var scenario = load(controller_path).new()
 		if not await scenario.run(self):
 			return
 		game = ScreenController.currentScreen as GameScreen
@@ -155,5 +156,10 @@ func _ready() -> void:
 		"capabilities": ClientInterface.capabilities.enabled,
 		"exact_inventory_and_spell_order": true}))
 	ClientInterface.DisconnectFromHost()
+	# Completar queue_free de la pantalla y la retirada del playback en el mixer.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not await wait_for(AudioManager.IsDrained, "liberación del mixer de audio al cerrar", 2.0):
+		return
 	print("INTEGRATION_WORLD: PASS seconds=", (Time.get_ticks_msec() - started) / 1000)
 	get_tree().quit(0)

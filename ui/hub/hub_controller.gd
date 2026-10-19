@@ -70,6 +70,7 @@ var _gameContext:GameContext
 var _currentPanel:Node
 var _options_window 
 var _skills_window
+var _crafting_window: CraftingWindow
 var _password_change_window
 var _guild_foundation_window
 var _clan_details_window: ClanDetailsWindow
@@ -546,6 +547,7 @@ func _on_btn_options_pressed() -> void:
 func _on_btn_skills_pressed() -> void:
 	if _skills_window == null:
 		_skills_window = SkillsWindowScene.instantiate()
+		_skills_window.action_requested.connect(UseSkill)
 		add_child(_skills_window)
 		_RegisterModal(_skills_window)
 	# Establecer el flag para indicar que estamos esperando las habilidades
@@ -581,6 +583,7 @@ func _show_skills_window(skills:Array) -> void:
 	_waiting_for_skills_popup = false
 	if _skills_window == null:
 		_skills_window = SkillsWindowScene.instantiate()
+		_skills_window.action_requested.connect(UseSkill)
 		add_child(_skills_window)
 		_RegisterModal(_skills_window)
 	_skills_window.set_skills(skills)
@@ -748,3 +751,36 @@ func ApplySkillAllocation(state: SkillAllocationState) -> void:
 func ApplyPasswordReply(reply: PasswordChangeReply) -> void:
 	if is_instance_valid(_password_change_window):
 		_password_change_window.ApplyReply(reply)
+
+func UseSkill(skill_id: int) -> void:
+	if not ClientInterface.capabilities.has_feature(ClientCapabilities.SKILL_ACTIONS):
+		ShowConsoleMessage("Este servidor no admite acciones extendidas de habilidades.")
+		return
+	if skill_id in [14, 15, 88]:
+		if _crafting_window == null:
+			_crafting_window = CraftingWindow.new()
+			add_child(_crafting_window)
+			_RegisterModal(_crafting_window)
+		_crafting_window.open_skill({14: "carpinteria", 15: "herreria", 88: "mineria"}[skill_id])
+		return
+	if skill_id == 5:
+		GameProtocol.WriteMeditate()
+	elif skill_id == 7:
+		GameProtocol.WriteSkillAction("hide", {})
+	elif skill_id == 20:
+		if _inventoryContainer.GetSelectedSlot() == -1:
+			ShowConsoleMessage("Seleccioná una embarcación del inventario y usala para navegar.")
+		else:
+			_use_object()
+	else:
+		_restore_default_cursor()
+		_gameContext.usingSkill = skill_id
+		get_viewport().gui_release_focus()
+		Input.set_default_cursor_shape(Input.CURSOR_CROSS)
+		ShowConsoleMessage("Elegí un objetivo para %s. Escape o clic derecho para cancelar." % SkillCatalog.names()[skill_id - 1])
+
+func ApplySkillAction(value: Dictionary) -> void:
+	if _crafting_window != null:
+		_crafting_window.apply_result(value)
+	if value.has("message"):
+		ShowConsoleMessage(String(value.message))

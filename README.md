@@ -36,6 +36,9 @@ del alcance. Un issue cerrado o un ensayo corto no sustituyen la aceptación R10
 
 Para repetir la comprobación del motor: `GODOT_BIN=/ruta/godot ./tools/smoke-godot.sh`. Para exportar Linux, seguir [docs/GODOT.md](docs/GODOT.md).
 
+Las acciones de las 22 habilidades, asignación, fabricación y pruebas gráficas
+de los 45 hechizos están documentadas en [docs/MECANICAS_AO.md](docs/MECANICAS_AO.md).
+
 El cliente sólo recuerda el nombre de usuario. Al abrir una instalación antigua migra `saved_credentials.dat` a `login_preferences.cfg` y elimina el archivo legado con contraseña. Los logs de autenticación conservan únicamente el tipo de operación.
 
 El formulario conecta por **TLS con verificación de certificado y hostname** de
@@ -49,7 +52,9 @@ TLS; la elección, endpoint y ruta de CA se guardan sin contraseñas.
 
 `GODOT_BIN=/ruta/godot python3 tools/smoke-tls.py` genera certificados temporales y
 comprueba Godot real contra endpoints locales: confianza, nombre, vencimiento,
-plazo, cancelación, recuperación del formulario y segundo intento. La integración
+plazo, cancelación, recuperación del formulario y segundo intento. Incluye una
+ráfaga de 480 registros TLS: debe negociar en menos de tres segundos a 60 FPS,
+con presupuesto de 256 lecturas y 64 KiB por cuadro. La integración
 completa del juego sobre este transporte se valida con el recorrido de #60.
 
 

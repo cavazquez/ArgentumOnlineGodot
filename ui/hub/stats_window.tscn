@@ -5,15 +5,18 @@
 [node name="StatsWindow" type="Window"]
 oversampling_override = 1.0
 position = Vector2i(0, 36)
-size = Vector2i(460, 454)
-unresizable = true
+size = Vector2i(520, 500)
+min_size = Vector2i(460, 460)
 script = ExtResource("1")
 
 [node name="VBox" type="VBoxContainer" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 5.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 2
@@ -31,11 +34,13 @@ theme_override_constants/separation = 6
 
 [node name="LeftPadding" type="MarginContainer" parent="VBox/Columns/LeftColumn"]
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/margin_left = 5
 theme_override_constants/margin_right = 5
 
 [node name="LeftContent" type="VBoxContainer" parent="VBox/Columns/LeftColumn/LeftPadding"]
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/separation = 6
 
 [node name="AttributesPadding" type="MarginContainer" parent="VBox/Columns/LeftColumn/LeftPadding/LeftContent"]
@@ -76,7 +81,7 @@ size_flags_vertical = 3
 theme_override_constants/margin_right = 7
 
 [node name="SkillsScroll" type="ScrollContainer" parent="VBox/Columns/LeftColumn/LeftPadding/LeftContent/SkillsPadding"]
-custom_minimum_size = Vector2(0, 230)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3

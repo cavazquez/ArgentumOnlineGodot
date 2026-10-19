@@ -30,10 +30,11 @@ elu = 1000000
 
 [skills]
 magia = 100
-talar = 50
-mineria = 50
-pesca = 50
-liderazgo = 50
+talar = 90
+mineria = 90
+pesca = 90
+meditar = 100
+liderazgo = 90
 
 [npcs]
 merchant = 7
