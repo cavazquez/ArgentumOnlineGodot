@@ -136,18 +136,25 @@ class MechanicsWorld(R10World):
 
         resource = MapResourcesService().resources["map_2"]
         blocked = resource["blocked"] | resource["water"]
-        occupied = {(int(store.hget(k, "x")), int(store.hget(k, "y"))) for k in store.scan_iter("npc:instance:*") if store.hget(k, "map_id") == "2"}
+        occupied = {
+            (int(store.hget(k, "x")), int(store.hget(k, "y")))
+            for k in store.scan_iter("npc:instance:*")
+            if store.hget(k, "map_id") == "2"
+        }
         x, y = next(
             (x, y)
             for x in range(20, 80)
             for y in range(20, 80)
-            if (x, y) not in occupied and (x + 1, y) not in occupied and all(
+            if (x, y) not in occupied
+            and (x + 1, y) not in occupied
+            and all(
                 (a, b) not in blocked
                 for a in range(x - 3, x + 4)
                 for b in range(y - 3, y + 4)
             )
         )
         positions = {1: (2, x, y), 2: (2, x + 1, y)}
+        staff, quantity = self.data["items"]["27"]
         records = []
         for spell in SPELLS:
             sid = spell["id"]
@@ -214,6 +221,11 @@ class MechanicsWorld(R10World):
                 book = f"player:{self.ids[1]}:spellbook"
                 store.delete(book)
                 store.hset(book, mapping={"1": sid, "2": 16})
+                # La campaña completa reemplaza el inventario en cada actividad.
+                # equipment.weapon referencia un slot, no un ID del catálogo.
+                store.hset(
+                    f"player:{self.ids[1]}:inventory", "slot_27", f"{staff}:{quantity}"
+                )
                 store.hset(f"player:{self.ids[1]}:equipment", mapping={"weapon": 27})
                 if sid == 1:
                     store.hset(
@@ -235,6 +247,13 @@ class MechanicsWorld(R10World):
                     )
 
             self.offline(store, positions, seed)
+            self.view(
+                1,
+                lambda v: (
+                    v["items"].get("27", [0, 0, False]) == [staff, quantity, True]
+                ),
+                "bastón poseído y equipado antes del cast",
+            )
             if sid == 46:
                 for i in (1, 2):
                     self.command(i, "capture_reset", label="helper-for-46")
