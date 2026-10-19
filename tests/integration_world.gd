@@ -156,5 +156,8 @@ func _ready() -> void:
 		"capabilities": ClientInterface.capabilities.enabled,
 		"exact_inventory_and_spell_order": true}))
 	ClientInterface.DisconnectFromHost()
+	# Completar queue_free de la pantalla y la retirada del playback en el mixer.
+	await get_tree().process_frame
+	await get_tree().process_frame
 	print("INTEGRATION_WORLD: PASS seconds=", (Time.get_ticks_msec() - started) / 1000)
 	get_tree().quit(0)

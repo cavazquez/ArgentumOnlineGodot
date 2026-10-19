@@ -130,5 +130,16 @@ func _run() -> void:
 	map.queue_free()
 	GameProtocol.Clear()
 	await get_tree().process_frame
+	AudioManager.PlayAudio(3)
+	var sound := AudioManager.get_child(0) as AudioStreamPlayer
+	var stream_ref: WeakRef = weakref(sound.stream)
+	var playback_ref: WeakRef = weakref(sound.get_stream_playback())
+	_check(sound.playing, "El sonido no inició una reproducción real")
+	ClientInterface.disconnected.emit()
+	_check(AudioManager.get_child_count() == 0, "La desconexión dejó reproductores activos")
+	var deadline := Time.get_ticks_msec() + 1000
+	while (stream_ref.get_ref() != null or playback_ref.get_ref() != null) and Time.get_ticks_msec() < deadline:
+		await get_tree().process_frame
+	_check(stream_ref.get_ref() == null and playback_ref.get_ref() == null, "La desconexión retuvo recursos de audio")
 	print("MECHANICS_SMOKE: ", "FAIL" if _failed else "PASS")
 	get_tree().quit(1 if _failed else 0)
