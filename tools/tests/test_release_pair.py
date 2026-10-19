@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -178,6 +179,7 @@ class PairReleaseTests(unittest.TestCase):
                 for i in range(1, 10)
             },
         }
+        requirements["requirements"]["R09"]["candidate_passed"] = True
         for key, value in (
             ("r10", r10),
             ("upgrade", upgrade),
@@ -326,6 +328,22 @@ class PairReleaseTests(unittest.TestCase):
         receipt["status"] = "promoting"
         result = release.rollback(self.stage / "state.json", receipt, self.store)
         self.assertEqual(result["status"], "rolled-back")
+        self.assertEqual(self.store.current, receipt["baseline"])
+
+    def test_postpublication_validation_can_restore_pair_but_not_overwrite_a_later_release(
+        self,
+    ):
+        receipt = self.prepare()
+        state = self.stage / "state.json"
+        release.promote(state, self.store)
+        args = SimpleNamespace(command="recover", state=state)
+        self.store.current["pyao/amd64"]["revision"] = 999
+        with self.assertRaisesRegex(RuntimeError, "recibo viejo"):
+            release.execute(args, self.store)
+        self.assertEqual(self.store.events.count("release"), 3)
+        self.store.current = receipt["candidates"]
+        with patch("builtins.print"):
+            release.execute(args, self.store)
         self.assertEqual(self.store.current, receipt["baseline"])
 
 

@@ -71,8 +71,11 @@ TLS. Debe identificar exactamente los dos commits candidatos. `upgrade` contiene
 el resultado real de `src.operations.redis_schema selftest`, más `server_commit`:
 backup/restauración, migración idempotente, reinicio, recuperación y configuración
 heredada, sin datos de producción. `requirements` identifica `server_commit` y
-`client_commit`, y `requirements.R01` a `R09`, cada uno con `passed: true` y una
-lista `evidence` de referencias `{file, sha256}` a pruebas verificables.
+`client_commit`, y `requirements.R01` a `R09`, cada uno con una lista `evidence`
+de referencias `{file, sha256}` a pruebas verificables. R01–R08 requieren
+`passed: true`; R09 requiere `candidate_passed: true` por el smoke del candidato
+instalado. Su aprobación completa desde Store se registra después de promover
+e instalar el par firmado; no se da por realizada antes de publicar.
 
 Desde la cuenta local de Snapcraft ya autenticada, con `gh`, `curl` y
 `unsquashfs` disponibles:
@@ -96,7 +99,8 @@ promueve las tres revisiones consecutivamente desde el mismo proceso. La Store
 opera cada nombre/revisión por separado: el recibo registra inicio y final del
 intervalo real, sin prometer simultaneidad atómica. Si falla incluso una respuesta
 después de cambiar un canal, repone **todas** las revisiones anteriores y verifica
-sus hashes públicos. Si el proceso se interrumpió durante la promoción:
+sus hashes públicos. Si el proceso se interrumpió durante la promoción o falla
+la validación posterior del par publicado:
 
 ```bash
 python3 tools/release-pair.py recover /ruta/preparacion-nueva/state.json
@@ -104,6 +108,7 @@ python3 tools/release-pair.py recover /ruta/preparacion-nueva/state.json
 
 Conservar `state.json` y los logs privados. Una recuperación no confirmada queda
 como `rollback-failed` y requiere revisar ese recibo antes de otra publicación.
+La recuperación manual rechaza un recibo viejo si el canal ya contiene otra entrega.
 El publicador serializa procesos del mismo usuario en la máquina; coordinar con
 los demás mantenedores para que no publiquen desde otro equipo durante la entrega.
 Las credenciales permanecen en Snapcraft y nunca entran en manifiestos ni paquetes.

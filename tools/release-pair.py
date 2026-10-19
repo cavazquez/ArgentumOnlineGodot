@@ -126,8 +126,13 @@ def validate_evidence(manifest, root):
     )
     for identifier in (f"R{i:02d}" for i in range(1, 10)):
         requirement = proof["requirements"]["requirements"][identifier]
+        # R09 se cierra tras instalar el par firmado desde Store. Antes de publicar
+        # exige el smoke del mismo candidato instalado, sin fingir ese paso futuro.
+        passed = requirement.get(
+            "candidate_passed" if identifier == "R09" else "passed"
+        )
         require(
-            requirement.get("passed") is True and requirement["evidence"],
+            passed is True and requirement["evidence"],
             f"Falta la aceptación {identifier}",
         )
         for item in requirement["evidence"]:
@@ -411,18 +416,28 @@ def promote(path, backend):
 
 def rollback(path, receipt, backend):
     """Recupera también una promoción interrumpida al terminar el proceso."""
+    channel = receipt["manifest"]["channel"]
+    require(
+        channel == "latest/edge" and set(receipt["baseline"]) == PACKAGES,
+        "Recibo de recuperación incompatible",
+    )
+    for key, previous in receipt["baseline"].items():
+        require(
+            previous["name"] == key.split("/")[0]
+            and type(previous["revision"]) is int
+            and previous["revision"] > 0,
+            "Revisión anterior inválida",
+        )
     receipt.update(status="rolling-back")
     save(path, receipt)
     failures = []
     for previous in receipt["baseline"].values():
         try:
-            backend.release(
-                previous["name"], previous["revision"], receipt["manifest"]["channel"]
-            )
+            backend.release(previous["name"], previous["revision"], channel)
         except BaseException as error:
             failures.append(str(error))
     try:
-        backend.wait(receipt["baseline"], receipt["manifest"]["channel"])
+        backend.wait(receipt["baseline"], channel)
     except BaseException as error:
         failures.append(str(error))
     receipt.update(
@@ -485,8 +500,18 @@ def execute(args, store):
     else:
         receipt = read(args.state)
         require(
-            receipt["status"] in {"promoting", "rolling-back", "rollback-failed"},
-            "El recibo no corresponde a una promoción interrumpida",
+            receipt["status"]
+            in {"promoting", "rolling-back", "rollback-failed", "published"},
+            "El recibo no corresponde a una entrega publicada o interrumpida",
+        )
+        current = store.channels(receipt["manifest"]["channel"])
+        require(
+            all(
+                current[key]
+                in (receipt["baseline"][key], receipt["candidates"].get(key))
+                for key in PACKAGES
+            ),
+            "Otra entrega cambió el canal; no se recupera un recibo viejo",
         )
         result = rollback(args.state.resolve(), receipt, store)
         require(
