@@ -302,7 +302,10 @@ class FullWorld(SkillsWorld):
         return self.steps
 
     def extra_mana(self, store):
-        self.reset(store, items={1: (37, 4)}, stats={"min_mana": 1000})
+        self.reset(
+            store, items={1: (37, 4)}, stats={"min_mana": 1000}, skills={"meditar": 100}
+        )
+        recoveries = []
         for i in (1, 2):
             before = self.stats(store, i)["min_mana"]
             count = self.count(store, i, 37)
@@ -313,16 +316,42 @@ class FullWorld(SkillsWorld):
             )
             if self.count(store, i, 37) != count - 1:
                 raise RuntimeError("Poción sin consumo exacto")
-            self.command(i, "chat", text="/meditar")
             start = self.stats(store, i)["min_mana"]
+            started = time.monotonic()
+            self.command(i, "chat", text="/meditar")
+            self.view(
+                i,
+                lambda v: "Meditando" in v.get("status_text", ""),
+                "meditación activada en la interfaz",
+            )
+            self.wait(
+                lambda i=i: (
+                    float(
+                        store.hget(f"player:{self.ids[i]}:user_stats", "meditation_due")
+                        or 0
+                    )
+                    > 0
+                ),
+                "reloj de meditación activo",
+            )
             self.wait(
                 lambda i=i: self.stats(store, i)["min_mana"] > start,
-                "tick de meditación",
-                45,
+                "recuperación probabilística de meditación",
+                240,
+            )
+            recoveries.append(
+                {
+                    "client": i,
+                    "before": start,
+                    "after": self.stats(store, i)["min_mana"],
+                    "seconds": time.monotonic() - started,
+                }
             )
             self.command(i, "chat", text="/meditar")
         self.both_screens("mana-recovered")
-        self.passed("full-mana", potion=True, meditation=True, both=True)
+        self.passed(
+            "full-mana", potion=True, meditation=True, both=True, recoveries=recoveries
+        )
 
     def thief_objects(self, store, x, y):
         self.reset(
