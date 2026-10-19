@@ -42,6 +42,7 @@ class RuntimeLogTest(unittest.TestCase):
         for changed in (pair().replace("callable: ''", "callable: 'Game::handler'"),
                         pair().replace("root:<Window", "Dialog:<Window"),
                         pair() + "ERROR: Parameter t->get_data() is null.\n",
+                        pair() + "ERROR:Unknown resource failure\n",
                         pair() + "SCRIPT ERROR: Invalid call.\n"):
             with self.subTest(log=changed):
                 self.assertFalse(classify_runtime_log(ENGINE + changed)["passed"])

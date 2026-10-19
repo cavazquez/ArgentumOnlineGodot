@@ -26,6 +26,8 @@ from src.operations.redis_sandbox import RedisSandbox
 from src.operations.two_client_smoke import ProtocolPeer
 from src.network.packet_id import ServerPacketID
 
+from runtime_log import classify_runtime_log
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -401,7 +403,7 @@ def main():
             if (
                 password in text
                 or "Traceback (most recent call last)" in text
-                or "ERROR:" in text
+                or not classify_runtime_log(text)["passed"]
                 or "| ERROR |" in text
             ):
                 raise RuntimeError("Un log contiene un error o la credencial sintética")

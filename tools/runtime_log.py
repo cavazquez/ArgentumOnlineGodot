@@ -20,7 +20,7 @@ def classify_runtime_log(text: str) -> dict:
     once the pinned stable templates contain the upstream fix (#123998).
     """
     unexpected = re.findall(r"^\s*SCRIPT ERROR:.*$", text, re.MULTILINE)
-    messages = re.findall(r"^\s*ERROR: (.*)$", text, re.MULTILINE)
+    messages = [message.strip() for message in re.findall(r"^\s*ERROR:(.*)$", text, re.MULTILINE)]
     candidates = []
     for message in messages:
         match = _TOOLTIP.fullmatch(message)
