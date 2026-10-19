@@ -43,3 +43,23 @@ class FullAcceptanceTests(unittest.TestCase):
         result = acceptance(self.steps(), 10, graphical=True, exported=False)
         self.assertTrue(result["test_execution_passed"])
         self.assertFalse(result["r10_gameplay_passed"])
+
+    def test_legacy_skill_names_do_not_break_the_phase_summary(self):
+        steps = self.steps()
+        next(step for step in steps if step["id"] == "wood")["observations"] = {
+            "skill": "talar"
+        }
+        self.assertTrue(
+            acceptance(steps, 1800, graphical=True, exported=True)[
+                "r10_gameplay_passed"
+            ]
+        )
+
+    def test_malformed_phase_skill_is_missing_instead_of_raising(self):
+        steps = self.steps()
+        next(step for step in steps if step["id"] == "skill-22")["observations"][
+            "skill"
+        ] = "agilidad"
+        result = acceptance(steps, 1800, graphical=True, exported=True)
+        self.assertFalse(result["r10_gameplay_passed"])
+        self.assertNotIn(22, result["skills"])

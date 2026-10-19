@@ -431,7 +431,66 @@ class FullWorld(SkillsWorld):
                 "proyectiles con dos emisores distintos",
             )
         self.both_screens("pvp-both")
-        self.passed("full-pvp", both=True, simultaneous_casts=True)
+        self.pvp_lifecycle(store, x, y)
+        self.passed(
+            "full-pvp", both=True, simultaneous_casts=True, death_and_revive=True
+        )
+
+    def pvp_lifecycle(self, store, x, y):
+        positions = {1: (2, x, y), 2: (2, x + 1, y)}
+        self.reset(store, positions, items={1: (659, 1)}, stats={"gold": 1000})
+
+        def seed():
+            store.hset(f"player:{self.ids[2]}:user_stats", "min_hp", "1")
+            store.hset(f"player:{self.ids[1]}:spellbook", "4", "11")
+
+        self.offline(store, positions, seed)
+        appearance = self.command(2, "snapshot")["appearance"]
+        self.command(1, "equip", slot=1)
+        self.view(
+            1,
+            lambda v: v["items"].get("1", []) == [659, 1, True],
+            "bastón para resucitar al compañero",
+        )
+        self.command(1, "cast", slot=2, x=x + 1, y=y)
+        self.wait(lambda: self.stats(store, 2)["min_hp"] <= 0, "muerte causada por PvP")
+        dead = self.view(
+            2,
+            lambda v: v["hp"] <= 0 and "Muerto" in v.get("status_text", ""),
+            "muerte PvP en la víctima",
+        )
+        self.view(
+            1,
+            lambda v: (
+                v["world_characters"].get(str(self.ids[2]), [0, 0, 0])[2]
+                == dead["appearance"][0]
+            ),
+            "apariencia muerta en el atacante",
+        )
+        self.both_screens("pvp-death")
+        self.command(1, "cast", slot=4, x=x + 1, y=y)
+        self.wait(
+            lambda: self.stats(store, 2)["min_hp"] > 0,
+            "resurrección del compañero por hechizo",
+        )
+        self.view(
+            2,
+            lambda v: (
+                v["hp"] > 0
+                and v["appearance"] == appearance
+                and "Muerto" not in v.get("status_text", "")
+            ),
+            "vida y apariencia restauradas en la víctima",
+        )
+        self.view(
+            1,
+            lambda v: (
+                v["world_characters"].get(str(self.ids[2]), [0, 0, 0])[2]
+                == appearance[0]
+            ),
+            "resurrección visible para el lanzador",
+        )
+        self.both_screens("pvp-revival")
 
     def follow(self, store, index, map_id, path):
         for start, end in zip(path, path[1:]):

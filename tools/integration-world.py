@@ -26,7 +26,14 @@ import tomllib
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-SCENARIO_TIMEOUT_SECONDS = {"r10": 900, "skills": 1800, "spells": 1800, "full": 7200, "navigation": 900}
+SCENARIO_TIMEOUT_SECONDS = {
+    "r10": 900,
+    "skills": 1800,
+    "spells": 1800,
+    "full": 7200,
+    "navigation": 900,
+    "duel": 900,
+}
 
 
 def verify_wheel_source(project, wheel):
@@ -236,8 +243,14 @@ def worker(args):
     work = Path.cwd()
     output = args.output
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    if args.scenario == "navigation":
-        from navigation_world import NavigationWorld as R10World, acceptance, prepare_fixture
+    if args.scenario == "duel":
+        from duel_world import DuelWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "navigation":
+        from navigation_world import (
+            NavigationWorld as R10World,
+            acceptance,
+            prepare_fixture,
+        )
     elif args.scenario == "full":
         from full_world import FullWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "skills":
@@ -694,12 +707,16 @@ def main():
     parser.add_argument("--seconds", type=int, default=1800)
     parser.add_argument(
         "--scenario",
-        choices=("r10", "skills", "spells", "full", "navigation"),
+        choices=("r10", "skills", "spells", "full", "navigation", "duel"),
         default="r10",
         help="Regresión que se ejecuta antes del período de observación",
     )
     parser.add_argument("--headless", action="store_true")
-    parser.add_argument("--server-debug", action="store_true", help="Logs detallados del servidor exclusivo del ensayo")
+    parser.add_argument(
+        "--server-debug",
+        action="store_true",
+        help="Logs detallados del servidor exclusivo del ensayo",
+    )
     parser.add_argument("--redis-runtime", type=Path)
     parser.add_argument("--snap-installed", action="store_true")
     parser.add_argument(
@@ -872,9 +889,12 @@ def main():
             arguments, cwd=work, env=environment, start_new_session=True
         )
         try:
-            if child.wait(
-                timeout=args.seconds + SCENARIO_TIMEOUT_SECONDS[args.scenario] + 120
-            ) != 0:
+            if (
+                child.wait(
+                    timeout=args.seconds + SCENARIO_TIMEOUT_SECONDS[args.scenario] + 120
+                )
+                != 0
+            ):
                 raise RuntimeError(
                     "Falló el ensayo instalado; revisar los logs conservados"
                 )

@@ -154,6 +154,24 @@ func _run() -> void:
 		character.renderer.body = 1
 		character.renderer.head = 1
 	_check(character.renderer._headAnimatedSprite.position == head and character.renderer._helmetAnimatedSprite.position == helmet, "La cabeza o el casco acumulan desplazamiento")
+	# Cuerpos raciales que publica pyao, cabezas propias y cuatro orientaciones.
+	var weapon_position := character.renderer._weaponAnimatedSprite.position
+	var shield_position := character.renderer._shieldAnimatedSprite.position
+	for racial in [[1, 1], [5, 301], [4, 401]]:
+		character.renderer.body = racial[0]
+		character.renderer.head = racial[1]
+		var data = GameAssets.BodyAnimationList[racial[0]]
+		var expected_head := character.renderer._head_base + Vector2(data.offsetX, data.offsetY)
+		var expected_helmet := character.renderer._helmet_base + Vector2(data.offsetX, data.offsetY)
+		for heading in [Enums.Heading.North, Enums.Heading.East, Enums.Heading.South, Enums.Heading.West]:
+			character.renderer.heading = heading
+			character.renderer.Stop()
+			_check(character.renderer._headAnimatedSprite.position == expected_head and character.renderer._helmetAnimatedSprite.position == expected_helmet, "Alineación racial incorrecta en una orientación")
+			_check(character.renderer._weaponAnimatedSprite.position == weapon_position and character.renderer._shieldAnimatedSprite.position == shield_position, "Cambiar raza/orientación desplazó arma o escudo")
+	character.renderer.body = GameAssets.BodyAnimationList.size() + 1
+	character.renderer.head = -1
+	character.renderer.helmet = -1
+	_check(character.renderer._headAnimatedSprite.sprite_frames != null and character.renderer._bodyAnimatedSprite.sprite_frames != null and character.renderer._helmetAnimatedSprite.sprite_frames != null, "Falta fallback de apariencia ausente")
 	character.queue_free()
 	# Bounded damage nodes, de-duplicación por recibo, limpieza al cambiar de mapa.
 	var visual := CombatVisuals.new()

@@ -184,7 +184,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [skills, spells, navigation]
+        scenario: [skills, spells, navigation, duel]
     steps:
       - uses: actions/checkout@v6
         with:

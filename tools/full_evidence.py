@@ -21,9 +21,11 @@ def acceptance(steps, seconds, **kwargs):
     base = r10_acceptance(steps, seconds, **kwargs)
     completed = {s["id"] for s in steps if s.get("passed") is True}
     skills = {
-        int(s["observations"]["skill"])
+        s["observations"]["skill"]
         for s in steps
-        if s.get("passed") is True and "skill" in s.get("observations", {})
+        if s.get("passed") is True
+        and s.get("id", "").startswith("skill-")
+        and type(s.get("observations", {}).get("skill")) is int
     }
     missing = sorted(FULL_REQUIRED - completed)
     passed = base["functional_passed"] and not missing and skills == set(range(1, 23))
