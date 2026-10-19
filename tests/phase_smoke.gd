@@ -13,6 +13,14 @@ func _ready() -> void:
 
 func _run() -> void:
 	await get_tree().process_frame
+	# Alta rechazada y desconexión pueden ocurrir en el mismo cuadro. Sólo
+	# permanece un diálogo exclusivo visible, incluso al cambiar de pantalla.
+	var first_alert := Utils.ShowAlertDialog("Alta rechazada", "Cuenta de prueba", self)
+	var disconnect_alert := Utils.ShowAlertDialog("Desconectado", "Conexión de prueba", self)
+	_check(not first_alert.visible and disconnect_alert.visible, "Los diálogos de autenticación se superponen")
+	Utils.DismissAlerts(self)
+	_check(not disconnect_alert.visible, "El diálogo sobrevivió al cierre de su pantalla")
+	await get_tree().process_frame
 	# El dispatcher puede probarse sin instanciar GameScreen ni una sesión.
 	var decoder := AOMessageDispatcher.new()
 	var received := []

@@ -12,8 +12,8 @@ import tarfile
 import tempfile
 import urllib.request
 
-URL = "https://download.redis.io/releases/redis-8.10.2.tar.gz"
-SHA256 = "b9ffee226b5eecdba98a679260dad764b2a4ebd90dce4ad5ac9e9f3eef9c02b3"
+URL = "https://codeload.github.com/redis/redis/tar.gz/refs/tags/8.10.2"
+SHA256 = "541a374b753a8405683dd88560465791acc98cf09445ef10ec1bd286904273e8"
 
 
 def wsl(path):

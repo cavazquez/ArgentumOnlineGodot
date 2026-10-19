@@ -62,7 +62,11 @@ jobs:
           pactl load-module module-null-sink sink_name=pyao_test
       - name: Compilador de Redis en WSL del runner Windows
         if: runner.os == 'Windows'
-        run: wsl --user root --exec sh -c 'apt-get update && apt-get install -y build-essential'
+        run: |
+          wsl --set-default-version 1
+          wsl --install --distribution Ubuntu-24.04 --no-launch --web-download
+          wsl --set-default Ubuntu-24.04
+          wsl --distribution Ubuntu-24.04 --user root --exec sh -c 'apt-get update && apt-get install -y build-essential'
       - name: Motor y templates oficiales con SHA256
         run: python tools/install-godot.py --all-templates --destination "$RUNNER_TEMP/pyao-godot"
       - name: Compilar sólo Redis de la fixture
