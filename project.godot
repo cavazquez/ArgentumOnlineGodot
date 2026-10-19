@@ -123,6 +123,7 @@ Talk={
 
 [rendering]
 
+gl_compatibility/driver.windows="opengl3_angle"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-gl_compatibility/driver.windows="opengl3_angle"
+textures/vram_compression/import_etc2_astc=true

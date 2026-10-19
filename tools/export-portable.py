@@ -46,6 +46,8 @@ def export(target, output, engine, reuse=None):
         subprocess.run([sys.executable, str(ROOT / "tools/check-export-log.py"), str(log)], check=True)
     if not (output / filename).is_file():
         raise ValueError("El motor no produjo el artefacto esperado")
+    if not dirty and subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT):
+        raise ValueError("La exportación modificó fuentes; confirmar el ajuste antes de acreditar el candidato")
     if target == "macos":
         with zipfile.ZipFile(output / filename) as archive:
             for info in archive.infolist():
