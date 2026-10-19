@@ -3,7 +3,7 @@ class_name ClientCapabilities
 
 const PACKET_ID := 250
 const VERSION := 1
-const NEGOTIATION_TIMEOUT_SECONDS := 10.0
+const NEGOTIATION_TIMEOUT_SECONDS := 30.0
 const SKILLS_CATALOG := 1
 const TARGETED_CAST := 2
 const SKILL_ALLOCATION := 4

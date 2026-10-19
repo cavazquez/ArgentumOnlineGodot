@@ -184,11 +184,11 @@ func _verify_text_policy() -> void:
 	panel.free()
 
 func _verify_capabilities() -> void:
-	# Cargar mapa/libro/inventario puede superar 2 s en un equipo lento.
+	# Cargar mapa/libro/inventario puede superar 10 s en un equipo lento.
 	var slow := ClientCapabilities.new()
 	slow.begin()
-	slow._deadline_msec -= 2500
-	check(slow.accept(PackedByteArray([250, 1, 143, 0, 0, 0])), "ACK tras 2,5 s perdió las acciones negociadas")
+	slow._deadline_msec -= 12000
+	check(slow.accept(PackedByteArray([250, 1, 143, 0, 0, 0])), "ACK tras 12 s perdió las acciones negociadas")
 	var legacy := ClientCapabilities.new()
 	var extended := ClientCapabilities.new()
 	check(legacy.enabled == 0, "Se habilitaron funciones sin negociar")
@@ -199,7 +199,7 @@ func _verify_capabilities() -> void:
 	extended.clear()
 	check(extended.enabled == 0, "Reconexión conserva capacidades")
 	extended.begin()
-	extended._deadline_msec = 0
+	extended._deadline_msec -= 31000
 	check(not extended.accept(PackedByteArray([250, 1, 255, 0, 0, 0])) and extended.enabled == 0, "Respuesta tardía elevó funciones")
 	for response in [PackedByteArray([250, 2, 1, 0, 0, 0]), PackedByteArray([250, 1, 0, 0, 16, 0]), PackedByteArray([250, 1, 255, 255, 255, 255])]:
 		extended.begin()
