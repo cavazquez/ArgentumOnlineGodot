@@ -4,12 +4,18 @@ class_name BankPanel
 signal finished
 var _closing := false
 
+const DAMAGE_ICON: Texture2D = preload("res://Assets/UI/damage.svg")
+const DEFENCE_ICON: Texture2D = preload("res://Assets/UI/defence.svg")
+
 @export var _bankInventoryContainer:InventoryContainer
 @export var _playerInventoryContainer:InventoryContainer
 @export var _infoLabel:Label 
 @export var _quantitySpinBox:SpinBox
 
 @onready var _lbl_gold: Label = $LblGold
+@onready var _statRow: HBoxContainer = $Info/Stats
+@onready var _statIcon: TextureRect = $Info/Stats/Icon
+@onready var _statLabel: Label = $Info/Stats/Range
 
 @export var _goldLabel:Label
 @export var _quantityGoldSpinBox:SpinBox
@@ -40,17 +46,24 @@ func SetBankGold(gold:int) -> void:
   
 
 func _UpdateInfo(item:Item) -> void:
+	_statRow.hide()
+	_statIcon.texture = null
+	_statLabel.text = ""
+	_statRow.tooltip_text = ""
 	if item == null or item.index < 1:
 		_infoLabel.text = "Seleccioná un objeto"
 		return
-	var infoText = item.name 
-	
-	if (item.IsWeapon()):
-		infoText += "\n🗡️%d/%d" % [item.minHit, item.maxHit]
-	if (item.IsArmour()):
-		infoText += "\n🛡️%d/%d" % [item.maxDef, item.minDef]
+	_infoLabel.text = item.name
+	if item.IsWeapon():
+		_SetStat(DAMAGE_ICON, "%d/%d" % [item.minHit, item.maxHit], "Daño")
+	elif item.IsArmour():
+		_SetStat(DEFENCE_ICON, "%d/%d" % [item.minDef, item.maxDef], "Defensa")
 
-	_infoLabel.text = infoText;
+func _SetStat(icon: Texture2D, value: String, description: String) -> void:
+	_statIcon.texture = icon
+	_statLabel.text = value
+	_statRow.tooltip_text = "%s: %s" % [description, value]
+	_statRow.show()
 
 func _GetQuantity() -> int:
 	return int(_quantitySpinBox.value)

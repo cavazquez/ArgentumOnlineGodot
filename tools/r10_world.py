@@ -444,6 +444,14 @@ class R10World:
         self.wait(lambda: self.count(store, 1, 15) == 0, "depósito de daga")
         self.command(1, "bank_item", deposit=False, slot=1, amount=1)
         self.wait(lambda: self.count(store, 1, 15) == 1, "retiro de daga")
+        self.view(
+            1,
+            lambda v: v.get("bank_info") == {
+                "name": "Daga", "range": "1/2", "icon": "res://Assets/UI/damage.svg",
+                "description": "Daño: 1/2",
+            },
+            "detalle de daño con espada incluida",
+        )
         self.command(1, "close")
         self.view(1, lambda v: v["panel"] == "", "cerrar banco")
         self.passed("bank", "R05", gold_conserved=gold, items_conserved=True)

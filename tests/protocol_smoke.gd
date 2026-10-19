@@ -416,7 +416,40 @@ func _verify_ui() -> void:
 	check(GameProtocol.Flush() == PackedByteArray([17]), "Cerrar comercio duplica CommerceEnd")
 	check(not game._gameContext.trading, "Cerrar comercio deja bloqueado el mundo")
 	hub.OpenBank()
-	var bank := hub._currentPanel
+	var bank: BankPanel = hub._currentPanel
+	var dagger := Item.new()
+	dagger.index = 15
+	dagger.name = "Daga"
+	dagger.type = Enums.eOBJType.eOBJType_otWeapon
+	dagger.minHit = 1
+	dagger.maxHit = 2
+	game._gameContext.playerInventory.SetSlot(29, ItemStack.new(1, false, dagger))
+	bank._playerInventoryContainer._InventorySlotOnPressed(29)
+	check(bank._infoLabel.text == "Daga" and bank._statLabel.text == "1/2", "El banco altera el nombre o daño del arma")
+	check(bank._statRow.visible and bank._statIcon.texture == BankPanel.DAMAGE_ICON, "El banco no muestra la espada incluida")
+	check(bank._statRow.tooltip_text == "Daño: 1/2", "La espada no describe el daño")
+	_check_bank_glyphs(bank._infoLabel)
+	_check_bank_glyphs(bank._statLabel)
+	var armour := Item.new()
+	armour.index = 1073
+	armour.name = "Armadura de Aprendiz"
+	armour.type = Enums.eOBJType.eOBJType_otArmadura
+	armour.minDef = 2
+	armour.maxDef = 7
+	bank._bankInventory.SetSlot(0, ItemStack.new(1, false, armour))
+	bank._bankInventoryContainer._InventorySlotOnPressed(0)
+	check(bank._infoLabel.text == "Armadura de Aprendiz" and bank._statLabel.text == "2/7", "El banco invierte el rango de defensa")
+	check(bank._statRow.visible and bank._statIcon.texture == BankPanel.DEFENCE_ICON, "El banco no cambia la espada por el escudo incluido")
+	check(bank._statRow.tooltip_text == "Defensa: 2/7", "El escudo no describe la defensa")
+	_check_bank_glyphs(bank._infoLabel)
+	_check_bank_glyphs(bank._statLabel)
+	game._gameContext.playerInventory.SetSlot(29, ItemStack.new(1, false, item))
+	bank._playerInventoryContainer._InventorySlotOnPressed(29)
+	check(bank._infoLabel.text == "Objeto impar" and not bank._statRow.visible, "Un objeto común conserva estadísticas anteriores")
+	bank._bankInventoryContainer._InventorySlotOnPressed(1)
+	check(bank._infoLabel.text == "Seleccioná un objeto", "Un slot vacío conserva estadísticas anteriores")
+	check(not bank._statRow.visible and bank._statIcon.texture == null and bank._statLabel.text.is_empty(), "Un slot vacío conserva el icono anterior")
+	_check_bank_glyphs(bank._infoLabel)
 	hub.RouteEscape()
 	bank.RequestClose()
 	check(GameProtocol.Flush() == PackedByteArray([21]), "Cerrar banco duplica BankEnd")
@@ -425,6 +458,12 @@ func _verify_ui() -> void:
 	check(bank_reader.get_position() == 0, "BANK_INIT consume saldo inexistente")
 	game.free()
 	GameProtocol.Clear()
+
+func _check_bank_glyphs(label: Label) -> void:
+	var font: Font = label.get_theme_font("font")
+	for character in label.text:
+		if character != "\n":
+			check(font.has_char(character.unicode_at(0)), "La fuente incluida no dibuja el detalle del banco: " + character)
 
 func _trade_packet(value: Dictionary) -> TradeSnapshot:
 	var stream := StreamPeerBuffer.new()

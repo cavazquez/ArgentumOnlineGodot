@@ -68,6 +68,9 @@ func snapshot() -> Dictionary:
 			result.panel = "merchant"
 		elif panel is BankPanel:
 			result.panel = "bank"
+			result.bank_info = {"name": panel._infoLabel.text, "range": panel._statLabel.text,
+				"icon": panel._statIcon.texture.resource_path if panel._statRow.visible else "",
+				"description": panel._statRow.tooltip_text}
 		else:
 			result.panel = str(panel)
 	if is_instance_valid(hub._clan_details_window) and hub._clan_details_window.visible:
@@ -210,6 +213,11 @@ func execute(command: Dictionary) -> bool:
 				else:
 					panel._bankInventoryContainer._InventorySlotOnPressed(int(command.slot) - 1)
 					panel._on_btn_extract_pressed()
+					var capture := OS.get_environment("PYAO_TEST_SCREENSHOT")
+					if not capture.is_empty() and DisplayServer.get_name() != "headless":
+						await RenderingServer.frame_post_draw
+						if host.get_viewport().get_texture().get_image().save_png(capture.get_basename() + "-bank.png") != OK:
+							return false
 		"merchant":
 			if not hub._currentPanel is MerchantPanel:
 				return false
