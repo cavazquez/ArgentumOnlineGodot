@@ -149,17 +149,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--version", default="1.0.0rc1")
-    parser.add_argument("--server-revision", default="16")
+    parser.add_argument("--server-revision", default="18")
     parser.add_argument("--client-revision", default="3")
     parser.add_argument(
-        "--server-commit", default="6db7739f976f17ff617a4b3e6d01e6b7deb581a0"
+        "--server-commit", default="0a921ccd5e9a04ef5ff7dd2eb8ba8370cd2352ea"
     )
     parser.add_argument(
         "--client-commit", default="cf1c9ab41a25db6f4290b08beb038251fac9a0b3"
     )
     parser.add_argument(
         "--server-sha256",
-        default="b77584d322528250d01c9fb8232d335bdabe55dc0171241d23a6e5df1ae96239",
+        default="c9b749ed07f4b193b11569ab03ef3defbcb4a525d4c209b5366249b4242000db",
     )
     parser.add_argument(
         "--client-sha256",
