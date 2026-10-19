@@ -48,26 +48,77 @@ Godot del host. Con una CA de prueba privada, copiar el certificado público al
 directorio común del Snap y seleccionarlo desde las preferencias del cliente.
 Las claves no se guardan en preferencias.
 
-## Primera publicación
+## Entrega coordinada de servidor y cliente
 
-Después de pasar el recorrido conjunto y registrar el resultado de instalación:
+Las dos aplicaciones conservan la misma versión `1.0.0rc1`. La CI construye
+artefactos y nunca los publica automáticamente. El mantenedor prepara un único
+manifiesto JSON con estos campos:
+
+- `version`: `1.0.0rc1`; `channel`: `latest/edge`.
+- `sources`: claves `pyao` y `pyao-client`, cada una con `repository`, `commit`
+  completo fusionado en main y `ci_runs` (IDs de ejecuciones exitosas de ese commit).
+  Se exigen `CI` y `Server Snap` del servidor y `Cliente Linux` del cliente.
+- `packages`: exactamente servidor amd64/arm64 y cliente amd64. Cada entrada
+  contiene `name`, `architecture`, `file` y `sha256`. Se comprueban metadata,
+  confinamiento estricto, versión y procedencia limpia dentro de cada Snap.
+- `evidence`: referencias `r10`, `upgrade` y `requirements`, cada una con `file`
+  y `sha256`. Las rutas se resuelven respecto del archivo que las contiene.
+
+`r10` es el `result.json` de `tools/integration-world.py`: dos exportaciones
+nativas gráficas durante al menos 1800 segundos cada una, todos los escenarios
+funcionales, servidor instalado desde wheel verificado y cierre de ambas sesiones
+TLS. Debe identificar exactamente los dos commits candidatos. `upgrade` contiene
+el resultado real de `src.operations.redis_schema selftest`, más `server_commit`:
+backup/restauración, migración idempotente, reinicio, recuperación y configuración
+heredada, sin datos de producción. `requirements` identifica `server_commit` y
+`client_commit`, y `requirements.R01` a `R09`, cada uno con una lista `evidence`
+de referencias `{file, sha256}` a pruebas verificables. R01–R08 requieren
+`passed: true`; R09 requiere `candidate_passed: true` por el smoke del candidato
+instalado. Su aprobación completa desde Store se registra después de promover
+e instalar el par firmado; no se da por realizada antes de publicar.
+
+Desde la cuenta local de Snapcraft ya autenticada, con `gh`, `curl` y
+`unsquashfs` disponibles:
 
 ```bash
-snapcraft login
-snapcraft whoami
-snapcraft names
-snapcraft register pyao-client
-snapcraft upload ./pyao-client_VERSION_amd64.snap --release=latest/edge
+python3 tools/release-pair.py check /ruta/par-rc1.json
+python3 tools/release-pair.py prepare /ruta/par-rc1.json --output /ruta/preparacion-nueva
+# Sólo cuando los tres uploads terminaron y el recibo indica ready:
+python3 tools/release-pair.py promote /ruta/preparacion-nueva/state.json
 snapcraft status pyao-client
-sudo snap install pyao-client --edge
+snapcraft status pyao
 ```
 
-Si el nombre ya está registrado por la cuenta del proyecto, se omite `register`.
-Si pertenece a otra cuenta, se registra ese bloqueo y se conserva el nombre
-acordado. Adjuntar revisión, versión, resultado de revisión de la Store y prueba
-de instalación desde edge. Las credenciales de publicación se mantienen en la
-cuenta local/Store y nunca en Git, el paquete o los logs. La CI construye artefactos;
-la primera publicación se realiza después de validar la revisión concreta.
+`prepare` copia los candidatos, guarda hashes y canales anteriores y carga todos
+los paquetes **sin `--release`**. No cambia canales. Un rechazo o resultado incierto
+del upload bloquea la promoción; revisar el log y las revisiones de la cuenta antes
+de repetir, para no duplicar una carga cuyo resultado se perdió.
+
+`promote` vuelve a comprobar fuentes, CI, evidencias, bytes y canales. Sólo entonces
+promueve las tres revisiones consecutivamente desde el mismo proceso. La Store
+opera cada nombre/revisión por separado: el recibo registra inicio y final del
+intervalo real, sin prometer simultaneidad atómica. Si falla incluso una respuesta
+después de cambiar un canal, repone **todas** las revisiones anteriores y verifica
+sus hashes públicos. Si el proceso se interrumpió durante la promoción o falla
+la validación posterior del par publicado:
+
+```bash
+python3 tools/release-pair.py recover /ruta/preparacion-nueva/state.json
+```
+
+Conservar `state.json` y los logs privados. Una recuperación no confirmada queda
+como `rollback-failed` y requiere revisar ese recibo antes de otra publicación.
+La recuperación manual rechaza un recibo viejo si el canal ya contiene otra entrega.
+El publicador serializa procesos del mismo usuario en la máquina; coordinar con
+los demás mantenedores para que no publiquen desde otro equipo durante la entrega.
+Las credenciales permanecen en Snapcraft y nunca entran en manifiestos ni paquetes.
+
+Después, descargar las revisiones de Store y comparar SHA256/procedencia con los
+candidatos. Ejecutar `Login entre Snaps publicados` mediante `workflow_dispatch`,
+indicando las dos revisiones amd64, commits y SHA256 del recibo de esa entrega.
+Esta prueba instala ambos paquetes firmados en un runner descartable y comprueba
+alta, login, movimiento, inventario, reinicio y persistencia. Adjuntar su resultado
+al recibo de publicación antes de dar la entrega por terminada.
 
 Actualizar y volver a una revisión anterior:
 
