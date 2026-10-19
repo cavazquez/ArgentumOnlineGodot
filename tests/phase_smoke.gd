@@ -173,6 +173,30 @@ func _run() -> void:
 	character.renderer.helmet = -1
 	_check(character.renderer._headAnimatedSprite.sprite_frames != null and character.renderer._bodyAnimatedSprite.sprite_frames != null and character.renderer._helmetAnimatedSprite.sprite_frames != null, "Falta fallback de apariencia ausente")
 	character.queue_free()
+	# El timeout pertenece al efecto: fin natural, watchdog y cambio de mapa
+	# deben liberar ambos sin callbacks posteriores sobre nodos desaparecidos.
+	var world: MapContainer = load("res://engine/map_container.tscn").instantiate()
+	add_child(world)
+	world.LoadMap(2)
+	for cleanup in ["finished", "timeout", "map"]:
+		world.PlayWorldEffect(Vector2(32, 32), 1, 1)
+		var anchors := world._GetLayer("Layer3").get_children().filter(func(node): return node.get_meta("pyao_dynamic_fx", false))
+		_check(anchors.size() == 1, "FX del mundo ausente")
+		if anchors.size() != 1: continue
+		var anchor: Node2D = anchors[0]
+		var watchdog := anchor.get_node_or_null("EffectTimeout") as Timer
+		_check(watchdog != null and is_equal_approx(watchdog.wait_time, 10.0), "Watchdog no pertenece al efecto o cambió su plazo")
+		if watchdog == null: continue
+		var released_anchor: WeakRef = weakref(anchor)
+		var released_watchdog: WeakRef = weakref(watchdog)
+		watchdog.start(0.02)
+		match cleanup:
+			"finished": (anchor.get_child(0) as CharacterEffect).stop_effect()
+			"map": world.LoadMap(1)
+		await get_tree().create_timer(0.06).timeout
+		await get_tree().process_frame
+		_check(released_anchor.get_ref() == null and released_watchdog.get_ref() == null, "FX o watchdog sobrevive a " + cleanup)
+	world.queue_free()
 	# Bounded damage nodes, de-duplicación por recibo, limpieza al cambiar de mapa.
 	var visual := CombatVisuals.new()
 	add_child(visual)

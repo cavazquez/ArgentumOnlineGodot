@@ -74,11 +74,17 @@ func PlayWorldEffect(at: Vector2, fx: int, loops: int) -> void:
 	_GetLayer("Layer3").add_child(anchor)
 	var effect := CharacterEffect.new()
 	anchor.add_child(effect)
+	# El watchdog desaparece con el FX o con el mapa. Un SceneTreeTimer puede
+	# sobrevivir a ambos e intentar invocar una lambda con un anchor liberado.
+	var timeout := Timer.new()
+	timeout.name = "EffectTimeout"
+	timeout.one_shot = true
+	timeout.wait_time = 10.0
+	anchor.add_child(timeout)
+	timeout.timeout.connect(anchor.queue_free, CONNECT_ONE_SHOT)
+	timeout.start()
 	effect.finished.connect(anchor.queue_free, CONNECT_ONE_SHOT)
 	effect.play_effect(fx, clampi(loops, 0, 5))
-	get_tree().create_timer(10.0).timeout.connect(func():
-		if is_instance_valid(anchor):
-			anchor.queue_free())
 	
 func GetCharacterAt(x:int, y:int) -> Character:
 	for node in _characterCollection:
