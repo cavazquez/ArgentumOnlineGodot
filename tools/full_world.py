@@ -271,6 +271,19 @@ class FullWorld(SkillsWorld):
                     catalog_count=len(records),
                     result_file="spells-" + label + "/spells.json",
                 )
+                # El último caso invoca una mascota. Liberarla antes de cambiar
+                # emisor evita que siga al objetivo e intervenga en la otra tanda.
+                for _ in range(10):
+                    remaining = len(self.pets(store))
+                    if not remaining:
+                        break
+                    self.command(1, "chat", text="/PET LIBERAR")
+                    self.wait(
+                        lambda: len(self.pets(store)) < remaining,
+                        "liberar invocaciones al cambiar emisor",
+                    )
+                if self.pets(store):
+                    raise RuntimeError("Quedaron invocaciones del emisor anterior")
                 if reverse:
                     self._reverse = False
                     self.ids = {1: self.ids[2], 2: self.ids[1]}
