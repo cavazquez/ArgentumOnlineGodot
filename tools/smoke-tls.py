@@ -53,7 +53,7 @@ async def run() -> None:
         root = Path(directory)
         contexts = certificates(root)
         async with AsyncExitStack() as stack:
-            captured: dict[str, bytearray] = {case: bytearray() for case in ["valid", "hostname", "expired", "stall", "tcp"]}
+            captured: dict[str, bytearray] = {case: bytearray() for case in ["valid", "hostname", "expired", "stall", "tcp", "burst"]}
             clients: set[asyncio.Task] = set()
 
             async def handle(reader, writer, case):
@@ -62,7 +62,20 @@ async def run() -> None:
                 try:
                     while data := await reader.read(65536):
                         captured[case].extend(data)
-                        if case != "stall":
+                        if case == "burst":
+                            writer.write(b"\x00\x01")
+                            await writer.drain()
+                            request = await reader.readexactly(6)
+                            captured[case].extend(request)
+                            if request != b"\xfa\x01\x8f\x01\x00\x00":
+                                raise RuntimeError("El cliente no negoció después de Logged")
+                            for _ in range(480):
+                                writer.write(b"\x58")
+                                await writer.drain()
+                                await asyncio.sleep(0)
+                            writer.write(b"\xfa\x01\x8f\x01\x00\x00")
+                            await writer.drain()
+                        elif case != "stall":
                             writer.write(b"\x58")
                             await writer.drain()
                 except (ConnectionError, ssl.SSLError):
@@ -78,11 +91,11 @@ async def run() -> None:
             ports = {}
             for case in captured:
                 server = await asyncio.start_server(lambda r, w, name=case: handle(r, w, name),
-                                                    "127.0.0.1", 0, ssl=contexts.get(case))
+                                                    "127.0.0.1", 0, ssl=contexts.get("valid" if case == "burst" else case))
                 await stack.enter_async_context(server)
                 ports[case] = server.sockets[0].getsockname()[1]
             try:
-                for case in ["valid", "untrusted", "hostname", "expired", "stall", "cancel", "immediate", "tcp", "ui"]:
+                for case in ["valid", "untrusted", "hostname", "expired", "stall", "cancel", "immediate", "tcp", "ui", "burst"]:
                     profile = root / case
                     profile.mkdir()
                     endpoint = "stall" if case in ["cancel", "ui"] else "valid" if case in ["untrusted", "immediate"] else case
@@ -112,8 +125,11 @@ async def run() -> None:
                         raise RuntimeError("Se enviaron credenciales antes de verificar el certificado")
                     if case in ["stall", "cancel", "ui"] and CANARY in captured["stall"][before["stall"]:]:
                         raise RuntimeError("Se enviaron credenciales durante el handshake")
-                    if case in ["valid", "tcp"] and CANARY not in captured[case][before[case]:]:
+                    if case in ["valid", "tcp", "burst"] and CANARY not in captured[case][before[case]:]:
                         raise RuntimeError("Las credenciales sintéticas no llegaron al endpoint validado")
+                    for line in log.splitlines():
+                        if line.startswith("TLS_BURST:"):
+                            print(line)
                     print(f"TLS_SMOKE: {case} PASS")
             finally:
                 for client in clients:

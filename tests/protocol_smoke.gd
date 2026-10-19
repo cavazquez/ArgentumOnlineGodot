@@ -64,6 +64,7 @@ func _ready() -> void:
 	_verify_trade()
 	_verify_ui()
 	_verify_screen_handoff()
+	_verify_receive_reconnection()
 	print("PROTOCOL_SMOKE: ", "FAIL" if failed else "PASS")
 	get_tree().quit(1 if failed else 0)
 
@@ -110,6 +111,26 @@ func _verify_screen_handoff() -> void:
 	game.set_process(false)
 	game.free()
 	ScreenController.currentScreen = null
+	ClientInterface._reset()
+
+func _verify_receive_reconnection() -> void:
+	ClientInterface._reset()
+	var old_stream := StreamPeerBuffer.new()
+	old_stream.data_array = PackedByteArray([88, 88])
+	var new_stream := StreamPeerBuffer.new()
+	new_stream.data_array = PackedByteArray([88])
+	var seen := [0]
+	var reconnect := func(_packet):
+		seen[0] += 1
+		ClientInterface._reset()
+		ClientInterface._transport = new_stream
+		ClientInterface._state = ClientInterface.State.CONNECTED
+	ClientInterface._transport = old_stream
+	ClientInterface._state = ClientInterface.State.CONNECTED
+	ClientInterface.dataReceived.connect(reconnect)
+	ClientInterface._ReadAvailableData()
+	check(seen[0] == 1 and new_stream.get_position() == 0, "La recepción anterior consumió datos de una conexión nueva")
+	ClientInterface.dataReceived.disconnect(reconnect)
 	ClientInterface._reset()
 
 func _verify_inventory() -> void:

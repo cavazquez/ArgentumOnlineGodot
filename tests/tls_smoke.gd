@@ -8,6 +8,7 @@ var closes := 0
 var received := PackedByteArray()
 var expected := PackedByteArray()
 var login_screen: Node
+var packets_per_frame := {}
 
 func check(condition: bool, message: String) -> void:
 	if not condition:
@@ -19,6 +20,8 @@ func _ready() -> void:
 
 func _run() -> void:
 	var scenario := OS.get_environment("PYAO_TLS_CASE")
+	if scenario == "burst":
+		Engine.max_fps = 60
 	var port := int(OS.get_environment("PYAO_TLS_PORT"))
 	var ca := X509Certificate.new()
 	check(ca.load(OS.get_environment("PYAO_TLS_CA")) == OK, "No se cargó CA sintética")
@@ -32,7 +35,10 @@ func _run() -> void:
 	)
 	ClientInterface.disconnected.connect(func(): closes += 1)
 	ClientInterface.connection_failed.connect(func(_message): failures += 1)
-	ClientInterface.dataReceived.connect(func(data): received.append_array(data))
+	ClientInterface.dataReceived.connect(func(data):
+		received.append_array(data)
+		var frame := Engine.get_process_frames()
+		packets_per_frame[frame] = int(packets_per_frame.get(frame, 0)) + 1)
 	check(ClientInterface.Send(CANARY.to_ascii_buffer()) == ERR_UNAVAILABLE, "Se enviaron datos sin conexión")
 	var before := Time.get_ticks_msec()
 	if scenario == "ui":
@@ -58,9 +64,17 @@ func _run() -> void:
 		if scenario == "cancel" and ClientInterface._state == ClientInterface.State.TLS_HANDSHAKING:
 			ClientInterface.DisconnectFromHost()
 			break
-		if failures > 0 or (not expected.is_empty() and received.size() >= expected.size()):
+		if failures > 0 or (scenario == "burst" and ClientInterface.capabilities.enabled == ClientCapabilities.REQUESTED) or (scenario != "burst" and not expected.is_empty() and received.size() >= expected.size()):
 			break
-	if scenario in ["valid", "tcp"]:
+	if scenario == "burst":
+		var elapsed := Time.get_ticks_msec() - before
+		check(connections == 1 and failures == 0, "Falló la conexión de la ráfaga TLS")
+		check(received.count(88) == 480 and ClientInterface.capabilities.enabled == ClientCapabilities.REQUESTED, "Ráfaga TLS o ACK incompletos")
+		check(elapsed < 3000, "El login TLS sigue consumiendo un cuadro por mensaje")
+		for count in packets_per_frame.values():
+			check(int(count) <= ClientInterface.MAX_READS_PER_FRAME, "La lectura TLS no respetó su presupuesto por cuadro")
+		print("TLS_BURST: ms=", elapsed, " packets=", received.count(88), " max_packets_per_frame=", packets_per_frame.values().max())
+	elif scenario in ["valid", "tcp"]:
 		check(connections == 1 and failures == 0, "No se completó la conexión esperada")
 		check(not received.is_empty() and received.count(88) == received.size(), "Los mensajes de login/alta no atravesaron el transporte")
 		# Un plazo anterior no se aplica a una conexión ya completada.

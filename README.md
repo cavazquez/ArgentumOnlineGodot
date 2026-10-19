@@ -52,7 +52,9 @@ TLS; la elección, endpoint y ruta de CA se guardan sin contraseñas.
 
 `GODOT_BIN=/ruta/godot python3 tools/smoke-tls.py` genera certificados temporales y
 comprueba Godot real contra endpoints locales: confianza, nombre, vencimiento,
-plazo, cancelación, recuperación del formulario y segundo intento. La integración
+plazo, cancelación, recuperación del formulario y segundo intento. Incluye una
+ráfaga de 480 registros TLS: debe negociar en menos de tres segundos a 60 FPS,
+con presupuesto de 256 lecturas y 64 KiB por cuadro. La integración
 completa del juego sobre este transporte se valida con el recorrido de #60.
 
 
