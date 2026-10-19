@@ -1,15 +1,17 @@
 # Economía y ventanas conectadas al servidor
 
-El HUD abre oro/impuestos, mascotas, grupo y clan. Las ventanas muestran estado
+El HUD abre oro/devaluación, mascotas, grupo y clan. Las ventanas muestran estado
 confirmado, esperan el resultado y permiten reintentar la misma operación cuando
 el resultado queda pendiente. Expulsar, abandonar y transferir liderazgo requieren
 confirmar el destinatario o la consecuencia. Una revisión nueva invalida una
 confirmación anterior. El contrato optativo compartido usa `WORLD_STATE = 512` y
 el paquete 248; clientes y servidores anteriores conservan su protocolo nativo.
 
-El impuesto diario se aplica al bolsillo y al banco, conectado o desconectado,
-con corte a las 00:00 UTC. La ventana muestra tasa, saldos, último cargo y próximo
-corte. El cliente no calcula ni descuenta impuestos localmente. Los importes usan
+La devaluación hace desaparecer el 1% diario del oro de bolsillo, banco y suelo,
+conectado o desconectado, con corte a las 00:00 UTC. Tirar oro antes del corte y
+recogerlo después entrega el monto ya reducido. La ventana muestra tasa, saldos
+personales, última reducción y próximo corte. El cliente no reduce oro localmente.
+Los importes usan
 una revisión monetaria del servidor para descartar respuestas atrasadas.
 
 El intercambio entre jugadores muestra nombres, iconos, cantidades y propiedades

@@ -238,6 +238,11 @@ func execute(command: Dictionary) -> bool:
 			# La animación y el reloj del servidor no comparten fase de frame.
 			await host.get_tree().create_timer(0.25).timeout
 			Global.log_outgoing_packets = false
+		"drop_gold":
+			hub._on_btn_drop_gold_pressed()
+			for window in game.get_children():
+				if window is Window and window.get_script() != null and window.get_script().resource_path.ends_with("/drop_panel.gd"):
+					window.drop(int(command.amount))
 		"equip", "use", "drop":
 			# Respetar el intervalo del mismo gesto que usa el inventario real.
 			var timer = game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_DOUBLE_CLICK]

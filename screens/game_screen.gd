@@ -853,7 +853,7 @@ func _ApplyWorldState(value: Dictionary) -> void:
 	if value.kind == "tax":
 		Global.character_local.open_profile(ClientInterface.local_character_key(Global.username))
 		if Global.character_local.remember_tax(String(value.data.receipt)) and int(value.data.last_charge) > 0:
-			_gameInput.ShowConsoleMessage("Impuesto diario: se cobraron %d oro sobre bolsillo y banco, incluso desconectado." % int(value.data.last_charge))
+			_gameInput.ShowConsoleMessage("Devaluación diaria: desaparecieron %d oro de tu bolsillo y banco, incluso desconectado." % int(value.data.last_charge))
 		_gameContext.player_gold = int(value.data.wallet)
 		_gameInput.update_gold_label(int(value.data.wallet))
 		_gameInput.SetBankGold(int(value.data.bank))

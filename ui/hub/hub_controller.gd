@@ -891,7 +891,7 @@ func _install_world_buttons() -> void:
 	row.position = Vector2(565, 110)
 	row.size = Vector2(220, 24)
 	add_child(row)
-	for info in [["Oro e impuestos", "tax"], ["Mascotas", "pets"]]:
+	for info in [["Devaluación", "tax"], ["Mascotas", "pets"]]:
 		var control := Button.new()
 		control.text = info[0]
 		control.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -1,10 +1,11 @@
 """Regresión de economía y ventanas con dos Godot y Redis descartable propios."""
 
 import time
+import json
 
 from r10_world import R10World, acceptance as r10_acceptance, prepare_fixture
 
-REQUIRED = {"economy-ui", "economy-offline-tax", "economy-stock-restart"}
+REQUIRED = {"economy-ui", "economy-offline-tax", "economy-stock-restart", "economy-ground-devaluation"}
 
 
 def acceptance(steps, seconds, **kwargs):
@@ -74,7 +75,7 @@ class EconomyWorld(R10World):
         day = int(time.time()) // 86400
         user = self.ids[1]
         self.command(1, "logout")
-        self.wait(lambda: not store.exists(f"session:{user}:owner"), "liberar sesión fiscal")
+        self.wait(lambda: not store.exists(f"session:{user}:owner"), "liberar sesión para devaluar")
         store.hset("config:economy:daily_tax", "activation_day", day - 1)
         store.hset(f"player:{user}:user_stats", "gold", 1000)
         store.set(f"bank:{user}:gold", 2000)
@@ -82,13 +83,14 @@ class EconomyWorld(R10World):
         total = 2970  # Un corte: 1% de 3000 oro, repartido entre bolsillo y banco.
         self.command(1, "login")
         self.open(1, "tax")
-        view = self.changed(1, lambda s: s.get("wallet", 0) + s.get("bank", 0) == total and s.get("last_day") == day, "impuesto del 1% de un día offline en el panel fiscal")
+        view = self.changed(1, lambda s: s.get("wallet", 0) + s.get("bank", 0) == total and s.get("last_day") == day, "devaluación del 1% de un día offline en el panel fiscal")
         status = view["world_window_state"]
         self.command(1, "capture", label="tax")
         assert view["gold"] == status["wallet"]
         assert (status["wallet"], status["bank"]) == (990, 1980)
         assert status["total_paid"] == 3000-total
         assert status["rate_bps"] == 100 and status["scope"] == "wallet_and_bank"
+        assert status["currency_scope"] == "all_gold"
         paid = store.hget(f"tax:{user}:state", "total_paid")
         self.open(1, "tax")
         self.open(1, "tax")
@@ -102,7 +104,7 @@ class EconomyWorld(R10World):
         self.view(1, lambda v: v["panel"] == "merchant", "mercader con stock persistido")
         count = self.count(store, 1, 15)
         self.command(1, "merchant", buy=True, slot=1, amount=1)
-        self.wait(lambda: self.count(store, 1, 15) == count+1, "compra con cargo fiscal ya liquidado")
+        self.wait(lambda: self.count(store, 1, 15) == count+1, "compra con devaluación ya aplicada")
         self.command(1, "close")
         keys = ["merchant:7:inventory", "merchant:7:catalog"]
         before = {key: store.hgetall(key) for key in keys}
@@ -113,9 +115,36 @@ class EconomyWorld(R10World):
         assert {key: store.hgetall(key) for key in keys} == before
         for index in (1, 2):
             self.command(index, "login")
-            self.view(index, lambda v: bool(v.get("world_states", {}).get("tax")), "reconexión con estado fiscal")
+            self.view(index, lambda v: bool(v.get("world_states", {}).get("tax")), "reconexión con estado de devaluación")
         assert store.hget(f"tax:{user}:state", "total_paid") == paid
         self.passed("economy-stock-restart", "Redis autoritativo", stock_preserved=True, catalog_preserved=True, tax_not_repeated=True)
+
+    def ground_devaluation(self, store, locations):
+        day = int(time.time()) // 86400
+        x, y = locations["base"]
+        self.relocate(store, {1: (1, x, y), 2: (1, x+1, y)}, stats={1: {"gold": 1000}, 2: {"gold": 0}})
+        self.command(1, "drop_gold", amount=1000)
+        self.wait(lambda: self.stats(store, 1)["gold"] == 0, "tirar 1000 oro desde el botón del HUD")
+        key = "ground_items:1"
+        ground = json.loads(store.get(key))
+        piles = ground[f"{x},{y}"]
+        pile = next(row for row in piles if row["item_id"] == 12 and row["quantity"] == 1000)
+        stack = pile["stack_id"]
+        assert pile["devaluation_day"] == day
+        # Simular el cruce del corte sólo en el Redis descartable del ensayo.
+        store.hset("config:economy:daily_tax", "ground_activation_day", day-1)
+        pile["devaluation_day"] = day-1
+        store.set(key, json.dumps(ground), keepttl=True)
+        self.command(1, "step", action="ui_left")
+        self.view(1, lambda v: v["x"] == x-1 and v["y"] == y, "dejar libre el montón")
+        self.command(2, "step", action="ui_left")
+        self.view(2, lambda v: v["x"] == x and v["y"] == y, "segundo cliente sobre el oro")
+        self.command(2, "pickup")
+        self.wait(lambda: self.stats(store, 2)["gold"] == 990, "recoger 990 tras la devaluación del suelo")
+        self.view(2, lambda v: v["gold"] == 990, "HUD del segundo cliente con 990 oro")
+        assert not any(row["stack_id"] == stack for values in json.loads(store.get(key)).values() for row in values)
+        self.command(2, "capture", label="ground-devaluation")
+        self.passed("economy-ground-devaluation", "Devaluación del 1% en el suelo", initial=1000, collected=990, collector="second-client", real_hud_drop=True, controlled_cutoff=True)
 
     def run(self, locations):
         super().run(locations, soak=False)
@@ -123,6 +152,7 @@ class EconomyWorld(R10World):
         with self.fixture.client() as store:
             self.social_ui(store)
             self.fiscal_and_stock(store, locations)
+            self.ground_devaluation(store, locations)
         for index in (1, 2): self.command(index, "soak")
         return self.steps
 
@@ -141,5 +171,6 @@ class EconomyUIWorld(EconomyWorld):
             self.relocate(store, {1: (1, x, y), 2: (1, x+1, y)}, reset=True)
             self.social_ui(store)
             self.fiscal_and_stock(store, locations)
+            self.ground_devaluation(store, locations)
         for index in (1, 2): self.command(index, "soak")
         return self.steps
