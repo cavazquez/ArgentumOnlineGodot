@@ -620,6 +620,16 @@ func _HandleCharacterMove(p:CharacterMove) -> void:
 		
 	var addX = p.x - character.gridPosition.x
 	var addY = p.y - character.gridPosition.y
+	# CHARACTER_MOVE contiene coordenadas absolutas. Repetir una posición no
+	# significa caminar al sur; puede llegar al cambiar sólo la orientación.
+	if addX == 0 and addY == 0:
+		return
+	if absi(addX) + absi(addY) != 1:
+		# Al volver al rango visible pueden faltar varios pasos remotos.
+		character.StopMoving()
+		character.gridPosition = Vector2i(p.x, p.y)
+		character.position = Vector2((p.x - 1) * 32, (p.y - 1) * 32) + Vector2(16, 32)
+		return
 	
 	var heading = Enums.Heading.South
 	if Utils.Sgn(addX) == 1:

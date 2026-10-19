@@ -111,10 +111,38 @@ func _run() -> void:
 	var world := GameWorld.new()
 	world._mapContainer = map
 	add_child(world)
+	var movement_camera := Camera2D.new()
+	add_child(movement_camera)
+	movement_camera.make_current()
+	await get_tree().process_frame
 	var npc = GameWorld.CharacterScene.instantiate()
 	npc.instanceId = 10001
 	npc.position = Vector2(64, 64)
 	map.AddCharacter(npc)
+	var move_screen := GameScreen.new()
+	move_screen._gameWorld = world
+	npc.gridPosition = Vector2i(50, 50)
+	npc.position = Vector2(1584, 1600)
+	var movement := CharacterMove.new()
+	movement.charIndex = 10001
+	movement.x = 50
+	movement.y = 50
+	move_screen._HandleCharacterMove(movement)
+	_check(npc.gridPosition == Vector2i(50, 50) and not npc.isMoving, "La misma posición remota hace caminar al NPC")
+	movement.x = 51
+	move_screen._HandleCharacterMove(movement)
+	var step_target: Vector2 = npc._targetPosition
+	_check(npc.gridPosition == Vector2i(51, 50) and npc.isMoving, "Un paso remoto perdió su animación")
+	move_screen._HandleCharacterMove(movement)
+	_check(npc.gridPosition == Vector2i(51, 50) and npc._targetPosition == step_target, "Un duplicado durante la animación agrega otro paso")
+	movement.x = 55
+	movement.y = 53
+	move_screen._HandleCharacterMove(movement)
+	_check(npc.gridPosition == Vector2i(55, 53) and npc.position == Vector2(1744, 1696) and not npc.isMoving, "La corrección remota no alcanza la posición autoritativa")
+	npc._ProcessMovement(1.0)
+	_check(npc.position == Vector2(1744, 1696), "Una interpolación vieja sobrescribe la corrección")
+	move_screen.free()
+	npc.position = Vector2(64, 64)
 	world.DeleteCharacter(10001)
 	world.PlayCharacterEffect(10001, 15, 1)
 	await get_tree().process_frame
@@ -128,8 +156,23 @@ func _run() -> void:
 	_check(layer.get_child_count() == 0, "El FX transitorio deja nodos sin liberar")
 	world.queue_free()
 	map.queue_free()
+	movement_camera.queue_free()
 	GameProtocol.Clear()
 	await get_tree().process_frame
+	# Control positivo del audio: bytes PlayWave -> parser -> handler -> WAV real.
+	# No acredita las voces de NPC que faltan en el catálogo del servidor.
+	var audio_screen := GameScreen.new()
+	for wave in [47, 103, 62]:
+		AudioManager.StopAll()
+		var wave_reader := StreamPeerBuffer.new()
+		wave_reader.data_array = PackedByteArray([wave, 51, 50])
+		var packet := PlayWave.new(wave_reader)
+		_check(packet.wave == wave and packet.x == 51 and packet.y == 50, "PlayWave perdió la identidad o posición del NPC")
+		audio_screen._HandlePlayWave(packet)
+		var voice := AudioManager.get_child(0) as AudioStreamPlayer
+		_check(voice != null and voice.playing and voice.stream.resource_path == "res://Assets/Sfx/%d.wav" % wave, "El WAV de control del NPC no inició reproducción")
+	audio_screen.free()
+	AudioManager.StopAll()
 	AudioManager.PlayAudio(3)
 	var sound := AudioManager.get_child(0) as AudioStreamPlayer
 	var stream_ref: WeakRef = weakref(sound.stream)

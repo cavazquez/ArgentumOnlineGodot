@@ -35,6 +35,7 @@ SCENARIO_TIMEOUT_SECONDS = {
     "duel": 900,
     "economy": 1200,
     "economy-ui": 600,
+    "npcs": 600,
 }
 
 
@@ -245,7 +246,9 @@ def worker(args):
     work = Path.cwd()
     output = args.output
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    if args.scenario == "economy-ui":
+    if args.scenario == "npcs":
+        from npc_world import NPCWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "economy-ui":
         from economy_world import EconomyUIWorld as R10World, ui_acceptance as acceptance, prepare_fixture
     elif args.scenario == "economy":
         from economy_world import EconomyWorld as R10World, acceptance, prepare_fixture
@@ -717,7 +720,7 @@ def main():
     parser.add_argument("--seconds", type=int, default=1800)
     parser.add_argument(
         "--scenario",
-        choices=("r10", "skills", "spells", "full", "navigation", "duel", "economy", "economy-ui"),
+        choices=("r10", "skills", "spells", "full", "navigation", "duel", "economy", "economy-ui", "npcs"),
         default="r10",
         help="Regresión que se ejecuta antes del período de observación",
     )
