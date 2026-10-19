@@ -442,8 +442,8 @@ class R10World:
             1, "bank_item", deposit=True, slot=self.slot(store, 1, 15), amount=1
         )
         self.wait(lambda: self.count(store, 1, 15) == 0, "depósito de daga")
-        self.command(1, "bank_item", deposit=False, slot=1, amount=1)
-        self.wait(lambda: self.count(store, 1, 15) == 1, "retiro de daga")
+        self.view(1, lambda v: v.get("bank_items", {}).get("1") == [15, 1], "daga recibida en la bóveda del cliente")
+        self.command(1, "bank_select", vault=True, slot=1, capture=True)
         self.view(
             1,
             lambda v: v.get("bank_info") == {
@@ -452,9 +452,20 @@ class R10World:
             },
             "detalle de daño con espada incluida",
         )
+        self.command(1, "bank_item", deposit=False, slot=1, amount=1)
+        self.wait(lambda: self.count(store, 1, 15) == 1, "retiro de daga")
+        self.view(1, lambda v: "1" not in v.get("bank_items", {}), "retiro reflejado en la bóveda del cliente")
+        self.command(1, "bank_select", vault=True, slot=1)
+        self.view(
+            1,
+            lambda v: v.get("bank_info") == {
+                "name": "Seleccioná un objeto", "range": "", "icon": "", "description": "",
+            },
+            "detalle vacío tras retirar el objeto seleccionado",
+        )
         self.command(1, "close")
         self.view(1, lambda v: v["panel"] == "", "cerrar banco")
-        self.passed("bank", "R05", gold_conserved=gold, items_conserved=True)
+        self.passed("bank", "R05", gold_conserved=gold, items_conserved=True, included_icons=True)
 
     def merchant(self, store, x, y):
         self.command(1, "click", x=x, y=y - 2, double=True)

@@ -68,6 +68,11 @@ func snapshot() -> Dictionary:
 			result.panel = "merchant"
 		elif panel is BankPanel:
 			result.panel = "bank"
+			result.bank_items = {}
+			for index in panel._bankInventory.GetSize():
+				var stack: ItemStack = panel._bankInventory.GetSlot(index)
+				if stack.quantity > 0:
+					result.bank_items[str(index + 1)] = [stack.item.index, stack.quantity]
 			result.bank_info = {"name": panel._infoLabel.text, "range": panel._statLabel.text,
 				"icon": panel._statIcon.texture.resource_path if panel._statRow.visible else "",
 				"description": panel._statRow.tooltip_text}
@@ -195,6 +200,17 @@ func execute(command: Dictionary) -> bool:
 			inventory.DropItem(int(command.destination)-1, inventory.CreateDragData(int(command.source)-1))
 		"click":
 			click_tile(hub, Vector2i(command.x, command.y), command.get("double", false))
+		"bank_select":
+			if not hub._currentPanel is BankPanel:
+				return false
+			var panel: BankPanel = hub._currentPanel
+			var container := panel._bankInventoryContainer if command.vault else panel._playerInventoryContainer
+			container._InventorySlotOnPressed(int(command.slot) - 1)
+			var capture := OS.get_environment("PYAO_TEST_SCREENSHOT")
+			if command.get("capture", false) and not capture.is_empty() and DisplayServer.get_name() != "headless":
+				await RenderingServer.frame_post_draw
+				if host.get_viewport().get_texture().get_image().save_png(capture.get_basename() + "-bank.png") != OK:
+					return false
 		"bank_item", "bank_gold":
 			if not hub._currentPanel is BankPanel:
 				return false
@@ -213,11 +229,6 @@ func execute(command: Dictionary) -> bool:
 				else:
 					panel._bankInventoryContainer._InventorySlotOnPressed(int(command.slot) - 1)
 					panel._on_btn_extract_pressed()
-					var capture := OS.get_environment("PYAO_TEST_SCREENSHOT")
-					if not capture.is_empty() and DisplayServer.get_name() != "headless":
-						await RenderingServer.frame_post_draw
-						if host.get_viewport().get_texture().get_image().save_png(capture.get_basename() + "-bank.png") != OK:
-							return false
 		"merchant":
 			if not hub._currentPanel is MerchantPanel:
 				return false
