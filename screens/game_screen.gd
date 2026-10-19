@@ -20,6 +20,8 @@ var _mainCharacterInstanceId:int = -1
 var networkMessages:Array[PackedByteArray]
 var _dispatcher := AOMessageDispatcher.new()
 var _visuals: CombatVisuals
+var _presentation: WorldPresentation
+var _map_ready := false
 
 var _input:Dictionary[String, int] = {
 	"ui_left" = Enums.Heading.West,
@@ -35,6 +37,9 @@ func _ready() -> void:
 	_dispatcher.protocol_error.connect(ClientInterface._fail)
 	_visuals = CombatVisuals.new()
 	_gameWorld.add_child(_visuals)
+	_presentation = WorldPresentation.new()
+	_presentation.viewport = _gameWorld.get_viewport()
+	_gameInput.get_node("MainViewportContainer").add_child(_presentation)
 
 	ClientInterface.disconnected.connect(_OnDisconnected)
 	ClientInterface.dataReceived.connect(_OnDataReceived)
@@ -67,6 +72,7 @@ func _scale_cursor(texture: Texture2D, scale_factor: float) -> Texture2D:
 	return new_texture
 	 
 func _OnDisconnected() -> void:
+	if _presentation != null: _presentation.reset()
 	_gameContext.pingTime = 0
 	Global.pingStatus = "Desconectado"
 	set_process(false)
@@ -82,6 +88,12 @@ func _process(_delta: float) -> void:
 	_UpdatePingStatus(Time.get_ticks_msec())
 	_CheckKeys()
 	_UpdateCameraPosition()
+	if _presentation != null:
+		_presentation.set_world_offset(_camera.position)
+		if _presentation.waiting and _map_ready:
+			_presentation.reveal()
+			Global.character_local.open_profile(ClientInterface.local_character_key(Global.username))
+			Global.character_local.visit(_gameContext.player_map)
 	_FlushData()
 	
 func _UpdateCameraPosition() -> void:
@@ -178,10 +190,13 @@ func _HandleIncomingData(data:PackedByteArray) -> void:
 
 func _OnDecodedMessage(handler: StringName, payload: Variant, has_payload: bool) -> void:
 	match handler:
+		&"_ApplyWorldState": _ApplyWorldState(payload)
 		&"_ApplySkillAction": _gameInput.ApplySkillAction(payload)
 		&"_ApplyPasswordReply": _gameInput.ApplyPasswordReply(payload)
 		&"_ApplySkillAllocation": _gameInput.ApplySkillAllocation(payload)
-		&"_ApplyTradeSnapshot": _gameInput.ApplyTradeSnapshot(payload)
+		&"_ApplyTradeSnapshot":
+			ClientInterface.world_state.observe_trade(payload)
+			_gameInput.ApplyTradeSnapshot(payload)
 		&"_ApplyClanDetails": _gameInput.ApplyClanDetails(payload)
 		&"_ApplySkillCatalog":
 			Global.skillPoints = payload.free_points
@@ -291,11 +306,13 @@ func _HandleUpdateStrenght(p:UpdateStrenght) -> void:
 
 
 func _HandleUpdateGold(p:UpdateGold) -> void:
+	if ClientInterface.world_state.has_money(): return
 	_gameContext.player_gold = p.gold
 	_gameInput.update_gold_label(p.gold)
 
 
 func _HandleUpdateBankGold(p:UpdateBankGold) -> void:
+	if ClientInterface.world_state.has_money(): return
 	_gameInput.SetBankGold(p.gold)
 
 
@@ -401,6 +418,8 @@ func _HandlePosUpdate(p:PosUpdate) -> void:
 		character.gridPosition = Vector2i(p.x, p.y)
 		character.position = Vector2((p.x - 1) * 32, (p.y - 1) * 32) + Vector2(16, 32);
 		_gameInput.minimap.update_player_position(p.x, p.y)
+		_map_ready = true
+		_gameInput.InvalidateCrafting()
 
 
 func _HandleForceCharMove(p:ForceCharMove) -> void:
@@ -408,6 +427,7 @@ func _HandleForceCharMove(p:ForceCharMove) -> void:
 	if character:
 		character.StopMoving()
 		_gameWorld.MoveCharacter(_mainCharacterInstanceId, p.heading)
+		_gameInput.InvalidateCrafting()
 
 
 func _HandleLogged(_p:Logged) -> void:
@@ -441,7 +461,7 @@ func _HandleCharacterRemove(p:CharacterRemove) -> void:
 func _HandleRemoveCharDialog(p:RemoveCharDialog) -> void:
 	var character = _gameWorld.GetCharacter(p.charIndex)
 	if character:
-		character.Say("", Color.WHITE)
+		character.ClearDialog()
 
 
 func _HandleConsoleMessage(p:ConsoleMessage) -> void:
@@ -453,7 +473,7 @@ func _HandleUpdateSta(p:UpdateSta) -> void:
 	_gameContext.player_stats.sta = p.stamina
 
 func _HandleRemoveDialogs() -> void:
-	pass
+	_gameWorld.GetMapContainer().ClearDialogs()
 
 func _HandleLevelUp(p:LevelUp) -> void:
 	GameProtocol.WriteRequestSkills()
@@ -515,7 +535,8 @@ func _HandleUpdateHungerAndThirst(p:UpdateHungerAndThirst) -> void:
 	
 func _HandleUpdateUserStats(p:UpdateUserStats) -> void: 
 	# Actualizar la interfaz
-	_gameInput.update_gold_label(p.gold)
+	if not ClientInterface.world_state.has_money():
+		_gameInput.update_gold_label(p.gold)
 	_gameInput.update_level_label(p.elv)
 	
 	_gameInput.experience_stat_bar.max_value = p.elu
@@ -526,7 +547,8 @@ func _HandleUpdateUserStats(p:UpdateUserStats) -> void:
 	
 	# Actualizar el contexto del juego
 	_gameContext.player_level = p.elv
-	_gameContext.player_gold = p.gold
+	if not ClientInterface.world_state.has_money():
+		_gameContext.player_gold = p.gold
 	_gameContext.player_experience = p.experience
 	_gameContext.player_experience_to_next_level = p.elu
 	
@@ -554,6 +576,7 @@ func _HandleUserCharIndexInServer(p:UserCharIndexInServer) -> void:
 	
 	if character:
 		character.SetAsPlayer(true)  # Marcar este personaje como el del jugador
+		_map_ready = true
 		_gameInput.minimap.update_player_position(
 			character.gridPosition.x,\
 			 character.gridPosition.y)
@@ -583,7 +606,12 @@ func _HandleCharacterCreate(p:CharacterCreate) -> void:
 		privileges = log(privileges) / log(2)
 		
 	p.privileges = privileges
-	_gameWorld.CreateCharacter(p)
+	var character := _gameWorld.CreateCharacter(p)
+	if p.charIndex == _mainCharacterInstanceId:
+		character.SetAsPlayer(true)
+		_gameInput.minimap.update_player_position(p.x, p.y)
+		_map_ready = true
+	character.FadeIn()
 
 func _HandleCharacterMove(p:CharacterMove) -> void:
 	var character = _gameWorld.GetCharacter(p.charIndex)
@@ -640,9 +668,16 @@ func _HandleChangeMap(p:ChangeMap) -> void:
 	_gameInput._restore_default_cursor()
 	_visuals.reset(p.mapId)
 	AudioManager.StopAll()
-	_gameWorld.SwitchMap(p.mapId)
+	_gameInput.InvalidateCrafting()
+	_map_ready = false
+	_presentation.begin(p.mapId)
+	if not _gameWorld.SwitchMap(p.mapId):
+		ClientInterface._fail("No se pudo cargar el mapa %d." % p.mapId)
+		return
 	_gameContext.player_map = p.mapId
 	_gameInput.minimap.load_thumbnail(p.mapId)
+	if ClientInterface.capabilities.has_feature(ClientCapabilities.WORLD_STATE):
+		GameProtocol.WriteWorldAction("weather.read", {})
 		
 		
 func _HandleChangeSpellSlot(p:ChangeSpellSlot) -> void:
@@ -800,3 +835,29 @@ func _OnSerializationFailed(message: String) -> void:
 
 func _HandleVisualEvent(event: AOVisualEvent) -> void:
 	_visuals.display(event, _gameWorld)
+
+
+func _ApplyWorldState(value: Dictionary) -> void:
+	if not ClientInterface.world_state.accept(value):
+		return
+	if value.kind == "chat":
+		var chat: Dictionary = value.data
+		var prefix: String = {"system": "", "public": "", "party": "[Grupo] ", "clan": "[Clan] ", "whisper": "[Privado] "}.get(chat.channel, "")
+		if chat.channel == "whisper" and int(chat.sender_id) == _mainCharacterInstanceId:
+			prefix += "A %s: " % chat.get("recipient_name", "destinatario")
+		elif int(chat.sender_id) > 0:
+			prefix += String(chat.sender) + (" grita: " if String(chat.context).ends_with(":yell") else ": ")
+		var font := FontData.new(Color.WHITE)
+		if int(chat.font) >= 0 and int(chat.font) < GameAssets.FontDataList.size(): font = GameAssets.FontDataList[int(chat.font)]
+		_gameInput.ShowConsoleMessage(prefix + String(chat.text), font)
+	if value.kind == "tax":
+		Global.character_local.open_profile(ClientInterface.local_character_key(Global.username))
+		if Global.character_local.remember_tax(String(value.data.receipt)) and int(value.data.last_charge) > 0:
+			_gameInput.ShowConsoleMessage("Impuesto diario: se cobraron %d oro por %d días, incluidos los días desconectado." % [int(value.data.last_charge), maxi(0, int(value.data.last_day) - int(value.data.from_day))])
+		_gameContext.player_gold = int(value.data.wallet)
+		_gameInput.update_gold_label(int(value.data.wallet))
+		_gameInput.SetBankGold(int(value.data.bank))
+	if value.kind == "weather" and _presentation != null:
+		_presentation.apply_weather(value.data)
+	if _gameInput.has_method("ApplyWorldState"):
+		_gameInput.ApplyWorldState(value)

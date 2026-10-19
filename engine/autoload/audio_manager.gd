@@ -5,6 +5,9 @@ var _active := {}
 var _music: AudioStreamPlayer
 var _track := 0
 
+func TrackPlayback(playback: AudioStreamPlayback) -> void:
+	if playback != null: _playbacks.append(weakref(playback))
+
 
 func _ready() -> void:
 	Global.preferences_changed.connect(_update_music_volume)

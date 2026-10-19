@@ -216,7 +216,7 @@ func _verify_capabilities() -> void:
 	var extended := ClientCapabilities.new()
 	check(legacy.enabled == 0, "Se habilitaron funciones sin negociar")
 	var request := extended.begin()
-	check(request == PackedByteArray([250, 1, 191, 1, 0, 0]), "Solicitud de capacidades fuera del contrato")
+	check(request == PackedByteArray([250, 1, 191, 3, 0, 0]), "Solicitud de capacidades fuera del contrato")
 	check(extended.accept(PackedByteArray([250, 1, 1, 0, 0, 0])), "Respuesta válida rechazada")
 	check(extended.has_feature(ClientCapabilities.SKILLS_CATALOG) and legacy.enabled == 0, "Se mezclaron capacidades entre conexiones")
 	extended.clear()
@@ -495,7 +495,7 @@ func _verify_trade() -> void:
 	panel.inventory = inventory
 	add_child(panel)
 	panel.ApplySnapshot(value)
-	check(panel.offers[0].text.contains("Poción") and panel.offers[1].text.contains("Bob"), "No representa ambos participantes")
+	check(panel.offer_items[0].get_item_text(0).contains("Poción") and panel.offers[0].text.contains("Alice") and panel.offers[1].text.contains("Bob"), "No representa ambos participantes")
 	panel.slot.value = 30
 	panel.quantity.value = 2
 	panel.item_button.pressed.emit()

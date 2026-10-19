@@ -47,3 +47,6 @@ grep -q 'MECHANICS_SMOKE: PASS' "$run_dir/mechanics.log"
 
 run_checked "$run_dir/phase.log" "$godot_bin" --headless --path "$project_root" --quit-after 600 res://tests/phase_smoke.tscn
 grep -q 'PHASE_SMOKE: PASS' "$run_dir/phase.log"
+
+run_checked "$run_dir/economy.log" "$godot_bin" --headless --path "$project_root" --quit-after 600 res://tests/economy_ui_smoke.tscn
+grep -q 'ECONOMY_UI_SMOKE: PASS' "$run_dir/economy.log"

@@ -4,6 +4,7 @@ class_name WorldMapCanvas
 signal selected(map_id: int)
 var topology := {}
 var current := 0
+var visited: Dictionary = {}
 var zoom := 1.0
 var pan := Vector2.ZERO
 var _drag := false
@@ -37,7 +38,8 @@ func _draw() -> void:
 		var rect := Rect2(p - CELL * zoom * 0.36, CELL * zoom * 0.72)
 		if not Rect2(Vector2.ZERO, size).intersects(rect): continue
 		draw_rect(rect, Color(0.17, 0.17, 0.17))
-		draw_rect(rect, Color.GOLD if id == current else Color.GRAY, false, 2.0 if id == current else 1.0)
+		draw_rect(rect, Color.GOLD if id == current else Color.TURQUOISE if visited.has(id) else Color.GRAY, false, 2.0 if id == current or visited.has(id) else 1.0)
+		if visited.has(id): draw_circle(rect.position + Vector2(5, 5), 2.0, Color.WHITE)
 		draw_string(font, p + Vector2(-14, 4), str(id), HORIZONTAL_ALIGNMENT_LEFT, -1, 12)
 
 func _gui_input(event: InputEvent) -> void:

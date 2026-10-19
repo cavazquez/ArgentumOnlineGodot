@@ -18,8 +18,10 @@ var _transport: StreamPeer
 var _state := State.DISCONNECTED
 var _use_tls := true
 var _hostname := ""
+var _port := 0
 var _deadline_msec := 0
 var capabilities := ClientCapabilities.new()
+var world_state := WorldStateContext.new()
 var _logged := false
 var _framer := AOPacketFramer.new()
 var _generation := 0
@@ -32,6 +34,8 @@ func _reset() -> void:
 	_generation += 1
 	_framer.clear()
 	capabilities.clear()
+	world_state.clear()
+	Global.character_local.open_profile("")
 	_logged = false
 	set_process(false)
 	if _tls != null:
@@ -50,6 +54,7 @@ func ConnectToHost(host: String, port: int, use_tls: bool = true, trusted_ca: X5
 		_fail("Dirección, puerto o plazo de conexión inválido")
 		return ERR_INVALID_PARAMETER
 	_hostname = host.strip_edges()
+	_port = port
 	_use_tls = use_tls
 	_trusted_ca = trusted_ca
 	_deadline_msec = Time.get_ticks_msec() + int(timeout_seconds * 1000)
@@ -182,3 +187,8 @@ func _AcceptIncomingData(data: PackedByteArray) -> void:
 			# Opt-in exclusivamente después de Logged; nunca antecede al login pyao.
 			if IsConnected():
 				Send(capabilities.begin())
+
+
+func local_character_key(character: String) -> String:
+	if not _logged or _hostname.is_empty() or _port < 1 or character.is_empty(): return ""
+	return ("%s|%s|%d|%s" % ["tls" if _use_tls else "tcp", _hostname.to_lower(), _port, character]).sha256_text()

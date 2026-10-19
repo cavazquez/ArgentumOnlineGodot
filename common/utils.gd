@@ -136,10 +136,13 @@ static func ShowAlertDialog(title:String, message:String, parent:Node) -> Accept
 static func ApplyDialogTheme(window: Window) -> void:
 	if window.has_meta("pyao_dialog_theme"): return
 	window.set_meta("pyao_dialog_theme", true)
-	window.theme = window.theme.duplicate() if window.theme else Theme.new()
-	window.theme.default_font_size = Global.dialogFontSize
-	var update := func(value: int):
-		if is_instance_valid(window): window.theme.default_font_size = value
-	Global.dialog_font_size_changed.connect(update)
+	var original: Theme = window.theme.duplicate() if window.theme != null else Theme.new()
+	var apply := func():
+		if is_instance_valid(window): window.theme = AccessibleTheme.make(original, Global.highContrast, Global.dialogFontSize)
+	var resize := func(_value: int): apply.call()
+	apply.call()
+	Global.dialog_font_size_changed.connect(resize)
+	Global.preferences_changed.connect(apply)
 	window.tree_exiting.connect(func():
-		if Global.dialog_font_size_changed.is_connected(update): Global.dialog_font_size_changed.disconnect(update))
+		if Global.dialog_font_size_changed.is_connected(resize): Global.dialog_font_size_changed.disconnect(resize)
+		if Global.preferences_changed.is_connected(apply): Global.preferences_changed.disconnect(apply))

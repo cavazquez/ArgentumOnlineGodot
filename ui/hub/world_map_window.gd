@@ -14,12 +14,13 @@ func _ready() -> void:
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(box)
 	var legend := Label.new()
-	legend.text = "Rueda: zoom · botón central: desplazar · flecha: una dirección · línea punteada: teleport"
+	legend.text = "Rueda: zoom · botón central: desplazar · flecha: una dirección · línea punteada: teleport · punto blanco: visitado"
 	legend.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(legend)
 	_canvas = WorldMapCanvas.new()
 	_canvas.topology = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/world-topology.json"))
 	_canvas.current = current_map
+	_canvas.visited = Global.character_local.visited.duplicate()
 	_canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_canvas.clip_contents = true
@@ -42,4 +43,4 @@ func _select(id: int) -> void:
 	for edge in _canvas.topology.get("edges", []):
 		if int(edge.from) == id: outgoing.append("%d (%s)" % [edge.to, edge.kind])
 		if int(edge.to) == id: incoming.append(str(edge.from))
-	_description.text = "%s · #%d\nSalidas: %s\nEntradas: %s" % [row.get("name", "Sin miniatura"), id, ", ".join(outgoing), ", ".join(incoming)]
+	_description.text = "%s · #%d\nSalidas: %s\nEntradas: %s" % [row.get("name", "Sin miniatura") + (" · visitado" if Global.character_local.visited.has(id) else " · no visitado"), id, ", ".join(outgoing), ", ".join(incoming)]

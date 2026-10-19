@@ -843,3 +843,19 @@ static func WriteSkillAction(action: String, params: Dictionary, identity: Strin
 	_writer.put_u8(1)
 	Utils.PutUnicodeString(_writer, request)
 	return true
+
+
+static func WriteWorldAction(action: String, params: Dictionary, revision: String = "", identity: String = "") -> bool:
+	if not _can_write(248):
+		return false
+	if identity.is_empty():
+		identity = NewSkillActionId()
+	if not SkillAllocationState.valid_identity(identity):
+		return false
+	var request := JSON.stringify({"id": identity, "epoch": ClientInterface.world_state.epoch, "revision": revision, "action": action, "params": params})
+	if request.length() > 1020 or not Utils.CanEncodeLatin1(request):
+		return false
+	_writer.put_u8(248)
+	_writer.put_u8(1)
+	Utils.PutUnicodeString(_writer, request)
+	return true
