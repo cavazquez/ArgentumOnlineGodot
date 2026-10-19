@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      build_packages:
+        description: Exportar Linux y construir Snap explícitamente
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -13,7 +18,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Regresiones de herramientas y validadores
+        run: python3 -m unittest discover -s tools/tests
+
   import-and-export:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_packages
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
