@@ -16,6 +16,8 @@ import time
 
 from PIL import ImageGrab
 
+from runtime_log import classify_runtime_log
+
 
 class Input:
     def __init__(self):
@@ -176,13 +178,16 @@ def main():
             if process.returncode != 0:
                 raise RuntimeError("El cliente no cerró desde la UI")
             text = (output / "snap-client.log").read_text()
-            if "ERROR:" in text or os.environ["PYAO_TEST_PASSWORD"] in text:
+            diagnostics = classify_runtime_log(text)
+            (output / "runtime-diagnostics.json").write_text(json.dumps(diagnostics, indent=2) + "\n")
+            if not diagnostics["passed"] or os.environ["PYAO_TEST_PASSWORD"] in text:
                 raise RuntimeError("El cliente registró un error o una credencial efímera")
             (output / "snap-ui.json").write_text(json.dumps({"passed": True,
                 "login_to_world_seconds": round(login_seconds, 3),
                 "installed": args.executable is None, "tls": True, "audio_driver": audio,
                 "map_rendered": True, "minimap_rendered": True, "console_rendered": True,
-                "inventory_rendered": True, "keyboard_mouse": True, "profile_external": True}, indent=2) + "\n")
+                "inventory_rendered": True, "keyboard_mouse": True, "profile_external": True,
+                "known_engine_diagnostics": diagnostics["known_engine_diagnostics"]}, indent=2) + "\n")
         finally:
             if process.poll() is None:
                 process.terminate()
