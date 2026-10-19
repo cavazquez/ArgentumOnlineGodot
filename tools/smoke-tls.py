@@ -67,13 +67,13 @@ async def run() -> None:
                             await writer.drain()
                             request = await reader.readexactly(6)
                             captured[case].extend(request)
-                            if request != b"\xfa\x01\x8f\x01\x00\x00":
+                            if request != b"\xfa\x01\xbf\x01\x00\x00":
                                 raise RuntimeError("El cliente no negoció después de Logged")
                             for _ in range(480):
                                 writer.write(b"\x58")
                                 await writer.drain()
                                 await asyncio.sleep(0)
-                            writer.write(b"\xfa\x01\x8f\x01\x00\x00")
+                            writer.write(b"\xfa\x01\xbf\x01\x00\x00")
                             await writer.drain()
                         elif case != "stall":
                             writer.write(b"\x58")

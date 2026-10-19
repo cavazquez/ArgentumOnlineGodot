@@ -3,38 +3,34 @@ name: Login entre Snaps publicados
 on:
   workflow_dispatch:
     inputs:
+      release_version:
+        description: Versión común de ambos Snaps publicados
+        type: string
+        required: true
       server_revision:
         description: Revisión amd64 de pyao
         type: string
-        default: '18'
         required: true
       client_revision:
         description: Revisión amd64 de pyao-client
         type: string
-        default: '3'
         required: true
       server_commit:
         description: Commit completo incluido en pyao
         type: string
-        default: '0a921ccd5e9a04ef5ff7dd2eb8ba8370cd2352ea'
         required: true
       client_commit:
         description: Commit completo incluido en pyao-client
         type: string
-        default: 'cf1c9ab41a25db6f4290b08beb038251fac9a0b3'
         required: true
       server_sha256:
         description: SHA256 del Snap pyao amd64
         type: string
-        default: 'c9b749ed07f4b193b11569ab03ef3defbcb4a525d4c209b5366249b4242000db'
         required: true
       client_sha256:
         description: SHA256 del Snap pyao-client amd64
         type: string
-        default: '2c2d119da95e1395c62056fd82b8a9baa337d71c2cc79aaab6029731e9ed847a'
         required: true
-  push:
-    paths: ['tools/snap-pair-login.py', 'tools/snap-ui-smoke.py', '.github/workflows/snap-pair-login.yml']
 
 permissions:
   contents: read
@@ -44,12 +40,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      SERVER_REVISION: ${{ inputs.server_revision || '18' }}
-      CLIENT_REVISION: ${{ inputs.client_revision || '3' }}
-      SERVER_COMMIT: ${{ inputs.server_commit || '0a921ccd5e9a04ef5ff7dd2eb8ba8370cd2352ea' }}
-      CLIENT_COMMIT: ${{ inputs.client_commit || 'cf1c9ab41a25db6f4290b08beb038251fac9a0b3' }}
-      SERVER_SHA256: ${{ inputs.server_sha256 || 'c9b749ed07f4b193b11569ab03ef3defbcb4a525d4c209b5366249b4242000db' }}
-      CLIENT_SHA256: ${{ inputs.client_sha256 || '2c2d119da95e1395c62056fd82b8a9baa337d71c2cc79aaab6029731e9ed847a' }}
+      RELEASE_VERSION: ${{ inputs.release_version }}
+      SERVER_REVISION: ${{ inputs.server_revision }}
+      CLIENT_REVISION: ${{ inputs.client_revision }}
+      SERVER_COMMIT: ${{ inputs.server_commit }}
+      CLIENT_COMMIT: ${{ inputs.client_commit }}
+      SERVER_SHA256: ${{ inputs.server_sha256 }}
+      CLIENT_SHA256: ${{ inputs.client_sha256 }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/checkout@v6
@@ -83,7 +80,7 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
           uv sync --project build/fixture-tools --locked --no-dev
-          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/fixture-tools --locked --no-dev python tools/snap-pair-login.py --output build/snap-pair-login --server-revision "$SERVER_REVISION" --client-revision "$CLIENT_REVISION" --server-commit "$SERVER_COMMIT" --client-commit "$CLIENT_COMMIT" --server-sha256 "$SERVER_SHA256" --client-sha256 "$CLIENT_SHA256"
+          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/fixture-tools --locked --no-dev python tools/snap-pair-login.py --version "$RELEASE_VERSION" --output build/snap-pair-login --server-revision "$SERVER_REVISION" --client-revision "$CLIENT_REVISION" --server-commit "$SERVER_COMMIT" --client-commit "$CLIENT_COMMIT" --server-sha256 "$SERVER_SHA256" --client-sha256 "$CLIENT_SHA256"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

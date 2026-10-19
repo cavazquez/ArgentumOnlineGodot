@@ -305,6 +305,7 @@ def worker(args):
         server = subprocess.Popen(
             [
                 str(entry),
+                *(["--debug"] if args.server_debug else []),
                 "--host",
                 "127.0.0.1",
                 "--port",
@@ -696,6 +697,7 @@ def main():
         help="Regresión que se ejecuta antes del período de observación",
     )
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--server-debug", action="store_true", help="Logs detallados del servidor exclusivo del ensayo")
     parser.add_argument("--redis-runtime", type=Path)
     parser.add_argument("--snap-installed", action="store_true")
     parser.add_argument(
@@ -852,6 +854,8 @@ def main():
         ]
         if args.headless:
             arguments.append("--headless")
+        if args.server_debug:
+            arguments.append("--server-debug")
         if args.redis_runtime:
             arguments += ["--redis-runtime", str(args.redis_runtime)]
         if args.client_executable:
