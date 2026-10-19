@@ -45,6 +45,17 @@ func _run() -> void:
 	reader.put_data(text)
 	reader.seek(0)
 	check(not WorldStatePacket.new(reader).valid, "Acepta revisiones fraccionales")
+	var trade_panel := PlayerTradePanel.new()
+	var animated_icon := false
+	for graphic in GameAssets.GrhDataList.size():
+		var data: GrhData = GameAssets.GrhDataList[graphic]
+		if data == null or data.frameCount <= 1 or data.frames.size() < 2 or data.frames[1] <= 0: continue
+		var icon := trade_panel._icon({"graphic": graphic}) as AtlasTexture
+		check(icon != null and icon.atlas != null and icon.region == GameAssets.GrhDataList[data.frames[1]].region, "El intercambio usa el índice cero reservado de una animación")
+		animated_icon = true
+		break
+	check(animated_icon, "No se validó ningún gráfico animado del catálogo propio")
+	trade_panel.free()
 	ClientInterface.capabilities.begin()
 	check(ClientInterface.capabilities.accept(PackedByteArray([250, 1, 191, 3, 0, 0])), "No negocia las extensiones nuevas")
 	ClientInterface.world_state.clear()

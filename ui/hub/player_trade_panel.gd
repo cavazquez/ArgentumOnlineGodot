@@ -186,7 +186,11 @@ func _icon(info: Dictionary) -> Texture2D:
 	var graphic := int(info.get("graphic", 0))
 	if graphic <= 0 or graphic >= GameAssets.GrhDataList.size() or GameAssets.GrhDataList[graphic] == null: return null
 	var grh: GrhData = GameAssets.GrhDataList[graphic]
-	if grh.frameCount > 1 and not grh.frames.is_empty(): grh = GameAssets.GrhDataList[grh.frames[0]]
+	if grh.frameCount > 1:
+		if grh.frames.size() < 2: return null
+		var first := int(grh.frames[1])
+		if first <= 0 or first >= GameAssets.GrhDataList.size() or GameAssets.GrhDataList[first] == null: return null
+		grh = GameAssets.GrhDataList[first]
 	var texture := AtlasTexture.new()
 	texture.atlas = GameAssets.GetTexture(grh.fileId)
 	texture.region = grh.region
