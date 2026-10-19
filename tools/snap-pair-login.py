@@ -122,6 +122,10 @@ async def create_account(port, cert, username, password):
         + b"\x01"
     )
     try:
+        await peer.send(b"\x01")  # Dados reales, como la pantalla de alta.
+        await peer.wait(
+            lambda frames: any(f[0] == ServerPacketID.DICE_ROLL for f in frames)
+        )
         await peer.send(packet)
         await peer.wait(
             lambda frames: any(f[0] == ServerPacketID.LOGGED for f in frames)
@@ -130,6 +134,16 @@ async def create_account(port, cert, username, password):
                 for f in frames
             )
         )
+        # El PONG confirma que terminó el handler de alta y su envío inicial.
+        await peer.send(b"\x77")
+        await peer.wait(lambda frames: any(f[0] == ServerPacketID.PONG for f in frames))
+        await peer.send(b"\x47")  # QUIT deja que el servidor cierre TLS.
+        async with asyncio.timeout(10):
+            await peer.task
+        if peer.error is not None:
+            raise RuntimeError(
+                "El alta terminó con una respuesta incompleta"
+            ) from peer.error
     finally:
         await peer.close()
 
@@ -324,15 +338,13 @@ def main():
                             try:
                                 deadline = time.monotonic() + 120
                                 while ui.poll() is None:
-                                    positions.add(
-                                        tuple(
-                                            sorted(
-                                                store.hgetall(
-                                                    f"player:{uid}:position"
-                                                ).items()
+                                    position = store.hgetall(f"player:{uid}:position")
+                                    if position:
+                                        positions.add(
+                                            tuple(
+                                                position[k] for k in ("map", "x", "y")
                                             )
                                         )
-                                    )
                                     if time.monotonic() > deadline:
                                         raise TimeoutError(
                                             "El cliente Snap no completó el recorrido UI"
@@ -373,6 +385,7 @@ def main():
                                 "attempt": attempt,
                                 **result,
                                 "movement_confirmed_in_redis": True,
+                                "distinct_positions": len(positions),
                                 "inventory_confirmed_in_redis": True,
                                 "session_released": True,
                             }
