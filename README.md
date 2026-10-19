@@ -2,6 +2,12 @@
 
 Cliente Godot de ProyectoAO, basado en el [port de brian-christopher](https://github.com/brian-christopher/ArgentumOnlineGodot) del cliente Argentum Online 0.13.3 liberado por Shak.
 
+La descarga vigente de pruebas es **1.0.0rc2**: [cliente Linux y Snap](https://github.com/cavazquez/ArgentumOnlineGodot/releases/tag/v1.0.0rc2) · [servidor de la misma versión](https://github.com/cavazquez/pyao-server/releases/tag/v1.0.0rc2). GitHub excluye las prereleases de `/releases/latest`; por eso se enlaza la versión concreta.
+
+Los PR ejecutan comprobaciones de herramientas, Godot, protocolo y TLS sin exportar
+el juego. Las compilaciones y la publicación requieren una ejecución manual;
+ver [CI y releases](docs/CI_RELEASES.md).
+
 ## Servidor y alcance de la 1.0
 
 El servidor objetivo es [cavazquez/pyao-server](https://github.com/cavazquez/pyao-server). El [issue #123 del servidor](https://github.com/cavazquez/pyao-server/issues/123) contiene el alcance compartido, el orden de implementación y las pruebas para aprobar ambos proyectos juntos. Su documento versionado es `docs/development/ALCANCE_1_0.md` en el repositorio del servidor.
@@ -69,7 +75,7 @@ Las acciones de administración sin handler permanecen deshabilitadas.
 La distribución Linux como `pyao-client` se construye con la receta de
 [Snap](docs/SNAP.md), que incluye procedencia del commit y el motor fijado.
 
-El cliente y el servidor usan la misma versión de producto: `1.0.0rc1` para el candidato RC1. Snap toma ese valor de `project.godot`; la procedencia conserva además el commit y el motor.
+El cliente y el servidor usan la misma versión de producto: `1.0.0rc2` para el candidato RC2. Snap toma ese valor de `project.godot`; la procedencia conserva además el commit y el motor.
 
 `tools/release-pair.py` prepara los tres Snaps y publica servidor/cliente como
 una entrega coordinada: valida commits fusionados, CI, hashes, R01–R10 y el
@@ -80,14 +86,14 @@ completa del par si falla una promoción.
 La [integración con dos Godot](docs/INTEGRACION.md) rechaza pares con versiones distintas y comprueba TLS, pantallas reales y cierre ordenado. CI instala además el Snap estricto, recorre login/mapa/chat/inventario con teclado y mouse X11, verifica audio con un sink de prueba y conserva preferencias al actualizar.
 
 El workflow `Login entre Snaps publicados` ejecuta `tools/snap-pair-login.py`
-contra las revisiones de Store `pyao` 18 y `pyao-client` 3 de RC1. Arranca ambos
+contra las revisiones de Store indicadas explícitamente. Arranca ambos
 con `snap run`, crea una cuenta por TLS y maneja la UI de producción por X11.
 Mide dos logins hasta que se ven mapa, minimapa, consola e inventario; comprueba
 movimiento e inventario en Redis descartable y vuelve a ingresar después de
 reiniciar el servidor. Conserva capturas, hashes, procedencia y tiempos como
 artefactos del ensayo. Requiere un usuario sin perfil previo de juego.
 `workflow_dispatch` permite indicar las revisiones, commits y SHA256 de cada
-entrega coordinada; las ejecuciones automáticas conservan el par de referencia.
+entrega coordinada; no genera paquetes ni publica canales.
 
 El recorrido completo de [#106](https://github.com/cavazquez/ArgentumOnlineGodot/issues/106)
 usa `tools/r10_world.py`, el controlador de pantallas `tests/r10_client.gd` y

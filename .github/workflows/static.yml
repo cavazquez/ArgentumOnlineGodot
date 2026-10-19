@@ -1,0 +1,53 @@
+name: Seguridad y workflows
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  schedule:
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: static-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  workflow-lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validar Actions, expresiones y scripts shell
+        env:
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          curl --fail --silent --show-error --location https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz --output "$RUNNER_TEMP/actionlint.tar.gz"
+          printf '%s  %s\n' "$ACTIONLINT_SHA256" "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -pyflakes=
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: never
+  godot-update:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Detectar una nueva versión estable sin descargar ni actualizar el motor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh api repos/godotengine/godot-builds/releases/latest --jq .tag_name)
+          pinned=$(cat .godot-version)
+          if [ "$latest" != "$pinned-stable" ]; then
+            printf '::error::Godot estable disponible: %s; versión fijada: %s. Requiere revisar compatibilidad y hashes.\n' "$latest" "$pinned"
+            exit 1
+          fi
