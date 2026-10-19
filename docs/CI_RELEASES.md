@@ -4,7 +4,7 @@ Cada push y PR ejecuta tests de herramientas, importación y compilación de scr
 con Godot oficial verificado, smokes de escenas, privacidad, protocolo y TLS. No
 exporta ejecutables ni construye Snaps. `Seguridad y workflows` valida expresiones
 y shell con actionlint/ShellCheck, y rechaza dependencias nuevas vulnerables de
-severidad alta o crítica. Dependabot revisa Actions semanalmente; en este fork
+severidad alta o crítica. Las revisiones programadas y Dependabot corren sólo el 1 de diciembre de cada año a las 10:00 de Argentina (13:00 UTC); en este fork
 GitHub requiere habilitar **Dependabot version updates** en sus ajustes.
 
 ## Preparar una nueva entrega
