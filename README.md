@@ -73,6 +73,14 @@ El cliente y el servidor usan la misma versión de producto: `1.0.0rc1` para el 
 
 La [integración con dos Godot](docs/INTEGRACION.md) rechaza pares con versiones distintas y comprueba TLS, pantallas reales y cierre ordenado. CI instala además el Snap estricto, recorre login/mapa/chat/inventario con teclado y mouse X11, verifica audio con un sink de prueba y conserva preferencias al actualizar.
 
+El workflow `Login entre Snaps publicados` ejecuta `tools/snap-pair-login.py`
+contra las revisiones de Store `pyao` 18 y `pyao-client` 3 de RC1. Arranca ambos
+con `snap run`, crea una cuenta por TLS y maneja la UI de producción por X11.
+Mide dos logins hasta que se ven mapa, minimapa, consola e inventario; comprueba
+movimiento e inventario en Redis descartable y vuelve a ingresar después de
+reiniciar el servidor. Conserva capturas, hashes, procedencia y tiempos como
+artefactos del ensayo. Requiere un usuario sin perfil previo de juego.
+
 El recorrido completo de [#106](https://github.com/cavazquez/ArgentumOnlineGodot/issues/106)
 usa `tools/r10_world.py`, el controlador de pantallas `tests/r10_client.gd` y
 `tests/r10_fixture.toml`. `tools/export-linux.sh --r10` genera el ejecutable de
