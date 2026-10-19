@@ -125,6 +125,7 @@ def main():
             controls.click(365, 317)
             controls.text(os.environ["PYAO_TEST_PASSWORD"])
             controls.click(268, 362)
+            login_started = time.monotonic()
             controls.click(344, 411)
             deadline = time.monotonic() + 40
             while True:
@@ -141,6 +142,7 @@ def main():
                     screenshot.save(output / "snap-failure.png")
                     raise TimeoutError(f"Interfaz del Snap incompleta: mapa={world}, minimapa={minimap}, consola={console}, slot30={last_slot}")
                 time.sleep(.5)
+            login_seconds = time.monotonic() - login_started
             screenshot.save(output / "snap-map.png")
             for direction in ("Right", "Down", "Left"):
                 controls.key(direction, True)
@@ -171,6 +173,7 @@ def main():
             if "ERROR:" in text or os.environ["PYAO_TEST_PASSWORD"] in text:
                 raise RuntimeError("El cliente registró un error o una credencial efímera")
             (output / "snap-ui.json").write_text(json.dumps({"passed": True,
+                "login_to_world_seconds": round(login_seconds, 3),
                 "installed": args.executable is None, "tls": True, "audio_driver": audio,
                 "map_rendered": True, "minimap_rendered": True, "console_rendered": True,
                 "inventory_rendered": True, "keyboard_mouse": True, "profile_external": True}, indent=2) + "\n")

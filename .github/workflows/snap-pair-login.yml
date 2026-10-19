@@ -1,0 +1,54 @@
+name: Login entre Snaps publicados
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['tools/snap-pair-login.py', 'tools/snap-ui-smoke.py', '.github/workflows/snap-pair-login.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  login-store-pair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: cavazquez/pyao-server
+          ref: 6db7739f976f17ff617a4b3e6d01e6b7deb581a0
+          path: build/fixture-tools
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.13.1'
+          enable-cache: false
+      - name: Instalar las dos revisiones publicadas y el entorno gráfico
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri libxtst6 python3-pil pulseaudio pulseaudio-utils
+          sudo snap install pyao --channel=latest/edge --revision=16
+          sudo snap install pyao-client --channel=latest/edge --revision=3
+          sudo snap install mesa-2404
+          sudo snap connect pyao-client:gpu-2404 mesa-2404:gpu-2404
+          mkdir -p build/snap-pair-login
+          snap list pyao pyao-client | tee build/snap-pair-login/installed.txt
+          snap connections pyao-client | tee build/snap-pair-login/client-connections.txt
+          sudo install -d -m 700 -o "$(id -u)" -g "$(id -g)" "/run/user/$(id -u)"
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=pyao_test
+          echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
+      - name: Probar alta, login gráfico, movimiento, inventario y segundo login tras reiniciar
+        env:
+          UV_PYTHON: '3.14'
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          uv sync --project build/fixture-tools --locked --no-dev
+          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/fixture-tools --locked --no-dev python tools/snap-pair-login.py --output build/snap-pair-login
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: snap-pair-login-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/snap-pair-login/
+          retention-days: 14
