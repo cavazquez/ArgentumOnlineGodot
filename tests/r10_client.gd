@@ -66,6 +66,12 @@ func snapshot() -> Dictionary:
 			result.trade = panel.snapshot
 		elif panel is MerchantPanel:
 			result.panel = "merchant"
+			result.merchant_items = {}
+			if panel._merchantInventory != null:
+				for index in panel._merchantInventory.GetSize():
+					var stack: ItemStack = panel._merchantInventory.GetSlot(index)
+					if stack.quantity > 0:
+						result.merchant_items[str(index + 1)] = [stack.item.index, stack.quantity, stack.item.salePrice]
 		elif panel is BankPanel:
 			result.panel = "bank"
 			result.bank_items = {}
@@ -327,8 +333,19 @@ func execute(command: Dictionary) -> bool:
 			if not hub._currentPanel is MerchantPanel:
 				return false
 			var panel: MerchantPanel = hub._currentPanel
+			var merchant_inventory: Inventory
+			var merchant_index := int(command.slot) - 1
+			var merchant_deadline := Time.get_ticks_msec() + 10000
+			# COMMERCE_INIT abre antes de recibir todos los slots. Una pulsación
+			# sobre un slot todavía vacío no debe simular una compra confirmada.
+			while Time.get_ticks_msec() < merchant_deadline:
+				merchant_inventory = panel._merchantInventory if command.buy else panel._playerInventory
+				if merchant_inventory != null and merchant_inventory.GetSlot(merchant_index) != null and merchant_inventory.GetSlot(merchant_index).quantity > 0: break
+				await host.get_tree().process_frame
+			if merchant_inventory == null or merchant_inventory.GetSlot(merchant_index) == null or merchant_inventory.GetSlot(merchant_index).quantity <= 0: return false
 			panel._Select(int(command.slot) - 1, "buy" if command.buy else "sell")
 			panel._quantitySpinBox.value = command.amount
+			if panel._actionButton.disabled: return false
 			panel._actionButton.pressed.emit()
 		"trade":
 			if not hub._currentPanel is PlayerTradePanel:
