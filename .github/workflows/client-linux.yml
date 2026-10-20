@@ -16,7 +16,7 @@ on:
       test_gameplay:
         description: Ejecutar regresiones nativas sin construir Snaps ni otros portables
         type: choice
-        options: [none, lifetime-stats, structure-profile, all]
+        options: [none, lifetime-stats, structure-profile, npc-loot, all]
         default: none
 
 permissions:
@@ -394,7 +394,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: ${{ fromJSON(inputs.test_gameplay == 'lifetime-stats' && '["lifetime-stats"]' || inputs.test_gameplay == 'structure-profile' && '["structure-profile"]' || '["skills","spells","navigation","duel","potions","expansion","npc-policy","economy","npcs","lifetime-stats","structure-profile"]') }}
+        scenario: ${{ fromJSON(inputs.test_gameplay == 'lifetime-stats' && '["lifetime-stats"]' || inputs.test_gameplay == 'structure-profile' && '["structure-profile"]' || inputs.test_gameplay == 'npc-loot' && '["npc-loot"]' || '["skills","spells","navigation","duel","potions","expansion","npc-policy","economy","npcs","lifetime-stats","structure-profile","npc-loot"]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
