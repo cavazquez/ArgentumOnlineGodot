@@ -117,6 +117,10 @@ func _ready() -> void:
 		sequence += 1
 		print("INTEGRATION_WORLD: HEARTBEAT seconds=", (Time.get_ticks_msec() - started) / 1000, " movement=", moved, " peer_chat=", peer_chat_seen)
 		await get_tree().create_timer(minf(18.0, maxf(0.0, float(until - Time.get_ticks_msec()) / 1000.0))).timeout
+		# El mensaje puede llegar durante la espera, especialmente si el renderer
+		# del segundo portable tarda más en procesar el comando de inicio.
+		if is_instance_valid(hub):
+			peer_chat_seen = peer_chat_seen or hub._consoleRichTextLabel.get_parsed_text().contains("pyao-integration-" + OS.get_environment("PYAO_TEST_PEER"))
 	if not moved or not peer_chat_seen:
 		push_error("INTEGRATION_WORLD: falta movimiento o chat entre pares")
 		get_tree().quit(1)
