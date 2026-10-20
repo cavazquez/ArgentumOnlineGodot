@@ -463,6 +463,7 @@ def worker(args):
                 PYAO_TEST_PEER=str(3 - index),
                 PYAO_TEST_DURATION=str(args.seconds),
                 PYAO_TEST_MECHANICS="1" if args.scenario != "r10" else "0",
+                PYAO_TEST_VERBOSE="1" if args.verbose_clients else "0",
                 PYAO_TEST_RELEASED=str(reconnect_gates[index - 1]),
                 PYAO_TEST_CONTROL=str(work / f"control-{index}"),
                 PYAO_TEST_SCREENSHOT=str(output / f"godot-{index}.png"),
@@ -480,6 +481,8 @@ def worker(args):
                 else [str(args.godot), "--path", str(ROOT)]
             )
             if args.scenario != "platform": command += ["--audio-driver", "Dummy"]
+            if args.verbose_clients:
+                command += ["--verbose"]
             command += ["--rendering-method", "gl_compatibility"]
             if native_platform:
                 # WARP/Apple Software Renderer/llvmpipe comparten CPU con los
@@ -534,6 +537,7 @@ def worker(args):
         scenario_steps = scenario.run(locations)
         from src.utils.redis_config import RedisKeys
 
+        shutdown_errors = {}
         while any(client.poll() is None for client in clients):
             server_text = (output / "server.log").read_text()
             if (
@@ -545,7 +549,11 @@ def worker(args):
                 )
             for index in (1, 2):
                 text = (output / f"godot-{index}.log").read_text()
-                if "SCRIPT ERROR:" in text or "ERROR:" in text:
+                client_error = "SCRIPT ERROR:" in text or "ERROR:" in text
+                shutdown_wait = time.monotonic() - shutdown_errors.setdefault(index, time.monotonic()) if client_error else 0
+                if client_error and ("INTEGRATION_WORLD: PASS" not in text or shutdown_wait > 5):
+                    # Conservar el diagnóstico completo si el fallo ocurre en el
+                    # destructor. La comprobación final igualmente rechaza ERROR.
                     raise RuntimeError(
                         f"Error de script o recurso en Godot {index}; revisar log"
                     )
@@ -820,6 +828,7 @@ def main():
         help="Regresión que se ejecuta antes del período de observación",
     )
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--verbose-clients", action="store_true", help="Conservar diagnósticos de recursos al cerrar Godot")
     parser.add_argument(
         "--server-debug",
         action="store_true",
@@ -990,6 +999,8 @@ def main():
         arguments += ["--source"] if args.source else ["--wheel", str(args.wheel)]
         if args.headless:
             arguments.append("--headless")
+        if args.verbose_clients:
+            arguments.append("--verbose-clients")
         if args.server_debug:
             arguments.append("--server-debug")
         if args.redis_runtime:
