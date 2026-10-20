@@ -210,7 +210,7 @@ jobs:
           PYAO_STRUCTURE_OUTPUT: ${{ github.workspace }}/build/structure-benchmark.json
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
-          xvfb-run -a "$GODOT_BIN" --path . --rendering-method gl_compatibility res://tests/structure_benchmark.tscn > build/structure-benchmark.log 2>&1
+          xvfb-run -a "$GODOT_BIN" --path . --rendering-method gl_compatibility --audio-driver Dummy res://tests/structure_benchmark.tscn > build/structure-benchmark.log 2>&1
           python3 tools/check-export-log.py build/structure-benchmark.log
       - name: Conservar logs y ejecutable
         if: always()
