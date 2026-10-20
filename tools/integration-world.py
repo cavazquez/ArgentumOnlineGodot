@@ -155,8 +155,34 @@ class NativeRedis:
         self.password_file.write_text(secrets.token_hex(32))
         self.password_file.chmod(0o600)
         self.process = None
+        self.log = None
+        self.wsl_data_dir = None
+        self.storage_kind = "native"
 
     def __enter__(self):
+        try:
+            return self._start()
+        except BaseException:
+            self.__exit__()
+            raise
+
+    def data_directory(self, wsl_runtime):
+        if not wsl_runtime:
+            return str(self.root).replace("\\", "/")
+        # Redis conserva AOF/fsync; sus escrituras deben permanecer en el sistema
+        # Linux, sin atravesar DrvFS/NTFS por cada barrera de durabilidad.
+        owned = subprocess.check_output(
+            ["wsl", "--exec", "mktemp", "-d", "/tmp/pyao-redis-fixture-XXXXXXXXXX"],
+            text=True,
+            timeout=15,
+        ).strip()
+        if not re.fullmatch(r"/tmp/pyao-redis-fixture-[A-Za-z0-9]{10}", owned):
+            raise RuntimeError("WSL no devolvió un directorio Redis propio válido")
+        self.wsl_data_dir = owned
+        self.storage_kind = "wsl-linux"
+        return owned
+
+    def _start(self):
         from src.runtime_paths import resource_root
 
         runtime = self.runtime
@@ -189,7 +215,7 @@ class NativeRedis:
         config.write_text(
             (resource_root() / "redis/redis.conf")
             .read_text()
-            .replace("dir /data", 'dir "' + native_path(self.root).replace('\\', '/') + '"')
+            .replace("dir /data", 'dir "' + self.data_directory(wsl_runtime) + '"')
         )
         self.log = (self.root / "redis.log").open("wb")
         self.process = subprocess.Popen(
@@ -206,12 +232,8 @@ class NativeRedis:
             stdout=self.log,
             stderr=subprocess.STDOUT,
         )
-        try:
-            with self.client():
-                pass
-        except BaseException:
-            self.__exit__()
-            raise
+        with self.client():
+            pass
         return self
 
     def client(self):
@@ -238,11 +260,21 @@ class NativeRedis:
         raise RuntimeError("Redis propio no inició")
 
     def __exit__(self, *_):
-        if self.process is not None:
-            with contextlib.suppress(Exception):
-                with self.client() as client: client.shutdown(save=True)
-            stop(self.process)
-        self.log.close()
+        try:
+            if self.process is not None:
+                with contextlib.suppress(Exception):
+                    with self.client() as client: client.shutdown(save=True)
+                stop(self.process)
+        finally:
+            if self.log is not None:
+                self.log.close()
+            if self.wsl_data_dir is not None:
+                subprocess.run(
+                    ["wsl", "--exec", "rm", "-rf", "--", self.wsl_data_dir],
+                    check=True,
+                    timeout=15,
+                )
+                self.wsl_data_dir = None
 
 
 def worker(args):
@@ -389,6 +421,7 @@ def worker(args):
             "host": "127.0.0.1", "port": endpoint,
             "elapsed_seconds": round(time.monotonic() - startup_started, 3),
             "login_budget_changed": False,
+            "redis_storage": getattr(redis, "storage_kind", "docker-volume"),
         }, indent=2) + "\n")
         clients = []
         reconnect_gates = [work / f"client-{index}-released" for index in (1, 2)]

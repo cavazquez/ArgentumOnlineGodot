@@ -537,14 +537,21 @@ class MechanicsWorld(SpellWorld):
         self.proof(store, 16, before, party=True)
         self.command(1, "chat", text="/salirparty")
         self.command(1, "click", x=x, y=y - 2)
-        self.view(1, lambda v: v["panel"] == "merchant", "comercio real")
+        shop = self.view(1, lambda v: v["panel"] == "merchant" and any(row[2] >= 100 for row in v.get("merchant_items", {}).values()), "stock y precios confirmados del mercader")
+        # Comerciar entrena por cada 100 oro de volumen. Con nivel 90 la primera
+        # daga cuesta 74, por lo que una sola compra no debe conceder XP todavía.
+        slot, row = next((int(slot), row) for slot, row in shop["merchant_items"].items() if row[1] > 0 and row[2] >= 100)
+        item, _, price = row
         before = self.skill_state(store)
-        self.command(1, "merchant", slot=1, amount=1, buy=True)
+        gold = self.stats(store, 1)["gold"]
+        count = self.count(store, 1, item)
+        self.command(1, "merchant", slot=slot, amount=1, buy=True)
+        self.wait(lambda: self.count(store, 1, item) == count + 1 and self.stats(store, 1)["gold"] == gold - price, "compra y volumen comercial confirmados")
         self.wait(
             lambda: int(self.skill_state(store).get("xp:comerciar", 0)) > 0,
             "comercio entrenado",
         )
-        self.proof(store, 10, before)
+        self.proof(store, 10, before, item=item, confirmed_volume=price, minimum_training_volume=100)
         self.command(1, "close")
 
     def level_and_reconnect(self, store, locations):
