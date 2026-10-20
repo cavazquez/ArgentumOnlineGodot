@@ -1,8 +1,34 @@
 # Argentum Online Godot para ProyectoAO
 
+<p align="center">
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/actions/workflows/client-linux.yml"><img src="https://img.shields.io/github/actions/workflow/status/cavazquez/ArgentumOnlineGodot/client-linux.yml?branch=main&amp;label=CI&amp;logo=github" alt="CI del cliente"></a>
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/cavazquez/ArgentumOnlineGodot/release.yml?label=Release&amp;logo=github" alt="Workflow de Release"></a>
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/releases"><img src="https://img.shields.io/github/v/release/cavazquez/ArgentumOnlineGodot?include_prereleases&amp;sort=date&amp;label=release" alt="Última release, incluidas versiones de prueba"></a>
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/releases"><img src="https://img.shields.io/github/downloads/cavazquez/ArgentumOnlineGodot/total" alt="Descargas de GitHub Releases"></a>
+  <a href="docs/FUNCIONES.md"><img src="https://img.shields.io/badge/docs-referencia-007ec6?logo=readthedocs&amp;logoColor=white" alt="Documentación del cliente"></a>
+  <a href=".godot-version"><img src="https://img.shields.io/badge/Godot-4.7.2-478CBF?logo=godotengine&amp;logoColor=white" alt="Godot 4.7.2"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/cavazquez/ArgentumOnlineGodot" alt="Licencia MIT"></a>
+</p>
+
+<p align="center">
+  <a href="https://snapcraft.io/pyao-client"><img src="https://img.shields.io/snapcraft/v/pyao-client/latest/edge?arch=amd64&amp;label=snap%20edge&amp;logo=snapcraft" alt="Versión de pyao-client en Snap latest/edge para amd64"></a>
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/issues/183"><img src="https://img.shields.io/badge/homebrew-pendiente-lightgrey?logo=homebrew" alt="Homebrew pendiente: issue 183"></a>
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/issues/184"><img src="https://img.shields.io/badge/apt-pendiente-lightgrey?logo=debian" alt="APT pendiente: issue 184"></a>
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/issues/160"><img src="https://img.shields.io/badge/Microsoft%20Store-pendiente-lightgrey" alt="Microsoft Store pendiente: issue 160"></a>
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/issues/185"><img src="https://img.shields.io/badge/winget-pendiente-lightgrey" alt="WinGet pendiente: issue 185"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot">Proyecto</a> ·
+  <a href="docs">Documentación</a> ·
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/releases">Releases</a>
+</p>
+
+Los canales marcados como pendientes enlazan sus issues de implementación.
+
 Cliente Godot de ProyectoAO, basado en el [port de brian-christopher](https://github.com/brian-christopher/ArgentumOnlineGodot) del cliente Argentum Online 0.13.3 liberado por Shak.
 
-La descarga vigente de pruebas es **1.0.0rc2**: [cliente Linux y Snap](https://github.com/cavazquez/ArgentumOnlineGodot/releases/tag/v1.0.0rc2) · [servidor de la misma versión](https://github.com/cavazquez/pyao-server/releases/tag/v1.0.0rc2). GitHub excluye las prereleases de `/releases/latest`; por eso se enlaza la versión concreta.
+La descarga vigente de pruebas es **1.0.0rc3**: [cliente y Snap](https://github.com/cavazquez/ArgentumOnlineGodot/releases/tag/v1.0.0rc3) · [servidor de la misma versión](https://github.com/cavazquez/pyao-server/releases/tag/v1.0.0rc3). GitHub excluye las prereleases de `/releases/latest`; por eso se enlaza la versión concreta.
 
 Los PR ejecutan comprobaciones de herramientas, Godot, protocolo y TLS sin exportar
 el juego. Las compilaciones y la publicación requieren una ejecución manual;
@@ -75,7 +101,7 @@ Las acciones de administración sin handler permanecen deshabilitadas.
 La distribución Linux como `pyao-client` se construye con la receta de
 [Snap](docs/SNAP.md), que incluye procedencia del commit y el motor fijado.
 
-El cliente y el servidor usan la misma versión de producto: `1.0.0rc2` para el candidato RC2. Snap toma ese valor de `project.godot`; la procedencia conserva además el commit y el motor.
+El cliente y el servidor usan la misma versión de producto: `1.0.0rc3`. Snap toma ese valor de `project.godot`; la procedencia conserva además el commit y el motor.
 
 `tools/release-pair.py` prepara los tres Snaps y publica servidor/cliente como
 una entrega coordinada: valida commits fusionados, CI, hashes, R01–R10 y el
