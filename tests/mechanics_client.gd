@@ -129,11 +129,7 @@ func execute(command: Dictionary) -> bool:
 		var game := ScreenController.currentScreen as GameScreen
 		if game == null: return false
 		var keyboard := await keyboard_flows(game)
-		AudioManager.PlayAudio(17)
-		await host.get_tree().create_timer(0.05).timeout
-		var audio := false
-		for player in AudioManager.get_children():
-			if player is AudioStreamPlayer and player.playing and player.stream != null and player.get_playback_position() > 0: audio = true
+		var audio := await AudioPlaybackProbe.played(host)
 		await RenderingServer.frame_post_draw
 		var image := host.get_viewport().get_texture().get_image()
 		var rendered := DisplayServer.get_name() != "headless" and image != null and image.get_width() >= 640
