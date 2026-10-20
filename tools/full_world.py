@@ -59,6 +59,8 @@ def prepare_fixture(work, output):
     from src.services.fishing_zones import FishingZones
 
     target, locations = skills_fixture(work, output)
+    from lifetime_stats_world import add_stats_npc
+    add_stats_npc(target, locations)
     terrain = MapResourcesService()
     zones = FishingZones(terrain)
     exit_tiles = {}
@@ -248,6 +250,8 @@ class FullWorld(SkillsWorld):
             self.boats(store, locations)
             self.sea_exit(store, locations)
             self.ui_checks(store, x + 4, y)
+            from lifetime_stats_world import exercise as lifetime_statistics
+            lifetime_statistics(self, store, locations)
             self.initial_points = int(self.skill_state(store).get("points", 0))
             for reverse, label in [(False, "a-to-b"), (True, "b-to-a")]:
                 if reverse:

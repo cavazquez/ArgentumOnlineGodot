@@ -139,8 +139,9 @@ func _build_ministats_labels() -> void:
 		["Criminales Matados", "0"],
 		["Usuarios Matados", "0"],
 		["NPCs Matados", "0"],
+		["Muertes propias", "0"],
 		["Clase", "-"],
-		["Pena de Cárcel", "0"]
+		["Cárcel: días restantes", "0"]
 	]
 	for p in pairs:
 		var name_label = Label.new()
@@ -235,6 +236,7 @@ func set_ministats(ministats:Dictionary) -> void:
 	if ministats.has("CriminalesMatados"): ministats_labels["Criminales Matados"].text = str(ministats.CriminalesMatados)
 	if ministats.has("UsuariosMatados"): ministats_labels["Usuarios Matados"].text = str(ministats.UsuariosMatados)
 	if ministats.has("NpcsMatados"): ministats_labels["NPCs Matados"].text = str(ministats.NpcsMatados)
+	if ministats.has("Muertes"): ministats_labels["Muertes propias"].text = str(ministats.Muertes)
 	# Clase: preferir nombre textual si está disponible
 	var clase_nombre_keys = ["ClaseNombre", "ClaseName", "ClaseTexto", "ClaseStr"]
 	var clase_set := false
@@ -246,7 +248,7 @@ func set_ministats(ministats:Dictionary) -> void:
 	if !clase_set and ministats.has("Clase"):
 		ministats_labels["Clase"].text = _class_to_text(ministats.Clase)
 	if ministats.has("PenaCarcel"):
-		ministats_labels["Pena de Cárcel"].text = str(ministats.PenaCarcel)
+		ministats_labels["Cárcel: días restantes"].text = str(ministats.PenaCarcel)
 
 func set_fame(fame:Dictionary) -> void:
 	if !_ui_ready:
