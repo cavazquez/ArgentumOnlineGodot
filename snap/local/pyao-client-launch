@@ -9,7 +9,12 @@ export XDG_CACHE_HOME="$SNAP_USER_COMMON/cache"
 export XKB_CONFIG_ROOT="$SNAP/usr/share/X11/xkb"
 export ALSA_CONFIG_DIR="$SNAP/usr/share/alsa"
 export ALSA_CONFIG_PATH="$SNAP/usr/share/alsa/alsa.conf"
-export LD_LIBRARY_PATH="$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+case "${SNAP_ARCH:?Falta la arquitectura del Snap}" in
+    amd64) pyao_multiarch=x86_64-linux-gnu ;;
+    arm64) pyao_multiarch=aarch64-linux-gnu ;;
+    *) echo "Arquitectura del Snap no soportada: $SNAP_ARCH" >&2; exit 1 ;;
+esac
+export LD_LIBRARY_PATH="$SNAP/usr/lib/$pyao_multiarch/pulseaudio${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 pyao_runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
 pyao_runtime_dir=${pyao_runtime_dir%/snap.*}
 export PULSE_SERVER="${PULSE_SERVER:-unix:$pyao_runtime_dir/pulse/native}"
