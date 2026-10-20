@@ -1,7 +1,7 @@
 # PyAO Client en Snap
 
 El paquete se llama `pyao-client`, usa confinamiento `strict`, base `core24` y
-arquitectura Linux amd64. Esta primera entrega apunta a `latest/edge`. El perfil
+arquitecturas Linux amd64 y arm64. Esta primera entrega apunta a `latest/edge`. El perfil
 gráfico es OpenGL por X11; en escritorios Wayland se usa XWayland. La validación
 de Wayland nativo corresponde a otra entrega.
 
@@ -50,15 +50,15 @@ Las claves no se guardan en preferencias.
 
 ## Entrega coordinada de servidor y cliente
 
-Las dos aplicaciones conservan la misma versión `1.0.0rc1`. La CI construye
+Las dos aplicaciones conservan la misma versión `1.0.0rc4`. La CI construye
 artefactos y nunca los publica automáticamente. El mantenedor prepara un único
 manifiesto JSON con estos campos:
 
-- `version`: `1.0.0rc1`; `channel`: `latest/edge`.
+- `version`: `1.0.0rc4`; `channel`: `latest/edge`.
 - `sources`: claves `pyao` y `pyao-client`, cada una con `repository`, `commit`
   completo fusionado en main y `ci_runs` (IDs de ejecuciones exitosas de ese commit).
   Se exigen `CI` y `Server Snap` del servidor y `Cliente Linux` del cliente.
-- `packages`: exactamente servidor amd64/arm64 y cliente amd64. Cada entrada
+- `packages`: exactamente servidor amd64/arm64 y cliente amd64/arm64. Cada entrada
   contiene `name`, `architecture`, `file` y `sha256`. Se comprueban metadata,
   confinamiento estricto, versión y procedencia limpia dentro de cada Snap.
 - `evidence`: referencias `r10`, `upgrade` y `requirements`, cada una con `file`
@@ -81,9 +81,9 @@ Desde la cuenta local de Snapcraft ya autenticada, con `gh`, `curl` y
 `unsquashfs` disponibles:
 
 ```bash
-python3 tools/release-pair.py check /ruta/par-rc1.json
-python3 tools/release-pair.py prepare /ruta/par-rc1.json --output /ruta/preparacion-nueva
-# Sólo cuando los tres uploads terminaron y el recibo indica ready:
+python3 tools/release-pair.py check /ruta/par-rc4.json
+python3 tools/release-pair.py prepare /ruta/par-rc4.json --output /ruta/preparacion-nueva
+# Sólo cuando los cuatro uploads terminaron y el recibo indica ready:
 python3 tools/release-pair.py promote /ruta/preparacion-nueva/state.json
 snapcraft status pyao-client
 snapcraft status pyao
@@ -95,7 +95,7 @@ del upload bloquea la promoción; revisar el log y las revisiones de la cuenta a
 de repetir, para no duplicar una carga cuyo resultado se perdió.
 
 `promote` vuelve a comprobar fuentes, CI, evidencias, bytes y canales. Sólo entonces
-promueve las tres revisiones consecutivamente desde el mismo proceso. La Store
+promueve las cuatro revisiones consecutivamente desde el mismo proceso. La Store
 opera cada nombre/revisión por separado: el recibo registra inicio y final del
 intervalo real, sin prometer simultaneidad atómica. Si falla incluso una respuesta
 después de cambiar un canal, repone **todas** las revisiones anteriores y verifica
@@ -131,4 +131,4 @@ La construcción de la receta no acredita una publicación en Store ni una prueb
 completa del paquete instalado. Esas evidencias se registran por separado en #46
 y en el recorrido conjunto #60.
 
-La versión pública de cliente debe coincidir exactamente con la del servidor: el candidato actual es `1.0.0rc1`. El commit no se agrega al número de versión; queda en `share/doc/pyao-client/provenance.json` y `source-commit`.
+La versión pública de cliente debe coincidir exactamente con la del servidor: el candidato actual es `1.0.0rc4`. El commit no se agrega al número de versión; queda en `share/doc/pyao-client/provenance.json` y `source-commit`.
