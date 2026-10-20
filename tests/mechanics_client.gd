@@ -84,7 +84,7 @@ func snapshot() -> Dictionary:
 	for slot in range(30):
 		var stack: ItemStack = context.playerInventory.GetSlot(slot)
 		if stack.quantity > 0:
-			view.item_details[str(slot + 1)] = {"id": stack.item.index, "name": stack.item.name,
+			view.item_details[str(slot + 1)] = {"id": stack.item.index, "name": stack.item.name, "type": stack.item.type,
 				"min_hit": stack.item.minHit, "max_hit": stack.item.maxHit,
 				"min_def": stack.item.minDef, "max_def": stack.item.maxDef,
 				"icon_loaded": stack.item.icon != null}

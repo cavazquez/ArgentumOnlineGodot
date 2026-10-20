@@ -154,6 +154,7 @@ class NPCLootWorld(FullWorld):
             view = self.view(picker, lambda v: v["items"].get(str(slot), [0])[0] == item["item_id"], "objeto recogido en inventario")
             details = view["item_details"][str(slot)]
             assert details["name"] == raw["Name"] and details["icon_loaded"]
+            assert details["type"] == raw["ObjType"]
             for field, key_name in (("min_hit", "MinHit"), ("max_hit", "MaxHit"), ("min_def", "MinDef"), ("max_def", "MaxDef")):
                 assert details[field] == int(raw.get(key_name, 0))
             equipped = False
@@ -167,10 +168,13 @@ class NPCLootWorld(FullWorld):
                     assert equipped_view["gear_labels"][equipment_key] == f"{raw.get(pair[0],0)}/{raw.get(pair[1],0)}"
                 self.screen("equipped-" + case["category"], picker)
                 self.command(picker, "equip", slot=slot)
-                self.view(picker, lambda v: not v["items"][str(slot)][2], "desequipar tras comprobar stats")
+                cleared = self.view(picker, lambda v: not v["items"][str(slot)][2], "desequipar tras comprobar stats")
+                if equipment_key in cleared["gear_labels"]:
+                    assert cleared["gear_labels"][equipment_key] == "0/0"
                 equipped = True
             used = False
-            if raw["ObjType"] in (1, 11, 13):
+            effects = {}
+            if raw["ObjType"] in (1, 11, 13, 34):
                 def needs():
                     store.hset(f"player:{self.ids[picker]}:user_stats", mapping={"min_hp": 15000, "min_mana": 10000})
                     store.hset(f"player:{self.ids[picker]}:hunger_thirst", mapping={"min_hunger": 10, "min_water": 10})
@@ -178,6 +182,10 @@ class NPCLootWorld(FullWorld):
                 self.offline(store, current_positions, needs)
                 self.command(picker, "use", slot=slot)
                 self.wait(lambda: store.hget(f"player:{self.ids[picker]}:inventory", f"slot_{slot}") != f"{item['item_id']}:{item['quantity']}", "uso real del consumible recogido")
+                if raw["ObjType"] in (1, 13, 34):
+                    field = "min_hunger" if raw["ObjType"] == 1 else "min_water"
+                    self.wait(lambda: int(store.hget(f"player:{self.ids[picker]}:hunger_thirst", field)) > 10, "efecto real de comida o bebida recogida")
+                    effects = store.hgetall(f"player:{self.ids[picker]}:hunger_thirst")
                 used = True
-            drops.append({"id": item["item_id"], "quantity": item["quantity"], "picker": picker, "metadata": details, "equipped": equipped, "used": used})
+            drops.append({"id": item["item_id"], "quantity": item["quantity"], "picker": picker, "metadata": details, "equipped": equipped, "used": used, "effects": effects})
         self.passed("npc-loot-" + case["category"], category=case["category"], npc_level=case["level"], kill_method=method, items=drops, both_clients_observed=True, test_only_probabilities=True)
