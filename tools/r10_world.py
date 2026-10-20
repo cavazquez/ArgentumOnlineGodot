@@ -576,6 +576,11 @@ class R10World:
             ),
             "membresía de party persistida",
         )
+        self.console(2, f"Te has unido a la party de {self.names[0]}")
+        party_id = store.get(f"user:{self.ids[1]}:party")
+        for index in (1, 2):
+            member = json.loads(store.hget(f"party:{party_id}:members", str(self.ids[index])))
+            assert member["username"] == self.names[index - 1], "La party perdió el nombre real del personaje"
         self.command(1, "chat", text="/pmsg r10-party")
         self.console(2, "r10-party")
         self.command(2, "chat", text="/salirparty")
@@ -583,7 +588,7 @@ class R10World:
             lambda: not store.get(f"user:{self.ids[2]}:party"),
             "salida de party persistida",
         )
-        self.passed("party", "R07", create_join_accept_chat_leave=True)
+        self.passed("party", "R07", create_join_accept_chat_leave=True, real_names_in_redis_and_ui=True)
         clan = "R10" + str(self.ids[1])
         self.command(1, "chat", text=f"/CREARCLAN {clan} aceptación")
         self.console(1, clan)
