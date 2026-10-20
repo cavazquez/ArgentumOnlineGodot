@@ -21,6 +21,22 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def run_export(command, output):
+    """Admite una sola inicialización de caché; no oculta fallos persistentes."""
+    log = output / "export.log"
+    checker = [sys.executable, str(ROOT / "tools/check-export-log.py"), str(log)]
+    for attempt in range(2):
+        with log.open("w") as stream:
+            subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, check=True)
+        checked = subprocess.run(checker)
+        if checked.returncode == 0:
+            return
+        if checked.returncode == 2 and attempt == 0:
+            shutil.copy2(log, output / "export-initial.log")
+        else:
+            checked.check_returncode()
+
+
 def export(target, output, engine, reuse=None):
     if output.exists() and any(output.iterdir()):
         raise ValueError("La carpeta de salida debe estar vacía")
@@ -40,10 +56,7 @@ def export(target, output, engine, reuse=None):
         shutil.copy2(reuse, output / filename)
     else:
         command = [str(engine), "--headless", "--path", str(ROOT), "--export-release", preset, str(output / filename)]
-        log = output / "export.log"
-        with log.open("w") as stream:
-            subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, check=True)
-        subprocess.run([sys.executable, str(ROOT / "tools/check-export-log.py"), str(log)], check=True)
+        run_export(command, output)
     if not (output / filename).is_file():
         raise ValueError("El motor no produjo el artefacto esperado")
     if not dirty and subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT):
