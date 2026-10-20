@@ -661,7 +661,7 @@ class FullWorld(SkillsWorld):
             inventory_reorder=True,
         )
 
-    def benchmark(self, store):
+    def benchmark(self, store, *, slow_readers=1, report_name="benchmark.json"):
         for i in (1, 2):
             self.command(i, "logout")
             self.wait(
@@ -694,7 +694,7 @@ class FullWorld(SkillsWorld):
             "--connections",
             "2",
             "--slow-readers",
-            "1",
+            str(slow_readers),
             "--seconds",
             "30",
             "--host",
@@ -708,7 +708,7 @@ class FullWorld(SkillsWorld):
             "--metrics",
             str(self.output / "server-ticks.json"),
             "--output",
-            str(self.output / "benchmark.json"),
+            str(self.output / report_name),
             "--max-p95-ms",
             "1000",
             "--max-login-ms",
@@ -718,7 +718,7 @@ class FullWorld(SkillsWorld):
             subprocess.run(command, check=True, timeout=90)
         finally:
             credentials.unlink(missing_ok=True)
-        report = json.loads((self.output / "benchmark.json").read_text())
+        report = json.loads((self.output / report_name).read_text())
         if not report["passed"] or not report["tick_after"]:
             raise RuntimeError("Carga o tick real sin evidencia válida")
         cpu = (
@@ -758,10 +758,10 @@ class FullWorld(SkillsWorld):
             )
             if path.is_file()
         }
-        (self.output / "benchmark.json").write_text(json.dumps(report, indent=2) + "\n")
+        (self.output / report_name).write_text(json.dumps(report, indent=2) + "\n")
         for i in (1, 2):
             self.command(i, "login")
         self.both_screens("recovered-after-load")
         self.passed(
-            "full-benchmark", connections=2, slow_readers=1, report="benchmark.json"
+            "full-benchmark", connections=2, slow_readers=slow_readers, report=report_name
         )

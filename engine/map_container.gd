@@ -10,6 +10,13 @@ var _cache: MapViewCache
 var _characterCollection:Array[Character]
 var _objectCollection:Array[Node2D]
 var _tiles:PackedByteArray
+var _characters_by_id: Dictionary[int, Character] = {}
+var _characters_by_position: Dictionary[Vector2i, Array] = {}
+var _character_slots: Dictionary[int, int] = {}
+var _character_order: Dictionary[int, int] = {}
+var _next_character_order := 0
+var _objects_by_position: Dictionary[Vector2i, Node2D] = {}
+var _object_slots: Dictionary[int, int] = {}
 
 func _ready() -> void:
 	_cache = MapViewCache.new()
@@ -52,20 +59,76 @@ func UnblockTile (x:int, y:int) -> void:
 	SetTile(x, y, tile) 
 
 func AddCharacter(character:Character) -> void:
+	_TrackCharacter(character)
+	_GetLayer("Layer3").add_child(character)
+
+func _TrackCharacter(character: Character) -> void:
+	# También lo usa el benchmark: registra exactamente los índices de producción.
+	if _character_slots.has(character.get_instance_id()): return
+	DeleteCharacter(character.instanceId)
+	_character_slots[character.get_instance_id()] = _characterCollection.size()
+	_character_order[character.get_instance_id()] = _next_character_order
+	_next_character_order += 1
 	_characterCollection.append(character)
-	_GetLayer("Layer3").add_child(character) 
+	_characters_by_id[character.instanceId] = character
+	_AddCharacterPosition(character)
+	character.grid_position_changed.connect(_CharacterPositionChanged)
+	character.instance_id_changed.connect(_CharacterIdChanged)
+	character.retiring.connect(_UntrackCharacter)
+	character.tree_exiting.connect(_UntrackCharacter.bind(character))
+
+func _AddCharacterPosition(character: Character) -> void:
+	var cell: Array = _characters_by_position.get(character.gridPosition, [])
+	# Conserva la selección del primer personaje creado incluso si se superponen.
+	var order: int = _character_order[character.get_instance_id()]
+	var slot := cell.size()
+	while slot > 0 and _character_order[cell[slot - 1].get_instance_id()] > order:
+		slot -= 1
+	cell.insert(slot, character)
+	_characters_by_position[character.gridPosition] = cell
+
+func _RemoveCharacterPosition(character: Character, previous: Vector2i) -> void:
+	var cell: Array = _characters_by_position.get(previous, [])
+	cell.erase(character)
+	if cell.is_empty():
+		_characters_by_position.erase(previous)
+
+func _CharacterPositionChanged(character: Character, previous: Vector2i) -> void:
+	_RemoveCharacterPosition(character, previous)
+	_AddCharacterPosition(character)
+
+func _CharacterIdChanged(character: Character, previous: int) -> void:
+	if _characters_by_id.get(previous) == character:
+		_characters_by_id.erase(previous)
+	DeleteCharacter(character.instanceId)
+	_characters_by_id[character.instanceId] = character
+
+func _UntrackCharacter(character: Character) -> void:
+	var identity := character.get_instance_id()
+	if not _character_slots.has(identity): return
+	_RemoveCharacterPosition(character, character.gridPosition)
+	if _characters_by_id.get(character.instanceId) == character:
+		_characters_by_id.erase(character.instanceId)
+	var slot: int = _character_slots[identity]
+	var last: Character = _characterCollection.pop_back()
+	if slot < _characterCollection.size():
+		_characterCollection[slot] = last
+		_character_slots[last.get_instance_id()] = slot
+	_character_slots.erase(identity)
+	_character_order.erase(identity)
+	character.grid_position_changed.disconnect(_CharacterPositionChanged)
+	character.instance_id_changed.disconnect(_CharacterIdChanged)
+	character.retiring.disconnect(_UntrackCharacter)
+	character.tree_exiting.disconnect(_UntrackCharacter.bind(character))
 		
 func DeleteCharacter(instanceId:int) -> void:
 	var character = GetCharacter(instanceId)
 	if character:
-		_characterCollection.erase(character)
+		_UntrackCharacter(character)
 		character.queue_free()
 			
 func GetCharacter(instanceId:int) -> Character:
-	for node in _characterCollection:
-		if node.instanceId == instanceId:
-			return node
-	return null
+	return _characters_by_id.get(instanceId)
 
 func PlayWorldEffect(at: Vector2, fx: int, loops: int) -> void:
 	# El NPC puede desaparecer antes de que llegue el FX del golpe que lo mató.
@@ -88,10 +151,8 @@ func PlayWorldEffect(at: Vector2, fx: int, loops: int) -> void:
 	effect.play_effect(fx, clampi(loops, 0, 5))
 	
 func GetCharacterAt(x:int, y:int) -> Character:
-	for node in _characterCollection:
-		if node.gridPosition == Vector2i(x, y):
-			return node
-	return null
+	var cell: Array = _characters_by_position.get(Vector2i(x, y), [])
+	return cell[0] if not cell.is_empty() else null
 	
 func AddObject(grhId:int, x:int, y:int) -> void:
 	if grhId > 0:
@@ -101,7 +162,7 @@ func AddObject(grhId:int, x:int, y:int) -> void:
 		var grhData = GameAssets.GrhDataList[grhId]
 		var sprite = _CreateSprite(grhData, x -1, y - 1)
 		sprite.set_meta(GridPositionKey, Vector2i(x, y))
-		_objectCollection.append(sprite)
+		_TrackObject(sprite)
 		
 		if sprite.region_rect.size == Vector2(32, 32):
 			_GetLayer("Layer2").add_child(sprite)
@@ -109,19 +170,43 @@ func AddObject(grhId:int, x:int, y:int) -> void:
 			_GetLayer("Layer3").add_child(sprite)
 	
 func DeleteObject(x:int, y:int) -> void:
-	var node:Node2D = null
-	
-	for object in _objectCollection:
-		if object.get_meta(GridPositionKey) == Vector2i(x, y):
-			node = object
-			break
-	
+	var node := GetObjectAt(x, y)
 	if node:
-		_objectCollection.erase(node)
+		_UntrackObject(node)
 		node.queue_free()
+
+func GetObjectAt(x: int, y: int) -> Node2D:
+	return _objects_by_position.get(Vector2i(x, y))
+
+func _TrackObject(node: Node2D) -> void:
+	if _object_slots.has(node.get_instance_id()): return
+	var cell: Vector2i = node.get_meta(GridPositionKey)
+	DeleteObject(cell.x, cell.y)
+	_object_slots[node.get_instance_id()] = _objectCollection.size()
+	_objectCollection.append(node)
+	_objects_by_position[cell] = node
+	node.tree_exiting.connect(_UntrackObject.bind(node))
+
+func _UntrackObject(node: Node2D) -> void:
+	var identity := node.get_instance_id()
+	if not _object_slots.has(identity): return
+	var cell: Vector2i = node.get_meta(GridPositionKey)
+	if _objects_by_position.get(cell) == node:
+		_objects_by_position.erase(cell)
+	var slot: int = _object_slots[identity]
+	var last: Node2D = _objectCollection.pop_back()
+	if slot < _objectCollection.size():
+		_objectCollection[slot] = last
+		_object_slots[last.get_instance_id()] = slot
+	_object_slots.erase(identity)
+	node.tree_exiting.disconnect(_UntrackObject.bind(node))
 	
 func _DeleteEntities() -> void:
-	for entity in _characterCollection + _objectCollection:
+	var entities := _characterCollection + _objectCollection
+	for character in _characterCollection.duplicate(): _UntrackCharacter(character)
+	for object in _objectCollection.duplicate(): _UntrackObject(object)
+	_next_character_order = 0
+	for entity in entities:
 		if is_instance_valid(entity):
 			if entity.get_parent(): entity.get_parent().remove_child(entity)
 			entity.queue_free()
@@ -129,8 +214,6 @@ func _DeleteEntities() -> void:
 		for layer in _view.get_children():
 			for child in layer.get_children():
 				if child.get_meta("pyao_dynamic_fx", false): child.queue_free()
-	_characterCollection.clear()
-	_objectCollection.clear()
 
 func _CreateSprite(grhData:GrhData, x:int, y:int) -> Sprite2D:
 	var sprite = Sprite2D.new()

@@ -1,6 +1,10 @@
 extends Node2D
 class_name Character
 
+signal grid_position_changed(character: Character, previous: Vector2i)
+signal instance_id_changed(character: Character, previous: int)
+signal retiring(character: Character)
+
 const Speed = 120.0
 const OUTLINE_SHADER = preload("res://shaders/outline.gdshader")
  
@@ -17,14 +21,28 @@ var _targetPosition:Vector2
 var _charInvisible:bool
 var _isPlayer:bool = false
 
-var instanceId:int
-var gridPosition:Vector2i
+var instanceId:int:
+	set(value):
+		if instanceId == value: return
+		var previous := instanceId
+		instanceId = value
+		instance_id_changed.emit(self, previous)
+var gridPosition:Vector2i:
+	set(value):
+		if gridPosition == value: return
+		var previous := gridPosition
+		gridPosition = value
+		grid_position_changed.emit(self, previous)
 var isMoving:bool
 var priv:int
 var _dialog_revealing := false
 var _dialog_progress := 0.0
 var _dialog_length := 0
 var _spawn_fade: Tween
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		retiring.emit(self)
 
 func _ready() -> void:
 	Global.connect("dialog_font_size_changed", Callable(self, "_on_dialog_font_size_changed"))
