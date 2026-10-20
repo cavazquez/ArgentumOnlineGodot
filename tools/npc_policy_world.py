@@ -36,7 +36,9 @@ class NPCPolicyWorld(R10World):
             self.ids = {i: int(store.hget(f"account:{self.names[i-1]}:data", "user_id")) for i in (1,2)}
             _, x, y = locations["skills_base"]
             poses = {1: (2,x,y), 2: (2,x,y+1)}
-            self.relocate(store, poses, reset=True)
+            # El hostil ya persigue al primer personaje durante el segundo login.
+            # El spawn puede evitar legítimamente la casilla ahora ocupada.
+            poses = self.relocate(store, poses, reset=True, allow_adjustment=True)
             def equipment():
                 for i in (1,2):
                     store.hset(f"player:{self.ids[i]}:user_stats", mapping={"min_hp":30000,"max_hp":30000,"min_mana":10000,"max_mana":10000,"criminal":0,"faction_id":"neutral"})

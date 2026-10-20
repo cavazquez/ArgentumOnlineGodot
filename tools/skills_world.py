@@ -204,6 +204,10 @@ class MechanicsWorld(SpellWorld):
         )
 
     def attempt(self, store, skill, x, y):
+        if skill == 17:
+            # Los intentos fallidos también activan los tres segundos reales de
+            # Domar; pulsar antes se rechaza y no debe acreditar entrenamiento.
+            self.wait(lambda: time.time() - float(store.hget(f"player:{self.ids[1]}:user_stats", "last_tame_at") or 0) >= 3.1, "cadencia de domesticación", 5)
         key = next(s for s in SKILLS if s["id"] == skill)["key"]
         before = int(self.skill_state(store).get(f"xp:{key}", 0))
         self.command(1, "ability", skill=skill)
