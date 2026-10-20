@@ -81,7 +81,7 @@ def smoke(candidate, server, output):
         observations = []
         errors = []
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--autoplay-policy=no-user-gesture-required", "--ignore-certificate-errors-spki-list=" + spki])
+            browser = playwright.chromium.launch(args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-certificate-errors-spki-list=" + spki])
             context = browser.new_context(viewport={"width": 1000, "height": 750})
             for index in (1, 2):
                 username, password = "Web" + secrets.token_hex(4) + str(index), secrets.token_urlsafe(18)
@@ -89,11 +89,14 @@ def smoke(candidate, server, output):
                 page.on("pageerror", lambda error: errors.append(str(error)))
                 page.add_init_script("window.PYAO_TEST_CONTEXT=" + json.dumps({"endpoint": endpoint, "username": username, "password": password, "mode": "login"}))
                 page.goto(origin + "/index.html?pyao_acceptance=1", timeout=120000)
+                page.wait_for_function("window.PYAO_AUDIO_READY === true", timeout=120000)
+                page.locator("canvas").click(position={"x": 20, "y": 20})
+                page.evaluate("window.PYAO_AUDIO_CLICKED = true")
                 page.wait_for_function("window.PYAO_PROOF !== undefined", timeout=120000)
                 proof = page.evaluate("window.PYAO_PROOF")
                 observations.append(proof)
-                if proof.get("passed") is not True: raise RuntimeError("Web: " + json.dumps(proof))
                 page.screenshot(path=str(output / f"web-{index}.png"))
+                if proof.get("passed") is not True: raise RuntimeError("Web: " + json.dumps(proof))
                 with fixture.client() as store:
                     uid = store.hget(f"account:{username}:data", "user_id")
                     if not uid or not store.exists(f"session:{uid}:owner"): raise RuntimeError("Login web no confirmado en Redis")

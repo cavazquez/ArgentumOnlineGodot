@@ -56,6 +56,8 @@ func _ready() -> void:
 		Global.reload_preferences()
 		report({"passed": saved and Global.dialogFontSize == 14 and not WebPreferences.last_error.is_empty(), "session_fallback": saved, "visible_warning": not WebPreferences.last_error.is_empty()})
 		return
+	JavaScriptBridge.eval("window.PYAO_AUDIO_READY = true", true)
+	if not await wait_for(func(): return JavaScriptBridge.eval("window.PYAO_AUDIO_CLICKED === true", true), "Gesto real para iniciar audio web"): return
 	var login := ScreenController.currentScreen
 	login.get_node("%Ip").text = context.endpoint
 	login.get_node("%CaPath").text = ""
@@ -87,12 +89,8 @@ func _ready() -> void:
 		if actor.gridPosition != before: break
 	var movement: bool = actor.gridPosition != before
 	var saved := preferences()
-	AudioManager.PlayAudio(17)
-	await get_tree().create_timer(0.05).timeout
-	var audio := false
-	for player in AudioManager.get_children():
-		if player is AudioStreamPlayer and player.playing and player.get_playback_position() > 0: audio = true
+	var audio := await AudioPlaybackProbe.played(self)
 	await RenderingServer.frame_post_draw
 	var rendered := get_viewport().get_texture().get_image().get_width() >= 640
 	var secure := ClientInterface._websocket != null and ClientInterface.IsConnected()
-	report({"passed": secure and saved and movement and audio and rendered, "login": secure, "preferences": saved, "input": movement, "audio": audio, "rendering": rendered, "wss": secure, "map": game._gameContext.player_map, "slots": game._gameInput._inventoryContainer.get_child_count(), "profile": ClientInterface.local_character_key(context.username)})
+	report({"passed": secure and saved and movement and audio and rendered, "login": secure, "preferences": saved, "input": movement, "audio": audio, "audio_driver": AudioServer.get_driver_name(), "user_activation": JavaScriptBridge.eval("navigator.userActivation.hasBeenActive", true), "rendering": rendered, "wss": secure, "map": game._gameContext.player_map, "slots": game._gameInput._inventoryContainer.get_child_count(), "profile": ClientInterface.local_character_key(context.username)})
