@@ -2,7 +2,7 @@
 """Prepara y promueve una entrega Snap conjunta, con recibos y recuperación.
 
 La Store no ofrece una transacción entre nombres. Nunca se usa upload --release:
-primero se revisan los tres paquetes y luego se promueven desde un único proceso.
+primero se revisan los cuatro paquetes y luego se promueven desde un único proceso.
 Si una promoción falla (incluso después de aplicarse), se restaura el par previo.
 """
 
@@ -20,11 +20,12 @@ import time
 
 from r10_world import REQUIRED_SCENARIOS
 
-PACKAGES = {"pyao/amd64", "pyao/arm64", "pyao-client/amd64"}
+PACKAGES = {"pyao/amd64", "pyao/arm64", "pyao-client/amd64", "pyao-client/arm64"}
 REPOSITORIES = {
     "pyao": ("cavazquez/pyao-server", {"CI", "Server Snap"}),
     "pyao-client": ("cavazquez/ArgentumOnlineGodot", {"Cliente Linux"}),
 }
+CAMPAIGN_SCENARIOS = {"full", "potions", "expansion", "economy", "npcs", "npc-policy"}
 
 
 def require(condition, message):
@@ -139,6 +140,27 @@ def validate_evidence(manifest, root):
             reference(
                 item, reference(manifest["evidence"]["requirements"], root).parent
             )
+    validate_campaign(manifest, root)
+
+
+def validate_campaign(manifest, root):
+    """No publica esta fase con sólo la aceptación anterior de R10."""
+    require("campaign" in manifest["evidence"], "Falta la campaña completa de esta fase")
+    path = reference(manifest["evidence"]["campaign"], root)
+    campaign = read(path)
+    sources = manifest["sources"]
+    expected = {"server": sources["pyao"]["commit"], "client": sources["pyao-client"]["commit"]}
+    require(campaign.get("passed") is True and campaign.get("sources") == expected, "Campaña fallida o de otros commits")
+    rows = campaign.get("records", [])
+    require(len(rows) == len(CAMPAIGN_SCENARIOS) and {row["scenario"] for row in rows} == CAMPAIGN_SCENARIOS, "Campaña incompleta")
+    for row in rows:
+        result = read(reference({"file": row["proof"], "sha256": row["sha256"]}, path.parent))
+        require(result.get("passed", result.get("regression_passed")) is True, "Escenario fallido: " + row["scenario"])
+        require(result.get("server_commit") == expected["server"] and result.get("client_commit") == expected["client"], "Escenario de otros commits")
+        require(result.get("release_version") == manifest["version"], "Escenario de otra versión")
+        require(result.get("native_export") is True and result.get("installed_wheel") is True and result.get("tls") is True, "Escenario sin binarios instalados y TLS")
+        if row["scenario"] == "full":
+            require(row["sha256"] == manifest["evidence"]["r10"]["sha256"], "La campaña y R10 deben referenciar la misma aceptación completa")
 
 
 def validate(manifest, root, backend):
@@ -245,7 +267,8 @@ class Store:
 
     def channels(self, channel):
         track, risk = channel.split("/")
-        result = {}
+        # Una arquitectura nueva todavía no tiene revisión en este canal.
+        result = dict.fromkeys(PACKAGES)
         for name in REPOSITORIES:
             response = json.loads(
                 command(
@@ -277,7 +300,6 @@ class Store:
                         "version": entry["version"],
                         "sha3_384": entry["download"]["sha3-384"],
                     }
-        require(set(result) == PACKAGES, "La Store no devolvió el par completo")
         return result
 
     def upload(self, path, name, log):
@@ -306,6 +328,9 @@ class Store:
 
     def release(self, name, revision, channel):
         command(["snapcraft", "release", name, str(revision), channel], timeout=120)
+
+    def close(self, name, channel):
+        command(["snapcraft", "close", name, channel], timeout=120)
 
     def wait(self, expected, channel):
         deadline = time.monotonic() + 180
@@ -395,7 +420,9 @@ def promote(path, backend):
     receipt.update(status="promoting", promotion_started_at=now())
     save(path, receipt)
     try:
-        for candidate in receipt["candidates"].values():
+        ordered = sorted(receipt["candidates"], key=lambda key: receipt["baseline"][key] is None)
+        for key in ordered:
+            candidate = receipt["candidates"][key]
             # Se registra ANTES: un timeout puede ocurrir después de que la Store cambió.
             receipt["operations"].append(
                 {"action": "release", **candidate, "at": now()}
@@ -423,15 +450,40 @@ def rollback(path, receipt, backend):
     )
     for key, previous in receipt["baseline"].items():
         require(
-            previous["name"] == key.split("/")[0]
-            and type(previous["revision"]) is int
-            and previous["revision"] > 0,
+            previous is None or (
+                previous["name"] == key.split("/")[0]
+                and type(previous["revision"]) is int
+                and previous["revision"] > 0
+            ),
             "Revisión anterior inválida",
         )
     receipt.update(status="rolling-back")
     save(path, receipt)
     failures = []
+    # Snapcraft cierra un canal de todas las arquitecturas de ese nombre. Si
+    # se intentó estrenar una arquitectura, cerrar y reponer las revisiones
+    # previas restaura también su ausencia, sin dejar un Snap ARM64 huérfano.
+    newly_released = {
+        receipt["candidates"][key]["name"]
+        for key, previous in receipt["baseline"].items()
+        if previous is None and key in receipt["candidates"]
+        and any(
+            op.get("action") == "release"
+            and op.get("name") == receipt["candidates"][key]["name"]
+            and op.get("revision") == receipt["candidates"][key]["revision"]
+            for op in receipt["operations"]
+        )
+    }
+    for name in sorted(newly_released):
+        receipt["operations"].append({"action": "close", "name": name, "channel": channel, "at": now()})
+        save(path, receipt)
+        try:
+            backend.close(name, channel)
+        except BaseException as error:
+            failures.append(str(error))
     for previous in receipt["baseline"].values():
+        if previous is None:
+            continue
         try:
             backend.release(previous["name"], previous["revision"], channel)
         except BaseException as error:

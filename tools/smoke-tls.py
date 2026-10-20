@@ -11,8 +11,8 @@ import tempfile
 
 PROJECT = Path(__file__).resolve().parent.parent
 CANARY = b"SYNTHETIC_TLS_CANARY_3"
-# WORLD_STATE (512) está incluido; WEATHER (64) sigue reservado.
-BURST_CAPABILITIES = b"\xfa\x01\xbf\x03\x00\x00"
+# WORLD_STATE (512) y EXPANSION (1024); WEATHER (64) sigue reservado.
+BURST_CAPABILITIES = b"\xfa\x01\xbf\x07\x00\x00"
 
 
 def certificates(root: Path) -> dict[str, ssl.SSLContext]:

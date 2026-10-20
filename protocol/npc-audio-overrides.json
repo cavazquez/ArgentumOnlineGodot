@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "overrides": [
+    {
+      "npc_id": 610,
+      "event": "damage",
+      "historical_wave": 174,
+      "wave": 175,
+      "reason": "Kraken: usar su voz 175 ya distribuida; el recurso original 174 no está disponible."
+    }
+  ]
+}

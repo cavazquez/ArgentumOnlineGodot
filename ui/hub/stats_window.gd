@@ -180,6 +180,10 @@ func _build_fame_labels() -> void:
 		fame_grid.add_child(value_label)
 		fame_labels[p[0]] = value_label
 
+func set_attribute(attribute: String, value: int) -> void:
+	if attribute_labels.has(attribute):
+		attribute_labels[attribute].text = str(value)
+
 func set_attributes(attributes:Array[int]) -> void:
 	if !_ui_ready:
 		_pending_attributes = attributes

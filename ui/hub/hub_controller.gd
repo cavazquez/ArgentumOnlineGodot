@@ -211,10 +211,14 @@ func SetBankGold(gold:int) -> void:
 		 
 func update_agility_label(value:int) -> void:
 	%LblAgility.text = str(value)
+	if is_instance_valid(_stats_window):
+		_stats_window.set_attribute("Agilidad", value)
 	
 	
 func update_strength_label(value:int) -> void:
 	%LblStrength.text = str(value)
+	if is_instance_valid(_stats_window):
+		_stats_window.set_attribute("Fuerza", value)
 		
 
 func update_gold_label(value:int) -> void:
@@ -891,29 +895,45 @@ func _install_world_buttons() -> void:
 	row.position = Vector2(565, 110)
 	row.size = Vector2(220, 24)
 	add_child(row)
-	for info in [["Devaluación", "tax"], ["Mascotas", "pets"]]:
-		var control := Button.new()
-		control.text = info[0]
-		control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		control.pressed.connect(OpenWorldTopic.bind(info[1]))
-		row.add_child(control)
-		_world_buttons.append(control)
+	var more := MenuButton.new()
+	more.text = "Mundo"
+	more.tooltip_text = "Devaluación, mascotas, grupos, clanes, facciones y misiones."
+	more.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	more.add_theme_font_size_override("font_size", 12)
+	var topics := ["tax", "pets", "finder", "diplomacy", "depot", "faction", "quests"]
+	for topic in topics: more.get_popup().add_item({"tax": "Devaluación", "pets": "Mascotas"}.get(topic, ExpansionWindow.TITLES.get(topic, "Mundo")))
+	more.get_popup().id_pressed.connect(func(index: int): OpenWorldTopic(topics[index]))
+	row.add_child(more)
+	_world_buttons.append(more)
 	ClientInterface.capabilities_changed.connect(_update_world_buttons)
 	_update_world_buttons()
 
 func _update_world_buttons() -> void:
 	for control in _world_buttons:
-		control.disabled = not ClientInterface.capabilities.has_feature(ClientCapabilities.WORLD_STATE)
+		control.disabled = not ClientInterface.capabilities.has_feature(int(control.get_meta("capability", ClientCapabilities.WORLD_STATE)))
+		if control is MenuButton:
+			for index in range(2, control.get_popup().item_count):
+				control.get_popup().set_item_disabled(index, not ClientInterface.capabilities.has_feature(ClientCapabilities.EXPANSION))
 
 func OpenWorldTopic(topic: String) -> void:
 	if not ClientInterface.capabilities.has_feature(ClientCapabilities.WORLD_STATE):
 		ShowConsoleMessage("Esta ventana requiere el servidor actualizado.")
 		return
+	if topic in ExpansionWindow.TITLES and not ClientInterface.capabilities.has_feature(ClientCapabilities.EXPANSION):
+		ShowConsoleMessage("Esta función requiere el servidor actualizado.")
+		return
+	for modal in _VisibleModals():
+		if modal == _world_windows.get(topic): continue
+		modal.close_requested.emit()
+		if is_instance_valid(modal) and modal.visible:
+			ShowConsoleMessage("Esperá la confirmación de la acción pendiente antes de abrir otra ventana.")
+			return
 	if not _world_windows.has(topic) or not is_instance_valid(_world_windows[topic]):
 		var window: WorldStateWindow
 		match topic:
 			"tax": window = TaxWindow.new()
 			"pets": window = PetsWindow.new()
+			"finder", "diplomacy", "depot", "faction", "quests": window = ExpansionWindow.new(topic)
 			_: window = SocialWindow.new(topic)
 		_world_windows[topic] = window
 		add_child(window)

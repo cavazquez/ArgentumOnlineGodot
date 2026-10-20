@@ -19,6 +19,7 @@ var _quick: HBoxContainer
 var _quick_stock := -1
 var _adjusting := false
 var _review_quantity := false
+var _missions: Button
 
 func _ready() -> void:
 	theme = Theme.new()
@@ -55,6 +56,14 @@ func _ready() -> void:
 	_actionButton = Button.new()
 	_actionButton.pressed.connect(_Submit)
 	layout.add_child(_actionButton)
+	_missions = Button.new()
+	_missions.text = "Consultar misiones"
+	_missions.visible = ClientInterface.capabilities.has_feature(ClientCapabilities.EXPANSION)
+	_missions.pressed.connect(func():
+		RequestClose()
+		var game := ScreenController.currentScreen as GameScreen
+		if game != null: game._gameInput.OpenWorldTopic.call_deferred("quests"))
+	layout.add_child(_missions)
 	var close_button := Button.new()
 	close_button.text = "Cerrar"
 	close_button.pressed.connect(RequestClose)
@@ -137,6 +146,7 @@ func _ValidSelection() -> bool:
 func _Refresh() -> void:
 	if _actionButton == null:
 		return
+	if _missions != null: _missions.disabled = _closing or _pending
 	_actionButton.text = "Comprar" if _source == "buy" else ("Vender" if _source == "sell" else "Seleccioná un objeto")
 	var stack := _GetStack()
 	var stock := mini(32767, stack.quantity) if stack != null and stack.item != null and stack.item.index == _selected_item else 0

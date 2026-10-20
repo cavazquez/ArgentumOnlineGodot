@@ -26,6 +26,9 @@ var _logged := false
 var _framer := AOPacketFramer.new()
 var _generation := 0
 var _trusted_ca: X509Certificate
+var _websocket: WebSocketPeer
+var _websocket_url := ""
+var _closing_websockets: Array[Dictionary] = []
 
 func _ready() -> void:
 	set_process(false)
@@ -38,6 +41,12 @@ func _reset() -> void:
 	Global.character_local.open_profile("")
 	_logged = false
 	set_process(false)
+	if _websocket != null:
+		_websocket.close()
+		_closing_websockets.append({"peer": _websocket, "deadline": Time.get_ticks_msec() + 5000})
+	_websocket = null
+	_websocket_url = ""
+	set_process(not _closing_websockets.is_empty())
 	if _tls != null:
 		_tls.disconnect_from_stream()
 	_socket.disconnect_from_host()
@@ -49,6 +58,13 @@ func _reset() -> void:
 	GameProtocol.Clear()
 
 func ConnectToHost(host: String, port: int, use_tls: bool = true, trusted_ca: X509Certificate = null, timeout_seconds: float = 10.0) -> Error:
+	if host.strip_edges().begins_with("wss://"):
+		return ConnectToWebSocket(host.strip_edges(), trusted_ca, timeout_seconds)
+	if OS.has_feature("web"):
+		if not use_tls:
+			_fail("El navegador requiere un endpoint WSS seguro")
+			return ERR_INVALID_PARAMETER
+		return ConnectToWebSocket("wss://%s:%d" % [host.strip_edges(), port], null, timeout_seconds)
 	_reset()
 	if host.strip_edges().is_empty() or port < 1 or port > 65535 or timeout_seconds <= 0:
 		_fail("Dirección, puerto o plazo de conexión inválido")
@@ -82,10 +98,14 @@ func _fail(message: String) -> void:
 
 func Send(data: PackedByteArray) -> Error:
 	# No se encolan credenciales antes de validar completamente el handshake.
-	if not IsConnected() or _transport == null:
+	if not IsConnected() or (_transport == null and _websocket == null):
 		return ERR_UNAVAILABLE
 	if data.is_empty():
 		return OK
+	if _websocket != null:
+		var result := _websocket.send(data, WebSocketPeer.WRITE_MODE_BINARY)
+		if result != OK: _fail("No se pudo enviar al servidor WSS")
+		return result
 	var result := _transport.put_data(data)
 	if result != OK:
 		_fail("No se pudo enviar al servidor")
@@ -96,10 +116,22 @@ func _mark_connected() -> void:
 	connected.emit()
 
 func _process(_delta: float) -> void:
+	for index in range(_closing_websockets.size() - 1, -1, -1):
+		var closing: WebSocketPeer = _closing_websockets[index].peer
+		closing.poll()
+		if closing.get_ready_state() == WebSocketPeer.STATE_CLOSED or Time.get_ticks_msec() >= int(_closing_websockets[index].deadline):
+			if closing.get_ready_state() != WebSocketPeer.STATE_CLOSED: closing.close(-1)
+			_closing_websockets.remove_at(index)
+	if _state == State.DISCONNECTED:
+		set_process(not _closing_websockets.is_empty())
+		return
 	if capabilities.expire():
 		capabilities_changed.emit()
 	if _state != State.CONNECTED and Time.get_ticks_msec() >= _deadline_msec:
 		_fail("Se agotó el tiempo de conexión o verificación TLS")
+		return
+	if _websocket != null:
+		_ProcessWebSocket()
 		return
 	_socket.poll()
 	var tcp_status := _socket.get_status()
@@ -191,4 +223,61 @@ func _AcceptIncomingData(data: PackedByteArray) -> void:
 
 func local_character_key(character: String) -> String:
 	if not _logged or _hostname.is_empty() or _port < 1 or character.is_empty(): return ""
+	if _websocket != null:
+		return ("%s|%s" % [_websocket_url, character]).sha256_text()
 	return ("%s|%s|%d|%s" % ["tls" if _use_tls else "tcp", _hostname.to_lower(), _port, character]).sha256_text()
+
+func ConnectToWebSocket(url: String, trusted_ca: X509Certificate = null, timeout_seconds: float = 10.0, origin: String = "") -> Error:
+	_reset()
+	var format := RegEx.new()
+	format.compile("^wss://(\\[[0-9a-fA-F:]+\\]|[a-zA-Z0-9.-]+)(?::([0-9]{1,5}))?(/[^?#\\s]*)?$")
+	var match_url := format.search(url)
+	if match_url == null or timeout_seconds <= 0:
+		_fail("La dirección web debe ser WSS, sin usuario, contraseña ni parámetros")
+		return ERR_INVALID_PARAMETER
+	_hostname = match_url.get_string(1).trim_prefix("[").trim_suffix("]")
+	_port = int(match_url.get_string(2)) if not match_url.get_string(2).is_empty() else 443
+	if not 1 <= _port or _port > 65535:
+		_fail("Puerto WSS inválido")
+		return ERR_INVALID_PARAMETER
+	_websocket_url = url
+	_use_tls = true
+	_websocket = WebSocketPeer.new()
+	_websocket.inbound_buffer_size = 131072
+	_websocket.outbound_buffer_size = 131072
+	_websocket.max_queued_packets = 256
+	if not OS.has_feature("web"):
+		_websocket.handshake_headers = PackedStringArray(["Origin: " + (origin if not origin.is_empty() else "https://" + url.get_slice("/", 2))])
+	var options := TLSOptions.client(trusted_ca) if not OS.has_feature("web") else null
+	var result := _websocket.connect_to_url(url, options)
+	if result != OK:
+		_fail("No se pudo iniciar la conexión WSS")
+		return result
+	if OS.has_feature("web"):
+		WebPreferences.select_endpoint(url)
+	_deadline_msec = Time.get_ticks_msec() + int(timeout_seconds * 1000)
+	_state = State.CONNECTING
+	set_process(true)
+	return OK
+
+func _ProcessWebSocket() -> void:
+	var generation := _generation
+	_websocket.poll()
+	var state := _websocket.get_ready_state()
+	if state == WebSocketPeer.STATE_CONNECTING: return
+	if state == WebSocketPeer.STATE_CLOSED:
+		_fail("La conexión WSS se cerró o no se pudo verificar su certificado")
+		return
+	if state != WebSocketPeer.STATE_OPEN: return
+	if _state == State.CONNECTING: _mark_connected()
+	if generation != _generation or _websocket == null: return
+	var remaining := MAX_RECEIVED_BYTES_PER_FRAME
+	for _read in MAX_READS_PER_FRAME:
+		if generation != _generation or _websocket == null or _websocket.get_available_packet_count() == 0: return
+		var data := _websocket.get_packet()
+		if _websocket.was_string_packet() or data.size() > 65536:
+			_fail("Protocolo WSS inválido: sólo se aceptan mensajes AO binarios acotados")
+			return
+		remaining -= data.size()
+		_AcceptIncomingData(data)
+		if remaining <= 0: return

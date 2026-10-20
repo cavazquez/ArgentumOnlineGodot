@@ -2,7 +2,7 @@ extends Node
 
 func _ready() -> void:
 	var failed := false
-	for path: String in ["res://tests/integration_world.gd", "res://tests/r10_client.gd", "res://tests/mechanics_client.gd"]:
+	for path: String in ["res://tests/integration_world.gd", "res://tests/r10_client.gd", "res://tests/mechanics_client.gd", "res://tests/web_client.gd"]:
 		var candidate := GDScript.new()
 		candidate.source_code = FileAccess.get_file_as_string(path)
 		if candidate.reload() != OK or not candidate.can_instantiate():

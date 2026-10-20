@@ -97,7 +97,7 @@ def prepare(incoming, output, product, commit, role):
         executable = native / "pyao-client.x86_64"
         if record["files"] != {executable.name: sha(executable)}:
             raise ValueError("Native executable changed after CI")
-        arches = ["amd64"]
+        arches = ["amd64", "arm64"]
     else:
         native = incoming / "distribution"
         record = json.loads((native / "manifest.json").read_text())
@@ -120,10 +120,20 @@ def prepare(incoming, output, product, commit, role):
         snaps.append(snap)
     output.mkdir(parents=True)
     if role == "client":
-        executable.chmod(0o755)
-        with zipfile.ZipFile(output / f"pyao-client-{product}-linux-amd64.zip", "w", zipfile.ZIP_DEFLATED) as archive:
-            archive.write(executable, executable.name)
-            archive.write(native / "release-manifest.json", "release-manifest.json")
+        platforms = set()
+        for metadata in sorted((incoming / "portables").rglob("pyao-client-*.json")):
+            portable = json.loads(metadata.read_text())
+            identity(portable, product, commit)
+            archive = metadata.parent / portable["archive"]
+            if portable.get("verified") is not True or archive.name != portable["archive"] or not archive.is_file() or sha(archive) != portable.get("sha256"):
+                raise ValueError("Portable no verificado o alterado después del test nativo")
+            if (output / archive.name).exists():
+                raise ValueError("Nombre portable repetido entre plataformas")
+            platforms.add(portable["platform"])
+            shutil.copyfile(archive, output / archive.name)
+            shutil.copyfile(metadata, output / metadata.name)
+        if platforms != {"linux", "linux-arm64", "windows", "macos", "web"}:
+            raise ValueError("Faltan distribuciones verificadas de la entrega coordinada")
     else:
         for item in record["files"]:
             name = item["name"]

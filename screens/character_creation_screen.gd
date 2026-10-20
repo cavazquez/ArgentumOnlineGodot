@@ -40,8 +40,16 @@ func _Init() -> void:
 	_ThrowDice()
   
 func _OnDisconnected() -> void:
+	if is_queued_for_deletion(): return
+	_DetachNetwork()
 	var screen = load("uid://cd452cndcck7v").instantiate()  
 	ScreenController.SwitchScreen(screen) 
+
+func _DetachNetwork() -> void:
+	if ClientInterface.dataReceived.is_connected(_OnDataReceivedd):
+		ClientInterface.dataReceived.disconnect(_OnDataReceivedd)
+	if ClientInterface.disconnected.is_connected(_OnDisconnected):
+		ClientInterface.disconnected.disconnect(_OnDisconnected)
 
 func _OnDataReceivedd(data:PackedByteArray) -> void:
 	var stream = StreamPeerBuffer.new()
@@ -59,8 +67,7 @@ func _OnDataReceivedd(data:PackedByteArray) -> void:
 				return 
 				
 func _HandleLogged(data:PackedByteArray) -> void:
-	ClientInterface.dataReceived.disconnect(_OnDataReceivedd)
-	ClientInterface.disconnected.disconnect(_OnDisconnected)
+	_DetachNetwork()
 	var screen = load("uid://b2dyxo3826bub").instantiate() as GameScreen
 	screen.networkMessages.append(data)
 	

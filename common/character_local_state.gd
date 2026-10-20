@@ -16,9 +16,10 @@ func open_profile(key: String) -> void:
 		if not character in "0123456789abcdef": return
 	profile = key
 	var path := "user://characters/%s.json" % profile
-	if not FileAccess.file_exists(path): return
+	var text := WebPreferences.read_text(path)
+	if text.is_empty(): return
 	var parser := JSON.new()
-	if parser.parse(FileAccess.get_file_as_string(path)) != OK: return
+	if parser.parse(text) != OK: return
 	var value: Variant = parser.data
 	if not value is Dictionary or not TradeSnapshot.integer(value.get("version", 0), 0, 1): return
 	var maps: Variant = value.get("visited", [])
@@ -44,12 +45,16 @@ func remember_tax(receipt: String) -> bool:
 
 func _save() -> void:
 	if profile.is_empty(): return
-	if DirAccess.make_dir_recursive_absolute("user://characters") != OK: return
 	var path := "user://characters/%s.json" % profile
-	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
-	if file == null: return
 	var maps := visited.keys()
 	maps.sort()
-	file.store_string(JSON.stringify({"version": 1, "visited": maps, "tax_receipt": tax_receipt}))
+	var text := JSON.stringify({"version": 1, "visited": maps, "tax_receipt": tax_receipt})
+	if OS.has_feature("web"):
+		WebPreferences.write_text(path, text)
+		return
+	if DirAccess.make_dir_recursive_absolute("user://characters") != OK: return
+	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
+	if file == null: return
+	file.store_string(text)
 	file.close()
 	DirAccess.rename_absolute(path + ".tmp", path)
