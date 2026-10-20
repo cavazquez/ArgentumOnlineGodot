@@ -20,25 +20,35 @@ func _run() -> void:
 		var world := MapContainer.new()
 		var by_id := {}
 		var by_position := {}
+		var setup_started := Time.get_ticks_usec()
 		for index in range(count):
 			var actor := Character.new()
 			actor.instanceId = index + 1
 			actor.gridPosition = Vector2i(index % 100 + 1, index / 100 + 1)
-			world._characterCollection.append(actor)
+			world._TrackCharacter(actor)
 			by_id[actor.instanceId] = actor
 			by_position[actor.gridPosition] = actor
 		assert(world.GetCharacter(count) == by_id[count])
 		assert(world.GetCharacter(-1) == null)
 		var last_position: Vector2i = by_id[count].gridPosition
+		var setup_usec := Time.get_ticks_usec() - setup_started
+		var last_actor: Character = by_id[count]
 		report.entities.append({"count": count,
-			"character_last_linear": samples(func(): return world.GetCharacter(count)),
-			"character_missing_linear": samples(func(): return world.GetCharacter(-1)),
+			"setup_usec_including_reference_dictionaries": setup_usec,
+			"character_last_current": samples(func(): return world.GetCharacter(count)),
+			"character_missing_current": samples(func(): return world.GetCharacter(-1)),
 			"character_id_dictionary": samples(func(): return by_id.get(count)),
-			"position_linear": samples(func(): return world.GetCharacterAt(last_position.x, last_position.y)),
+			"position_current": samples(func(): return world.GetCharacterAt(last_position.x, last_position.y)),
 			"position_dictionary": samples(func(): return by_position.get(last_position)),
+			"move_to_other_cell_and_back": samples(func():
+				last_actor.gridPosition = Vector2i(100, 100)
+				last_actor.gridPosition = last_position),
+			"unregister_and_register_current": samples(func():
+				world._UntrackCharacter(last_actor)
+				world._TrackCharacter(last_actor)),
 			"static_memory_delta_bytes_including_prototypes": Performance.get_monitor(Performance.MEMORY_STATIC) - before})
-		for actor in world._characterCollection: actor.free()
-		world._characterCollection.clear()
+		for actor in world._characterCollection.duplicate(): actor.free()
+		assert(world._characters_by_id.is_empty() and world._characters_by_position.is_empty())
 		world.free()
 	var data := MapData.new()
 	report.map_packed_payload_bytes = data.layer1.size() * 4 + data.layer2.size() * 4 + data.flags.size()

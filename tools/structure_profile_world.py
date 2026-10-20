@@ -5,6 +5,7 @@ import threading
 import time
 
 from full_world import FullWorld, prepare_fixture
+from structure_profile_matrix import run_matrix
 
 
 def acceptance(steps, seconds, **_):
@@ -84,9 +85,7 @@ class StructureProfileWorld(FullWorld):
                     for i in (1, 2)
                 }
                 _, x, y = locations["skills_base"]
-                self.base = {1: (2, x + 4, y), 2: (2, x + 4, y + 2)}
-                self.reset(store)
-                self.benchmark(store)
+                run_matrix(self, store, x, y)
                 frames = {
                     i: self.command(i, "performance_probe")["platform_probe"][
                         "performance"

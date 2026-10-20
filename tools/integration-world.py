@@ -397,6 +397,8 @@ def worker(args):
         server_log = stack.enter_context((output / "server.log").open("wb"))
         entry = Path(sys.executable).parent / ("pyao-server.exe" if os.name == "nt" else "pyao-server")
         server_entry = [sys.executable, "-m", "src.run_server"] if args.source else [str(entry)]
+        if args.server_profile:
+            server_entry = [sys.executable, "-m", "tools.profile_runtime", "--output", str(output / "runtime-profile.json"), "--"]
         server = subprocess.Popen(
             [
                 *server_entry,
@@ -817,6 +819,7 @@ def main():
         help="Regresión que se ejecuta antes del período de observación",
     )
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--server-profile", action="store_true", help="Diagnóstico acotado de latencias, sólo para el servidor fuente de la fixture")
     parser.add_argument(
         "--server-debug",
         action="store_true",
@@ -837,6 +840,8 @@ def main():
     )
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.server_profile and not args.source:
+        parser.error("El perfil de latencias requiere --source")
     if not 10 <= args.seconds <= 7200:
         parser.error("La duración debe estar entre 10 y 7200 segundos")
     for name in (
@@ -989,6 +994,8 @@ def main():
             arguments.append("--headless")
         if args.server_debug:
             arguments.append("--server-debug")
+        if args.server_profile:
+            arguments.append("--server-profile")
         if args.redis_runtime:
             arguments += ["--redis-runtime", str(args.redis_runtime)]
         if args.client_executable:
