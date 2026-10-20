@@ -53,6 +53,8 @@ jobs:
         run: |
           uv python install 3.14
           uv sync --project build/server-under-test --locked
+      - name: Extraer mapas del servidor para la fixture nativa
+        run: uv run --project build/server-under-test --locked python -m tools.compression.decompress_map_data --archive build/server-under-test/archives/map_data.xz --target build/server-under-test/map_data
       - name: Herramientas gráficas y audio Linux
         if: runner.os == 'Linux'
         run: |
@@ -112,6 +114,8 @@ jobs:
           enable-cache: false
       - run: uv python install 3.14
       - run: uv sync --project build/server-under-test --locked
+      - name: Extraer mapas del servidor para el ensayo WSS
+        run: uv run --project build/server-under-test --locked python -m tools.compression.decompress_map_data --archive build/server-under-test/archives/map_data.xz --target build/server-under-test/map_data
       - run: python3 tools/install-godot.py --all-templates --destination "$RUNNER_TEMP/pyao-godot"
       - name: Exportar candidato web completo
         run: |
@@ -251,6 +255,7 @@ jobs:
           pactl load-module module-null-sink sink_name=pyao_test
           uv python install 3.14
           uv sync --project build/server-under-test --locked
+          uv run --project build/server-under-test --locked python -m tools.compression.decompress_map_data --archive build/server-under-test/archives/map_data.xz --target build/server-under-test/map_data
           python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
           client_arch=x86_64
           if [ "$PYAO_PACKAGE_ARCH" = arm64 ]; then client_arch=arm64; fi
