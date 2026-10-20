@@ -647,6 +647,10 @@ class R10World:
         for index in (1, 2): self.meditation_effect(index, True)
         self.command(1, "step", action="ui_left")
         self.view(1, lambda v: v["x"] == x-1 and v["y"] == y, "movimiento cancela meditación")
+        self.wait(lambda: store.hget(f"player:{self.ids[1]}:position", "x") == str(x-1),
+                  "el primer paso coincide en Redis y el cliente")
+        self.view(2, lambda v: v.get("world_characters", {}).get(str(self.ids[1]), [])[:2] == [x-1, y],
+                  "el observador ve la misma casilla después de meditar")
         for index in (1, 2):
             self.meditation_effect(index, False)
             self.command(index, "capture", label="meditation-stopped")
