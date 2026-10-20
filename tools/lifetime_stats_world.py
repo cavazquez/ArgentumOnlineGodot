@@ -75,7 +75,7 @@ def counters(world, store):
     }
 
 
-def show(world, store, label):
+def show(world, store, label, jail_days=None):
     result = {}
     expected = counters(world, store)
     for i in (1, 2):
@@ -83,11 +83,18 @@ def show(world, store, label):
         world.command(i, "stats_open")
         result[i] = world.view(
             i,
-            lambda v, i=i: all(
-                v.get("ministats", {}).get(name) == str(expected[i][key])
-                for key, name in LABELS.items()
+            lambda v, i=i: (
+                all(
+                    v.get("ministats", {}).get(name) == str(expected[i][key])
+                    for key, name in LABELS.items()
+                )
+                and (
+                    jail_days is None
+                    or v.get("ministats", {}).get("Cárcel: días restantes")
+                    == str(jail_days.get(i, 0))
+                )
             ),
-            "contadores del servidor en estadísticas",
+            "contadores y condena del servidor en estadísticas",
         )
         world.screen(label, i)
     return {i: result[i]["ministats"] for i in (1, 2)}
@@ -158,7 +165,7 @@ def exercise(world, store, locations):
     else:
         raise RuntimeError("Falta la criatura necesaria para comprobar bajas NPC")
     sentenced = administer(world, 2, "Condena sintética del ensayo de dos clientes")
-    show(world, store, "counters-sentence")
+    show(world, store, "counters-sentence", jail_days={2: 2})
     world.view(
         2,
         lambda v: v.get("ministats", {}).get("Cárcel: días restantes") == "2",
@@ -183,10 +190,10 @@ def exercise(world, store, locations):
         world.view(i, lambda v: v.get("in_game", False), "reconexión tras reinicio")
     assert counters(world, store) == active["counters"]
     assert store.hget(stats_key, "jail_until") == active["until"]
-    reopened = show(world, store, "counters-restarted")
+    reopened = show(world, store, "counters-restarted", jail_days={2: 1})
     assert reopened[2]["Cárcel: días restantes"] == "1"
     store.hset(stats_key, "jail_until", int(time.time()) - 1)
-    expired = show(world, store, "counters-expired")
+    expired = show(world, store, "counters-expired", jail_days={2: 0})
     assert expired[2]["Cárcel: días restantes"] == "0"
     administer(world, 0, "Liberación explícita del ensayo")
     result = {
