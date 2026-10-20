@@ -386,7 +386,7 @@ def worker(args):
         )
         native_platform = args.source and args.scenario == "platform"
         windows_platform = os.name == "nt" and native_platform
-        if windows_platform:
+        if windows_platform and args.server_debug:
             environment["PYTHONASYNCIODEBUG"] = "1"
         server_log = stack.enter_context((output / "server.log").open("wb"))
         entry = Path(sys.executable).parent / ("pyao-server.exe" if os.name == "nt" else "pyao-server")
@@ -433,6 +433,7 @@ def worker(args):
             "login_budget_changed": False,
             "redis_storage": getattr(redis, "storage_kind", "docker-volume"),
             "client_max_fps": 30 if native_platform else None,
+            "asyncio_debug": bool(environment.get("PYTHONASYNCIODEBUG")),
         }, indent=2) + "\n")
         clients = []
         reconnect_gates = [work / f"client-{index}-released" for index in (1, 2)]
