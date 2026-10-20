@@ -332,6 +332,7 @@ def worker(args):
         endpoint = port()
         environment = dict(
             os.environ,
+            PYTHONUNBUFFERED="1",
             PYAO_REDIS__HOST="127.0.0.1",
             PYAO_REDIS__PORT=str(redis.port),
             PYAO_REDIS__PASSWORD_FILE=str(redis.password_file),
@@ -369,17 +370,26 @@ def worker(args):
             **({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {}),
         )
         stack.callback(stop, server)
-        deadline = time.monotonic() + 60
+        # La fixture fuente valida y recompila los 290 mapas en frío. Ese trabajo
+        # precede al listener y no forma parte de la latencia del login medido.
+        startup_started = time.monotonic()
+        deadline = startup_started + (240 if args.source else 60)
         while True:
             if server.poll() is not None:
                 raise RuntimeError("El servidor instalado terminó; revisar server.log")
             try:
                 with socket.create_connection(("127.0.0.1", endpoint), timeout=0.5):
                     break
-            except ConnectionRefusedError:
+            except OSError as error:
                 if time.monotonic() > deadline:
-                    raise TimeoutError("Listener no disponible")
+                    raise TimeoutError(f"Listener 127.0.0.1:{endpoint} no disponible; revisar server.log") from error
                 time.sleep(0.1)
+        (output / "server-startup.json").write_text(json.dumps({
+            "source_fixture": args.source,
+            "host": "127.0.0.1", "port": endpoint,
+            "elapsed_seconds": round(time.monotonic() - startup_started, 3),
+            "login_budget_changed": False,
+        }, indent=2) + "\n")
         clients = []
         reconnect_gates = [work / f"client-{index}-released" for index in (1, 2)]
         password = secrets.token_urlsafe(18)
