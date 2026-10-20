@@ -6,6 +6,7 @@ var packets: Array = []
 var frames: Array = []
 var audio_frames: Array = []
 var platform_probe: Dictionary = {}
+var keyboard_probe: Dictionary = {}
 var seen := {}
 var server_console_count := 0
 
@@ -110,6 +111,12 @@ func snapshot() -> Dictionary:
 	return view
 
 func execute(command: Dictionary) -> bool:
+	if command.op == "native_window":
+		var window := host.get_window()
+		window.mode = Window.MODE_MINIMIZED if command.action == "minimize" else Window.MODE_WINDOWED
+		if command.action == "restore": window.grab_focus()
+		await host.get_tree().process_frame
+		return true
 	if command.op == "platform_probe":
 		var original_size := Global.dialogFontSize
 		Global.dialogFontSize = 14
@@ -133,7 +140,7 @@ func execute(command: Dictionary) -> bool:
 		await RenderingServer.frame_post_draw
 		var image := host.get_viewport().get_texture().get_image()
 		var rendered := DisplayServer.get_name() != "headless" and image != null and image.get_width() >= 640
-		platform_probe = {"rendering": rendered, "audio": audio, "input": input_saved and keyboard, "preferences": saved, "display_driver": DisplayServer.get_name(), "audio_driver": AudioServer.get_driver_name()}
+		platform_probe = {"rendering": rendered, "audio": audio, "input": input_saved and keyboard, "input_saved": input_saved, "keyboard": keyboard_probe, "preferences": saved, "display_driver": DisplayServer.get_name(), "audio_driver": AudioServer.get_driver_name()}
 		return rendered and audio and input_saved and keyboard and saved
 	if command.op == "ui_phase":
 		var game := ScreenController.currentScreen as GameScreen
@@ -282,7 +289,18 @@ func verify_layout(game: GameScreen) -> bool:
 	print("HUD_LAYOUT: PASS %s" % viewport.size)
 	return true
 
+func focus_native_window(window: Window) -> bool:
+	if OS.get_name() != "Windows": return true
+	window.grab_focus()
+	var deadline := Time.get_ticks_msec() + 2000
+	while not window.has_focus() and Time.get_ticks_msec() < deadline:
+		await host.get_tree().process_frame
+	return window.has_focus()
+
 func keyboard_flows(game: GameScreen) -> bool:
+	keyboard_probe = {}
+	keyboard_probe.main_focused = await focus_native_window(host.get_window())
+	if not keyboard_probe.main_focused: return false
 	var hub: HubController = game._gameInput
 	var actor = game._gameWorld.GetCharacter(game._mainCharacterInstanceId)
 	var before: Vector2i = actor.gridPosition
@@ -291,7 +309,8 @@ func keyboard_flows(game: GameScreen) -> bool:
 	Input.action_press("ui_right")
 	await host.get_tree().create_timer(0.2).timeout
 	Input.action_release("ui_right")
-	if actor.gridPosition != before or not hub.IsWorldInputBlocked(): return false
+	keyboard_probe.inventory = actor.gridPosition == before and hub.IsWorldInputBlocked()
+	if not keyboard_probe.inventory: return false
 	for action in ["options", "stats", "skills"]:
 		var window: Window
 		match action:
@@ -306,18 +325,23 @@ func keyboard_flows(game: GameScreen) -> bool:
 				window = hub._skills_window
 		await host.get_tree().process_frame
 		await host.get_tree().process_frame
+		keyboard_probe[action + "_focused"] = await focus_native_window(window)
+		if not keyboard_probe[action + "_focused"]: return false
 		var tab := InputEventKey.new()
 		tab.keycode = KEY_TAB
 		tab.pressed = true
 		window.push_input(tab)
 		await host.get_tree().process_frame
-		if window.gui_get_focus_owner() == null or not hub.IsWorldInputBlocked(): return false
+		keyboard_probe[action] = window.gui_get_focus_owner() != null and hub.IsWorldInputBlocked()
+		if not keyboard_probe[action]: return false
 		window.close_requested.emit()
 		await host.get_tree().process_frame
 	var controls := ControlsWindow.new()
 	hub.add_child(controls)
 	controls.popup_centered()
 	await host.get_tree().process_frame
+	keyboard_probe.controls_focused = await focus_native_window(controls)
+	if not keyboard_probe.controls_focused: return false
 	var original := InputBindings.encode(InputMap.action_get_events(&"Attack")[0])
 	controls._action = &"Attack"
 	InputBindings.capturing = true
@@ -329,8 +353,9 @@ func keyboard_flows(game: GameScreen) -> bool:
 	escape.pressed = true
 	controls.push_input(escape)
 	await host.get_tree().process_frame
-	if InputBindings.capturing or actor.gridPosition != before: return false
-	if InputBindings.encode(InputMap.action_get_events(&"Attack")[0]) != original: return false
+	keyboard_probe.capture_cancelled = not InputBindings.capturing and actor.gridPosition == before
+	keyboard_probe.binding_preserved = InputBindings.encode(InputMap.action_get_events(&"Attack")[0]) == original
+	if not keyboard_probe.capture_cancelled or not keyboard_probe.binding_preserved: return false
 	controls.close_requested.emit()
 	await host.get_tree().process_frame
 	host.get_viewport().gui_release_focus()
