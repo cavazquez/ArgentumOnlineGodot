@@ -1,5 +1,8 @@
 extends Window
 
+const SHOW_PASSWORD_ICON: Texture2D = preload("res://Assets/UI/password-show.svg")
+const HIDE_PASSWORD_ICON: Texture2D = preload("res://Assets/UI/password-hide.svg")
+
 @onready var current_password_input: LineEdit = $VBoxContainer/FormContainer/CurrentPasswordInput
 @onready var new_password_input: LineEdit = $VBoxContainer/FormContainer/NewPasswordInput
 @onready var confirm_password_input: LineEdit = $VBoxContainer/FormContainer/ConfirmPasswordInput
@@ -24,9 +27,9 @@ func _ready() -> void:
 		field.secret = true
 		field.max_length = CredentialPolicy.MAX_PASSWORD
 		field.text_changed.connect(_validate_fields)
-	current_password_toggle.pressed.connect(func(): current_password_input.secret = not current_password_input.secret)
-	new_password_toggle.pressed.connect(func(): new_password_input.secret = not new_password_input.secret)
-	confirm_password_toggle.pressed.connect(func(): confirm_password_input.secret = not confirm_password_input.secret)
+	current_password_toggle.pressed.connect(_toggle_password.bind(current_password_input, current_password_toggle))
+	new_password_toggle.pressed.connect(_toggle_password.bind(new_password_input, new_password_toggle))
+	confirm_password_toggle.pressed.connect(_toggle_password.bind(confirm_password_input, confirm_password_toggle))
 	ClientInterface.disconnected.connect(_Disconnected)
 	_validate_fields()
 
@@ -34,6 +37,14 @@ func _clear_fields() -> void:
 	for field in [current_password_input, new_password_input, confirm_password_input]:
 		field.text = ""
 		field.secret = true
+	for button in [current_password_toggle, new_password_toggle, confirm_password_toggle]:
+		button.icon = SHOW_PASSWORD_ICON
+		button.tooltip_text = "Mostrar contraseña"
+
+func _toggle_password(field: LineEdit, button: Button) -> void:
+	field.secret = not field.secret
+	button.icon = SHOW_PASSWORD_ICON if field.secret else HIDE_PASSWORD_ICON
+	button.tooltip_text = "Mostrar contraseña" if field.secret else "Ocultar contraseña"
 
 func _validate_fields(_text: String = "") -> void:
 	if not ClientInterface.capabilities.can_send(Enums.ClientPacketID.ChangePassword) and error_label.text.is_empty():

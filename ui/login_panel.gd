@@ -1,6 +1,9 @@
 extends PanelContainer
 class_name LoginPanel
 
+const SHOW_PASSWORD_ICON: Texture2D = preload("res://Assets/UI/password-show.svg")
+const HIDE_PASSWORD_ICON: Texture2D = preload("res://Assets/UI/password-hide.svg")
+
 signal submit 
 signal register
 signal error(message:String)
@@ -19,10 +22,10 @@ func _ready() -> void:
 func _on_show_password_toggled(button_pressed: bool) -> void:
 	%Password.secret = !button_pressed
 	if button_pressed:
-		%ShowPasswordButton.text = "🙈"
+		%ShowPasswordButton.icon = HIDE_PASSWORD_ICON
 		%ShowPasswordButton.tooltip_text = "Ocultar contraseña"
 	else:
-		%ShowPasswordButton.text = "👁️"
+		%ShowPasswordButton.icon = SHOW_PASSWORD_ICON
 		%ShowPasswordButton.tooltip_text = "Mostrar contraseña"
 
 func GetUsername() -> String:
