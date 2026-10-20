@@ -62,7 +62,8 @@ func _ready() -> void:
 	login.get_node("%Ip").text = context.endpoint
 	login.get_node("%CaPath").text = ""
 	login._loginPanel.get_node("%Reg").pressed.emit()
-	if not await wait_for(func(): return ScreenController.currentScreen != login, "Alta por WSS"): return
+	var login_id: int = login.get_instance_id()
+	if not await wait_for(func(): return ScreenController.currentScreen.get_instance_id() != login_id, "Alta por WSS"): return
 	await get_tree().process_frame
 	var creation := ScreenController.currentScreen
 	creation._usernameLineEdit.text = context.username

@@ -245,7 +245,9 @@ func ConnectToWebSocket(url: String, trusted_ca: X509Certificate = null, timeout
 	_websocket = WebSocketPeer.new()
 	_websocket.inbound_buffer_size = 131072
 	_websocket.outbound_buffer_size = 131072
-	_websocket.max_queued_packets = 256
+	# JS puede recibir toda la ráfaga de login mientras se carga el primer mapa.
+	# El presupuesto por cuadro se mantiene aparte; la cola no debe truncarla.
+	_websocket.max_queued_packets = 4096
 	if not OS.has_feature("web"):
 		_websocket.handshake_headers = PackedStringArray(["Origin: " + (origin if not origin.is_empty() else "https://" + url.get_slice("/", 2))])
 	var options := TLSOptions.client(trusted_ca) if not OS.has_feature("web") else null

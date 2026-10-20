@@ -80,6 +80,10 @@ def smoke(candidate, server, output):
                 time.sleep(0.1)
         observations = []
         errors = []
+        def console(message):
+            with (output / "browser-console.log").open("a") as log:
+                log.write(message.type + ": " + message.text + "\n")
+            if message.type == "error": errors.append(message.text)
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-certificate-errors-spki-list=" + spki])
             context = browser.new_context(viewport={"width": 1000, "height": 750})
@@ -87,7 +91,7 @@ def smoke(candidate, server, output):
                 username, password = "Web" + secrets.token_hex(4) + str(index), secrets.token_urlsafe(18)
                 page = context.new_page()
                 page.on("pageerror", lambda error: errors.append(str(error)))
-                page.on("console", lambda message: (output / "browser-console.log").open("a").write(message.type + ": " + message.text + "\n"))
+                page.on("console", console)
                 page.add_init_script("window.PYAO_TEST_CONTEXT=" + json.dumps({"endpoint": endpoint, "username": username, "password": password, "mode": "login"}))
                 page.goto(origin + "/index.html?pyao_acceptance=1", timeout=120000)
                 page.wait_for_function("window.PYAO_AUDIO_READY === true", timeout=120000)
@@ -113,6 +117,8 @@ def smoke(candidate, server, output):
             blocked = browser.new_context()
             blocked.add_init_script("Storage.prototype.setItem=function(){throw new Error('quota')};Storage.prototype.getItem=function(){throw new Error('blocked')};window.PYAO_TEST_CONTEXT=" + json.dumps({"endpoint": endpoint, "mode": "storage_blocked"}))
             page = blocked.new_page()
+            page.on("pageerror", lambda error: errors.append(str(error)))
+            page.on("console", console)
             page.goto(origin + "/index.html?pyao_acceptance=1", timeout=120000)
             page.wait_for_function("window.PYAO_PROOF !== undefined", timeout=120000)
             fallback = page.evaluate("window.PYAO_PROOF")
