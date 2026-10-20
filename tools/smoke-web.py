@@ -87,6 +87,7 @@ def smoke(candidate, server, output):
                 username, password = "Web" + secrets.token_hex(4) + str(index), secrets.token_urlsafe(18)
                 page = context.new_page()
                 page.on("pageerror", lambda error: errors.append(str(error)))
+                page.on("console", lambda message: (output / "browser-console.log").open("a").write(message.type + ": " + message.text + "\n"))
                 page.add_init_script("window.PYAO_TEST_CONTEXT=" + json.dumps({"endpoint": endpoint, "username": username, "password": password, "mode": "login"}))
                 page.goto(origin + "/index.html?pyao_acceptance=1", timeout=120000)
                 page.wait_for_function("window.PYAO_AUDIO_READY === true", timeout=120000)

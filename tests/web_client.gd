@@ -73,12 +73,21 @@ func _ready() -> void:
 	creation._raceOptionButton.select(0)
 	creation._genderOptionButton.select(0)
 	creation._homeOptionButton.select(0)
+	# Simular un cuadro lento durante el primer mapa: JS recibe toda la ráfaga
+	# de login aunque Godot todavía no pueda drenar WebSocketPeer.
+	ClientInterface.set_process(false)
 	creation._submitButton.pressed.emit()
+	await get_tree().create_timer(2.0).timeout
+	ClientInterface.set_process(true)
 	context.erase("password")
 	JavaScriptBridge.eval("delete window.PYAO_TEST_CONTEXT.password", true)
 	if not await wait_for(func(): return ScreenController.currentScreen is GameScreen, "Login por WSS"): return
 	var game := ScreenController.currentScreen as GameScreen
-	if not await wait_for(func(): return game._gameContext.player_map > 0 and game._gameWorld.GetCharacter(game._mainCharacterInstanceId) != null and game._gameContext.playerInventory.GetSlot(0).quantity > 0, "Mapa e inventario web"): return
+	if not await wait_for(func(): return game._gameContext.player_map > 0 and game._gameWorld.GetCharacter(game._mainCharacterInstanceId) != null and game._gameContext.playerInventory.GetSlot(0).quantity > 0, "Mapa e inventario web"):
+		var quantities: Array[int] = []
+		for index in game._gameContext.playerInventory.GetSize(): quantities.append(game._gameContext.playerInventory.GetSlot(index).quantity)
+		report({"passed": false, "error": "Mapa e inventario web", "map": game._gameContext.player_map, "actor_id": game._mainCharacterInstanceId, "actor_present": game._gameWorld.GetCharacter(game._mainCharacterInstanceId) != null, "quantities": quantities})
+		return
 	var actor = game._gameWorld.GetCharacter(game._mainCharacterInstanceId)
 	var before: Vector2i = actor.gridPosition
 	for action in ["ui_right", "ui_down", "ui_left", "ui_up"]:
