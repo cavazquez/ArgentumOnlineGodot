@@ -34,7 +34,7 @@ func _run() -> void:
 		camera.position = Vector2(1600, 1600)
 		viewport.add_child(camera)
 		add_child(container)
-		for map_id in [1, 2, 1, 34]:
+		for map_id in [1, 2, 1, 34, 23, 28, 91]:
 			world.LoadMap(map_id)
 			await get_tree().process_frame
 			await RenderingServer.frame_post_draw
