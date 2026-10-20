@@ -1,47 +1,25 @@
 name: Cliente Linux
-
 on:
-  push:
-  pull_request:
   workflow_dispatch:
     inputs:
-      build_packages:
-        description: Exportar Linux y construir Snap explícitamente
-        type: boolean
-        default: false
       server_ref:
-        description: Commit exacto del servidor de la misma versión que este cliente
         type: string
         required: true
-
 permissions:
   contents: read
-
 env:
   UV_PYTHON: "3.14"
   PYTHONUTF8: "1"
-
 concurrency:
-  group: client-linux-${{ github.ref }}
+  group: windows-diagnostic-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
-  portable-native:
-    if: github.event_name == 'workflow_dispatch' && inputs.build_packages
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
+  diagnostic:
+    runs-on: windows-2025
+    timeout-minutes: 20
     defaults:
       run:
         shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {target: linux, runner: ubuntu-24.04}
-          - {target: linux-arm64, runner: ubuntu-24.04-arm}
-          - {target: windows, runner: windows-2025}
-          - {target: macos, runner: macos-15}
-          - {target: macos, runner: macos-15-intel}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -53,371 +31,20 @@ jobs:
         with:
           version: "0.13.1"
           enable-cache: false
-      - name: Preparar Python fijado
-        run: |
-          uv python install 3.14
-          uv sync --project build/server-under-test --locked
-      - name: Extraer mapas del servidor para la fixture nativa
-        run: uv run --project build/server-under-test --locked python -m tools.compression.decompress_map_data --archive build/server-under-test/archives/map_data.xz --target build/server-under-test/map_data
-      - name: Herramientas gráficas y audio Linux
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers pulseaudio pulseaudio-utils
-          pulseaudio --start --exit-idle-time=-1
-          pactl load-module module-null-sink sink_name=pyao_test
-      - name: Compilador de Redis en WSL del runner Windows
-        if: runner.os == 'Windows'
+      - run: uv sync --project build/server-under-test --locked
+      - name: Redis oficial en WSL propio del runner
         run: |
           wsl --set-default-version 1
           wsl --install --distribution Ubuntu-24.04 --no-launch --web-download
           wsl --set-default Ubuntu-24.04
           wsl --distribution Ubuntu-24.04 --user root --exec sh -c 'apt-get update && apt-get install -y build-essential'
-      - name: Dispositivo firmado de audio para WASAPI del runner Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./tools/prepare-windows-audio.ps1
-      - name: Motor y templates oficiales con SHA256
-        run: python tools/install-godot.py --all-templates --destination "$RUNNER_TEMP/pyao-godot"
-      - name: Compilar sólo Redis de la fixture
-        run: python tools/build-test-redis.py --destination "$RUNNER_TEMP/pyao-redis"
-      - name: Importar y construir candidato portable
-        env:
-          TARGET_PLATFORM: ${{ matrix.target }}
-        run: |
-          "$GODOT_BIN" --headless --editor --path . --import
-          python tools/export-portable.py export --platform "$TARGET_PLATFORM" --godot "$GODOT_BIN" --output build/portable-candidate
-      - name: Dos clientes nativos fuera del checkout con servidor del mismo par
-        run: |
-          prefix=()
-          if [ "$RUNNER_OS" = Linux ]; then prefix=(xvfb-run -a -s '-screen 0 2560x1440x24'); fi
-          "${prefix[@]}" uv run --project build/server-under-test --locked python tools/smoke-portable.py --candidate build/portable-candidate --server build/server-under-test --godot "$GODOT_BIN" --redis-runtime "$RUNNER_TEMP/pyao-redis" --output build/native-verification
-          python tools/export-portable.py seal --output build/portable-candidate --evidence build/native-verification/native-proof.json
+          python tools/build-test-redis.py --destination "$RUNNER_TEMP/pyao-redis"
+      - name: Comparar transportes sin renderizado
+        run: uv run --project build/server-under-test --locked python tools/windows_redis_diagnostic.py --redis-runtime "$RUNNER_TEMP/pyao-redis" --output build/windows-redis.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
-          name: portable-${{ matrix.target }}-${{ matrix.runner }}-${{ github.sha }}
+          name: windows-redis-diagnostic-${{ github.sha }}
           path: |
-            build/pyao-client-*.zip
-            build/pyao-client-*.json
-            build/portable-candidate/candidate-manifest.json
-            build/portable-candidate/export.log
-            build/native-verification/
-            build/audio-fixture.json
-          retention-days: 7
-
-  web-browser:
-    if: github.event_name == 'workflow_dispatch' && inputs.build_packages
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: cavazquez/pyao-server
-          ref: ${{ inputs.server_ref }}
-          path: build/server-under-test
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
-        with:
-          version: "0.13.1"
-          enable-cache: false
-      - run: uv python install 3.14
-      - run: uv sync --project build/server-under-test --locked
-      - name: Extraer mapas del servidor para el ensayo WSS
-        run: uv run --project build/server-under-test --locked python -m tools.compression.decompress_map_data --archive build/server-under-test/archives/map_data.xz --target build/server-under-test/map_data
-      - run: python3 tools/install-godot.py --all-templates --destination "$RUNNER_TEMP/pyao-godot"
-      - name: Exportar candidato web completo
-        run: |
-          "$GODOT_BIN" --headless --editor --path . --import
-          python3 tools/export-portable.py export --platform web --godot "$GODOT_BIN" --output build/web-candidate
-      - name: Chromium fijado con las dependencias del navegador
-        run: uv run --project build/server-under-test --with playwright==1.64.0 python -m playwright install --with-deps chromium
-      - name: Login WSS, recursos, controles, recarga y almacenamiento bloqueado
-        run: |
-          uv run --project build/server-under-test --with playwright==1.64.0 python tools/smoke-web.py --candidate build/web-candidate --server build/server-under-test --output build/web-verification
-          python3 tools/export-portable.py seal --output build/web-candidate --evidence build/web-verification/web-proof.json
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        if: always()
-        with:
-          name: web-${{ github.sha }}
-          path: |
-            build/pyao-client-*.zip
-            build/pyao-client-*.json
-            build/web-verification/
-            build/web-candidate/export.log
-          retention-days: 7
-
-  quality:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Regresiones de herramientas y validadores
-        run: python3 -m unittest discover -s tools/tests
-      - name: Instalar herramientas gráficas de prueba
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
-      - name: Descargar Godot oficial verificado (sin exportar)
-        run: python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
-      - name: Comprobar importación, scripts, escenas, protocolo y privacidad
-        run: |
-          tools/smoke-godot.sh
-          python3 tools/smoke-tls.py
-          git diff --exit-code
-          test -z "$(git ls-files --others --exclude-standard)"
-
-  import-and-export:
-    if: github.event_name == 'workflow_dispatch' && inputs.build_packages
-    needs: quality
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Comprobar clasificación estricta de logs de exportación
-        run: python3 -m unittest discover -s tools/tests
-      - name: Instalar OpenGL software y Xvfb
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
-      - name: Instalar motor y templates del manifiesto con SHA256
-        run: python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
-      - name: Importar desde checkout limpio y probar escenas y privacidad
-        shell: bash
-        run: |
-          set -o pipefail
-          mkdir -p build
-          tools/smoke-godot.sh 2>&1 | tee build/import-and-smoke.log
-          git diff --exit-code
-          test -z "$(git ls-files --others --exclude-standard)"
-      - name: Verificar certificados TLS, cancelación y reintentos
-        shell: bash
-        run: |
-          set -o pipefail
-          python3 tools/smoke-tls.py 2>&1 | tee build/tls-smoke.log
-      - name: Exportar Linux con templates de la misma versión
-        run: |
-          tools/export-linux.sh
-          tools/export-linux.sh --r10
-          python3 tools/github_release.py snapshot --directory build
-      - name: Probar caché y teardown con renderizado nativo real
-        run: python3 tools/smoke-map-cache.py --client-executable build/r10/pyao-client-r10.x86_64 --output build/map-cache-stress --cycles 80
-      - name: Conservar logs y ejecutable
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: pyao-client-linux-${{ github.event.pull_request.head.sha || github.sha }}
-          path: build/
-          if-no-files-found: warn
-          retention-days: 7
-
-  package-snap:
-    needs: [import-and-export, portable-native, web-browser]
-    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {arch: amd64, runner: ubuntu-24.04, snapcraft_revision: 19274}
-          - {arch: arm64, runner: ubuntu-24.04-arm, snapcraft_revision: 19281}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Preparar LXD en el runner descartable
-        uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee # v1
-        with:
-          channel: 5.21/stable
-      - name: Instalar Snapcraft fijado
-        run: |
-          if snap list snapcraft >/dev/null 2>&1; then
-            sudo snap refresh snapcraft --revision='${{ matrix.snapcraft_revision }}'
-          else
-            sudo snap install snapcraft --classic --revision='${{ matrix.snapcraft_revision }}'
-          fi
-      - name: Construir Snap estricto desde la fuente y el motor fijados
-        shell: bash
-        run: |
-          set -o pipefail
-          mkdir -p build
-          python3 tools/build-snap.py --arch '${{ matrix.arch }}' 2>&1 | tee build/snap-build.log
-          sha256sum pyao-client_*_${{ matrix.arch }}.snap > build/snap-sha256.txt
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: cavazquez/pyao-server
-          ref: ${{ inputs.server_ref }}
-          path: build/server-under-test
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
-        with:
-          version: "0.13.1"
-          enable-cache: false
-      - name: Instalar candidato estricto y ejecutar dos clientes en su arquitectura
-        env:
-          PYAO_PACKAGE_ARCH: ${{ matrix.arch }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils squashfs-tools
-          sudo snap install mesa-2404
-          sudo snap install ./pyao-client_*_"$PYAO_PACKAGE_ARCH".snap --dangerous
-          sudo snap connect pyao-client:gpu-2404 mesa-2404:gpu-2404
-          pulseaudio --start --exit-idle-time=-1
-          pactl load-module module-null-sink sink_name=pyao_test
-          uv python install 3.14
-          uv sync --project build/server-under-test --locked
-          uv run --project build/server-under-test --locked python -m tools.compression.decompress_map_data --archive build/server-under-test/archives/map_data.xz --target build/server-under-test/map_data
-          python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
-          client_arch=x86_64
-          if [ "$PYAO_PACKAGE_ARCH" = arm64 ]; then client_arch=arm64; fi
-          export GODOT_BIN
-          GODOT_BIN="$RUNNER_TEMP/pyao-godot/Godot_v$(cat .godot-version)-stable_linux.$client_arch"
-          export XDG_DATA_HOME="$RUNNER_TEMP/pyao-godot/data"
-          tools/export-linux.sh --r10
-          client_arch=x86_64
-          if [ "$PYAO_PACKAGE_ARCH" = arm64 ]; then client_arch=arm64; fi
-          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 2560x1440x24' uv run --project build/server-under-test --locked python tools/integration-world.py --source --scenario platform --server-project build/server-under-test --godot "$GODOT_BIN" --client-executable "build/r10/pyao-client-r10.$client_arch" --output build/snap-native-verification --seconds 20 --snap-installed --snap-audio PulseAudio --snap-source artifact
-      - name: Conservar paquete y procedencia
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: pyao-client-snap-${{ matrix.arch }}-${{ github.event.pull_request.head.sha || github.sha }}
-          path: |
-            pyao-client_*_${{ matrix.arch }}.snap
-            build/snap-build.log
-            build/snap-sha256.txt
-            snap/pyao-source.json
-            build/snap-native-verification/
-          if-no-files-found: warn
-          retention-days: 7
-
-  integration-world:
-    needs: package-snap
-    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: cavazquez/pyao-server
-          ref: ${{ inputs.server_ref }}
-          path: build/server-under-test
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-        with:
-          version: "0.13.1"
-          enable-cache: false
-      - run: uv python install 3.14
-      - name: Instalar OpenGL software y Xvfb
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils squashfs-tools
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: pyao-client-linux-${{ github.event.pull_request.head.sha || github.sha }}
-          path: build/native-export
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: pyao-client-snap-amd64-${{ github.event.pull_request.head.sha || github.sha }}
-          path: build/snap-package
-      - name: Instalar el Snap estricto y su proveedor gráfico en el runner descartable
-        env:
-          CLIENT_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          sudo snap install mesa-2404
-          source=artifact
-          mkdir -p "$RUNNER_TEMP/store-client"
-          if snap download pyao-client --channel=latest/edge --target-directory="$RUNNER_TEMP/store-client"; then
-            published_commit=$(unsquashfs -cat "$RUNNER_TEMP/store-client/"*.snap share/doc/pyao-client/provenance.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["commit"])')
-            if [ "$published_commit" = "$CLIENT_COMMIT" ]; then
-              sudo snap install pyao-client --edge
-              source=store
-            fi
-          fi
-          if [ "$source" = artifact ]; then
-            sudo snap install build/snap-package/pyao-client_*_amd64.snap --dangerous
-          fi
-          echo "SNAP_INSTALL_SOURCE=$source" >> "$GITHUB_ENV"
-          sudo snap connect pyao-client:gpu-2404 mesa-2404:gpu-2404
-          snap connections pyao-client
-      - name: Preparar audio aislado con un sink de prueba
-        run: |
-          sudo install -d -m 700 -o "$(id -u)" -g "$(id -g)" "/run/user/$(id -u)"
-          XDG_RUNTIME_DIR="/run/user/$(id -u)"
-          export XDG_RUNTIME_DIR
-          pulseaudio --start --exit-idle-time=-1
-          pactl load-module module-null-sink sink_name=pyao_test
-          echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
-      - name: Instalar Godot fijado e importar el cliente
-        run: |
-          python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
-          GODOT_BIN="$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" tools/smoke-godot.sh
-      - name: Construir e instalar el servidor y recorrer dos clientes reales
-        env:
-          UV_PYTHON: "3.14"
-        run: |
-          uv sync --project build/server-under-test --locked --group build
-          uv build --project build/server-under-test --out-dir "$RUNNER_TEMP/pyao-wheel"
-          chmod +x build/native-export/r10/pyao-client-r10.x86_64
-          xvfb-run -a -f "$HOME/.Xauthority" -s '-screen 0 800x600x24' uv run --project build/server-under-test --locked python tools/integration-world.py --server-project build/server-under-test --wheel "$RUNNER_TEMP"/pyao-wheel/pyao_server-*-py3-none-any.whl --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --client-executable build/native-export/r10/pyao-client-r10.x86_64 --output build/integration --seconds 60 --snap-installed --snap-audio PulseAudio --snap-source "$SNAP_INSTALL_SOURCE"
-      - name: Verificar que una actualización local conserva preferencias
-        run: |
-          profile="$HOME/snap/pyao-client/common/data/godot/app_userdata/ArgentumOnlineGodot/connection.cfg"
-          sha256sum "$profile" > "$RUNNER_TEMP/pyao-preferences.sha256"
-          pyao_before_revision=$(snap list pyao-client --unicode=never | awk 'NR==2 {print $3}')
-          # Los archivos locales se actualizan con install; refresh usa la Store.
-          sudo snap install build/snap-package/pyao-client_*_amd64.snap --dangerous
-          pyao_after_revision=$(snap list pyao-client --unicode=never | awk 'NR==2 {print $3}')
-          test "$pyao_before_revision" != "$pyao_after_revision"
-          sha256sum -c "$RUNNER_TEMP/pyao-preferences.sha256"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: godot-world-integration-${{ github.run_attempt }}
-          path: build/integration/
-          retention-days: 7
-
-  mechanics-world:
-    needs: import-and-export
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        scenario: [skills, spells, navigation, duel, potions, expansion, npc-policy, economy, npcs]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: cavazquez/pyao-server
-          ref: ${{ inputs.server_ref }}
-          path: build/server-under-test
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-        with:
-          version: "0.13.1"
-          enable-cache: false
-      - run: uv python install 3.14
-      - name: Preparar renderizado e instalar Godot verificado
-        run: |
-          sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
-          python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: pyao-client-linux-${{ github.event.pull_request.head.sha || github.sha }}
-          path: build/native-export
-      - name: Verificar mecánicas con dos clientes nativos y Redis descartable
-        env:
-          UV_PYTHON: "3.14"
-          LIBGL_ALWAYS_SOFTWARE: "1"
-          MECHANICS_SCENARIO: ${{ matrix.scenario }}
-        run: |
-          uv sync --project build/server-under-test --locked --group build
-          uv build --project build/server-under-test --wheel --out-dir "$RUNNER_TEMP/pyao-wheel"
-          chmod +x build/native-export/r10/pyao-client-r10.x86_64
-          xvfb-run -a -s '-screen 0 2560x1440x24' uv run --project build/server-under-test --locked python tools/integration-world.py --scenario "$MECHANICS_SCENARIO" --server-project build/server-under-test --wheel "$RUNNER_TEMP"/pyao-wheel/pyao_server-*-py3-none-any.whl --godot "$RUNNER_TEMP/pyao-godot/Godot_v4.7.2-stable_linux.x86_64" --client-executable build/native-export/r10/pyao-client-r10.x86_64 --output "build/mechanics-$MECHANICS_SCENARIO" --seconds 30
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: mechanics-${{ matrix.scenario }}-${{ github.run_attempt }}
-          path: build/mechanics-${{ matrix.scenario }}/
-          retention-days: 7
+            build/windows-redis.json
+            build/windows-redis.redis.log
