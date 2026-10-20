@@ -1,5 +1,6 @@
 extends Node
 
+const MAP_SEQUENCE := [1, 2, 1, 34, 23, 28, 91]
 var failed := false
 
 func _check(value: bool, message: String) -> void:
@@ -34,7 +35,7 @@ func _run() -> void:
 		camera.position = Vector2(1600, 1600)
 		viewport.add_child(camera)
 		add_child(container)
-		for map_id in [1, 2, 1, 34, 23, 28, 91]:
+		for map_id in MAP_SEQUENCE:
 			world.LoadMap(map_id)
 			await get_tree().process_frame
 			await RenderingServer.frame_post_draw
@@ -52,5 +53,5 @@ func _run() -> void:
 		if failed:
 			get_tree().quit(1)
 			return
-	print("MAP_CACHE_STRESS: PASS cycles=", cycles)
+	print("MAP_CACHE_STRESS: PASS cycles=", cycles, " switches=", cycles * MAP_SEQUENCE.size())
 	get_tree().quit(0)

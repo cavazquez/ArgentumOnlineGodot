@@ -205,6 +205,8 @@ jobs:
           python3 tools/github_release.py snapshot --directory build
       - name: Probar caché y teardown con renderizado nativo real
         run: python3 tools/smoke-map-cache.py --client-executable build/r10/pyao-client-r10.x86_64 --output build/map-cache-stress --cycles 80
+      - name: Renderizar todos los mapas y pares dirigidos de cruce
+        run: python3 tools/smoke-world-routes.py --client-executable build/r10/pyao-client-r10.x86_64 --output build/world-routes
       - name: Registrar búsquedas de entidades y tiempos de mapas sin umbrales inestables
         env:
           PYAO_STRUCTURE_OUTPUT: ${{ github.workspace }}/build/structure-benchmark.json

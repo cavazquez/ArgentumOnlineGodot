@@ -29,7 +29,7 @@ class MapStressEvidenceTests(unittest.TestCase):
 
             def launch(*_, **kwargs):
                 source.write_bytes(b"new build while old snapshot runs")
-                kwargs["stdout"].write("MAP_CACHE_STRESS: PASS cycles=10\n")
+                kwargs["stdout"].write("MAP_CACHE_STRESS: PASS cycles=10 switches=70\n")
                 return SimpleNamespace(returncode=0, wait=lambda **_: 0)
 
             arguments = [
@@ -49,6 +49,7 @@ class MapStressEvidenceTests(unittest.TestCase):
                 self.assertEqual(0, module.main())
             result = json.loads((output / "result.json").read_text())
             self.assertTrue(result["passed"])
+            self.assertEqual(70, result["map_switches"])
             self.assertEqual(expected, result["export_sha256"])
             self.assertNotEqual(
                 hashlib.sha256(source.read_bytes()).hexdigest(), result["export_sha256"]
