@@ -35,6 +35,7 @@ SCENARIO_TIMEOUT_SECONDS = {
     "duel": 900,
     "economy": 1200,
     "economy-ui": 600,
+    "visual-sync": 600,
     "npcs": 600,
     "platform": 600,
     "potions": 1200,
@@ -301,7 +302,9 @@ def worker(args):
     work = Path.cwd()
     output = args.output
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    if args.scenario == "structure-profile":
+    if args.scenario == "visual-sync":
+        from visual_sync_world import VisualSyncWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "structure-profile":
         from structure_profile_world import StructureProfileWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "lifetime-stats":
         from lifetime_stats_world import LifetimeStatsWorld as R10World, acceptance, prepare_fixture

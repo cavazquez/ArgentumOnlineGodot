@@ -51,3 +51,9 @@ clientes y comprueba que sus frames avanzan. También verifica la reconstrucció
 al reconectar el observador y la retirada en ambos al cancelar o caminar. Las
 capturas `meditation-both`, `meditation-reconnected` y `meditation-stopped`
 acompañan las aserciones; el texto local «Meditando» no acredita el efecto remoto.
+
+`--scenario visual-sync` recorre sólo login/reconexión y meditación en dos
+ventanas gráficas. Para cada jugador exige el paquete de aparición y al menos
+dos frames visibles en ambos clientes; también comprueba que el efecto finito
+termine. Las capturas `login-1` y `login-2` se toman al observar la animación,
+sin depender de que un comando posterior llegue antes de su finalización.

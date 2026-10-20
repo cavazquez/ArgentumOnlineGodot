@@ -618,42 +618,7 @@ class R10World:
         )
         self.passed("clan", "R07", create_invite_accept_chat_details_leave=True)
 
-    def meditation_effect(self, index, active):
-        actor = str(self.ids[1])
-        return self.view(
-            index,
-            lambda v: (
-                (fx := v.get("character_effects", {}).get(actor)) is not None
-                and (
-                    fx["id"] == 16 and fx["loops"] == -1 and fx["visible"] and fx["playing"]
-                    if active
-                    else fx["id"] == 0 and not fx["visible"] and not fx["playing"]
-                )
-            ),
-            f"meditación {'visible' if active else 'retirada'} en cliente {index}",
-        )
-
-    def magic_combat(self, store, locations):
-        x, y = locations["base"]
-        self.relocate(store, {1: (1, x, y), 2: (1, x + 1, y)}, reset=True)
-        self.command(1, "chat", text=f"/party {self.names[1]}")
-        self.console(2, self.names[0])
-        self.command(2, "chat", text=f"/acceptparty {self.names[0]}")
-        party = self.wait(
-            lambda: store.get(f"user:{self.ids[2]}:party"), "party de combate"
-        )
-        hp = self.stats(store, 1)["min_hp"]
-        self.command(1, "cancel_cast", slot=1)
-        self.view(1, lambda v: v["target"] == 0, "cancelación de magia")
-        self.command(1, "cast", slot=1, x=x, y=y)
-        self.wait(lambda: self.stats(store, 1)["min_hp"] > hp, "curación confirmada")
-        self.view(1, lambda v: v["hp"] > hp, "HP de curación en UI")
-        mana = self.stats(store, 1)["min_mana"]
-        self.command(1, "cast", slot=2, x=x - 2, y=y)
-        self.console(1, "objetivo válido")
-        assert self.stats(store, 1)["min_mana"] == mana, (
-            "Objetivo inválido no cobra maná"
-        )
+    def meditation(self, store, x, y, mana):
         self.command(1, "chat", text="/meditar")
         for index in (1, 2):
             view = self.meditation_effect(index, True)
@@ -696,6 +661,44 @@ class R10World:
             observer_reconnect_restores_effect=True,
             manual_and_movement_stop_both=True,
         )
+
+    def meditation_effect(self, index, active):
+        actor = str(self.ids[1])
+        return self.view(
+            index,
+            lambda v: (
+                (fx := v.get("character_effects", {}).get(actor)) is not None
+                and (
+                    fx["id"] == 16 and fx["loops"] == -1 and fx["visible"] and fx["playing"]
+                    if active
+                    else fx["id"] == 0 and not fx["visible"] and not fx["playing"]
+                )
+            ),
+            f"meditación {'visible' if active else 'retirada'} en cliente {index}",
+        )
+
+    def magic_combat(self, store, locations):
+        x, y = locations["base"]
+        self.relocate(store, {1: (1, x, y), 2: (1, x + 1, y)}, reset=True)
+        self.command(1, "chat", text=f"/party {self.names[1]}")
+        self.console(2, self.names[0])
+        self.command(2, "chat", text=f"/acceptparty {self.names[0]}")
+        party = self.wait(
+            lambda: store.get(f"user:{self.ids[2]}:party"), "party de combate"
+        )
+        hp = self.stats(store, 1)["min_hp"]
+        self.command(1, "cancel_cast", slot=1)
+        self.view(1, lambda v: v["target"] == 0, "cancelación de magia")
+        self.command(1, "cast", slot=1, x=x, y=y)
+        self.wait(lambda: self.stats(store, 1)["min_hp"] > hp, "curación confirmada")
+        self.view(1, lambda v: v["hp"] > hp, "HP de curación en UI")
+        mana = self.stats(store, 1)["min_mana"]
+        self.command(1, "cast", slot=2, x=x - 2, y=y)
+        self.console(1, "objetivo válido")
+        assert self.stats(store, 1)["min_mana"] == mana, (
+            "Objetivo inválido no cobra maná"
+        )
+        self.meditation(store, x, y, mana)
         self.command(1, "use", slot=23)
         self.wait(
             lambda: "6" in store.hgetall(f"player:{self.ids[1]}:spellbook").values(),

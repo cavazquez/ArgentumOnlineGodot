@@ -2,6 +2,7 @@ extends "res://tests/r10_client.gd"
 
 # Instrumentación de observación. Los casts pasan por la UI y la red reales.
 var capture_label := ""
+var capture_actor := 0
 var packets: Array = []
 var frames: Array = []
 var audio_frames: Array = []
@@ -66,6 +67,16 @@ func _observe() -> void:
 			continue
 		seen[key] = true
 		frames.append({"label": capture_label, "char_index": actor.instanceId, "fx": effect.effect_id, "frame": effect.frame, "visible": effect.visible, "playing": effect.is_playing(), "resource": effect.sprite_frames.resource_path})
+		var image_key := "image:" + capture_label
+		if capture_label.begins_with("login-") and actor.instanceId == capture_actor and effect.effect_id == 1 and not seen.has(image_key):
+			seen[image_key] = true
+			_capture_login_effect.call_deferred(capture_label)
+
+func _capture_login_effect(label: String) -> void:
+	await RenderingServer.frame_post_draw
+	var path := OS.get_environment("PYAO_TEST_SCREENSHOT")
+	if not path.is_empty() and DisplayServer.get_name() != "headless":
+		host.get_viewport().get_texture().get_image().save_png(path.get_basename() + "-" + label + ".png")
 
 func snapshot() -> Dictionary:
 	var view := super.snapshot()
@@ -193,6 +204,7 @@ func execute(command: Dictionary) -> bool:
 		return true
 	if command.op == "capture_reset":
 		capture_label = command.label
+		capture_actor = int(command.get("actor", 0))
 		packets.clear()
 		frames.clear()
 		audio_frames.clear()
