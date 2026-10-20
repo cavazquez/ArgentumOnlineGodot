@@ -41,6 +41,7 @@ SCENARIO_TIMEOUT_SECONDS = {
     "expansion": 1200,
     "npc-policy": 1200,
     "lifetime-stats": 900,
+    "structure-profile": 900,
 }
 
 
@@ -300,7 +301,9 @@ def worker(args):
     work = Path.cwd()
     output = args.output
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    if args.scenario == "lifetime-stats":
+    if args.scenario == "structure-profile":
+        from structure_profile_world import StructureProfileWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "lifetime-stats":
         from lifetime_stats_world import LifetimeStatsWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "npc-policy":
         from npc_policy_world import NPCPolicyWorld as R10World, acceptance, prepare_fixture

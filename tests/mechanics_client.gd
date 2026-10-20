@@ -120,6 +120,17 @@ func execute(command: Dictionary) -> bool:
 		if command.action == "restore": window.grab_focus()
 		await host.get_tree().process_frame
 		return true
+	if command.op == "performance_probe":
+		var intervals: Array[float] = []
+		var previous := Time.get_ticks_usec()
+		for index in range(180):
+			await host.get_tree().process_frame
+			var current := Time.get_ticks_usec()
+			intervals.append(float(current - previous))
+			previous = current
+		intervals.sort()
+		platform_probe.performance = {"samples":180, "unit":"microseconds", "frame_interval_p50":intervals[90], "frame_interval_p95":intervals[171], "frame_interval_p99":intervals[178], "static_memory_bytes":Performance.get_monitor(Performance.MEMORY_STATIC), "measurement":"Observed process_frame intervals; includes rendering and scheduling, not per-frame CPU"}
+		return true
 	if command.op == "platform_probe":
 		var original_size := Global.dialogFontSize
 		Global.dialogFontSize = 14
