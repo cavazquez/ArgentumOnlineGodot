@@ -104,8 +104,17 @@ func snapshot() -> Dictionary:
 	var context = ScreenController.currentScreen._gameContext
 	view.statuses = {"paralyzed": context.userParalizado, "dumb": context.userEstupido, "blind": context.userCiego}
 	view.actor_visibility = {}
+	view.actor_equipment = {}
 	for actor in ScreenController.currentScreen._gameWorld.GetMapContainer()._characterCollection:
 		view.actor_visibility[str(actor.instanceId)] = {"renderer_visible": actor.renderer.visible, "visible_in_tree": actor.renderer.is_visible_in_tree(), "name_visible": actor._nameLabel.visible, "internal_invisible": actor.GetCharacterInvisible()}
+		if actor.instanceId < 10000:
+			var layers := {}
+			for layer in ["body", "head", "weapon", "shield", "helmet"]:
+				var sprite: AnimatedSprite2D = actor.renderer.get("_" + layer + "AnimatedSprite")
+				layers[layer] = {"id": actor.renderer.get(layer), "resource": sprite.sprite_frames.resource_path,
+					"visible": sprite.is_visible_in_tree(), "animation": String(sprite.animation),
+					"frame": sprite.frame, "frame_count": sprite.sprite_frames.get_frame_count(sprite.animation)}
+			view.actor_equipment[str(actor.instanceId)] = layers
 	view.sailing = context.userNavegando
 	view.status_text = hub._status_label.text
 	view.ping_status = Global.pingStatus

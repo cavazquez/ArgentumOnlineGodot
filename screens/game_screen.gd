@@ -440,12 +440,19 @@ func _HandleCharacterChange(p:CharacterChange) -> void:
 	var character = _gameWorld.GetCharacter(p.charIndex)
 	if character == null: return
 	
-	character.renderer.body = p.body
-	character.renderer.head = p.head
-	character.renderer.helmet = p.helmet
-	character.renderer.weapon = p.weapon
-	character.renderer.shield = p.shield
+	# Body 0 es una actualización de orientación: conserva todas las capas.
+	# Una apariencia completa incluye ceros para retirar casco, arma y escudo.
+	if p.body > 0:
+		character.renderer.body = p.body
+		character.renderer.head = p.head
+		character.renderer.helmet = p.helmet
+		character.renderer.weapon = p.weapon
+		character.renderer.shield = p.shield
 	character.renderer.heading = p.heading
+	if character.isMoving:
+		character.renderer.Play()
+	else:
+		character.renderer.Stop()
 	
 	
 func _HandleUpdateHP(p:UpdateHP) -> void:
