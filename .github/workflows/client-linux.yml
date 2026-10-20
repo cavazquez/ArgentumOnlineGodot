@@ -16,7 +16,7 @@ on:
       test_gameplay:
         description: Ejecutar regresiones nativas sin construir Snaps ni otros portables
         type: choice
-        options: [none, lifetime-stats, all]
+        options: [none, lifetime-stats, structure-profile, all]
         default: none
 
 permissions:
@@ -205,6 +205,13 @@ jobs:
           python3 tools/github_release.py snapshot --directory build
       - name: Probar caché y teardown con renderizado nativo real
         run: python3 tools/smoke-map-cache.py --client-executable build/r10/pyao-client-r10.x86_64 --output build/map-cache-stress --cycles 80
+      - name: Registrar búsquedas de entidades y tiempos de mapas sin umbrales inestables
+        env:
+          PYAO_STRUCTURE_OUTPUT: ${{ github.workspace }}/build/structure-benchmark.json
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          xvfb-run -a "$GODOT_BIN" --path . --rendering-method gl_compatibility --audio-driver Dummy res://tests/structure_benchmark.tscn > build/structure-benchmark.log 2>&1
+          python3 tools/check-export-log.py build/structure-benchmark.log
       - name: Conservar logs y ejecutable
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -387,7 +394,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: ${{ fromJSON(inputs.test_gameplay == 'lifetime-stats' && '["lifetime-stats"]' || '["skills","spells","navigation","duel","potions","expansion","npc-policy","economy","npcs","lifetime-stats"]') }}
+        scenario: ${{ fromJSON(inputs.test_gameplay == 'lifetime-stats' && '["lifetime-stats"]' || inputs.test_gameplay == 'structure-profile' && '["structure-profile"]' || '["skills","spells","navigation","duel","potions","expansion","npc-policy","economy","npcs","lifetime-stats","structure-profile"]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

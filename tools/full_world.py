@@ -745,12 +745,18 @@ class FullWorld(SkillsWorld):
                 None,
             ),
         }
+        sources = [self.output / name for name in ("wheel-source.json", "server-source.json")]
+        if not any(path.is_file() for path in sources):
+            raise RuntimeError("Benchmark sin manifiesto de las fuentes del servidor")
         report["dataset"] = {
             path.name: hashlib.sha256(path.read_bytes()).hexdigest()
             for path in (
                 self.output / "full-fixture.json",
                 self.output / "wheel-source.json",
+                self.output / "server-source.json",
+                self.output / "client-source.json",
             )
+            if path.is_file()
         }
         (self.output / "benchmark.json").write_text(json.dumps(report, indent=2) + "\n")
         for i in (1, 2):
