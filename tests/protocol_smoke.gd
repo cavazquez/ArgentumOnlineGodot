@@ -164,6 +164,15 @@ func _verify_text_policy() -> void:
 	var cases = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/credentials.json"))
 	var panel = load("res://ui/login_panel.tscn").instantiate()
 	add_child(panel)
+	var visibility: Button = panel.get_node("%ShowPasswordButton")
+	var password: LineEdit = panel.get_node("%Password")
+	check(password.secret and visibility.text.is_empty() and visibility.icon != null, "Login no oculta la clave o depende de un glifo del sistema")
+	var show_icon: Texture2D = visibility.icon
+	visibility.button_pressed = true
+	check(not password.secret and visibility.icon != show_icon and visibility.tooltip_text == "Ocultar contraseña", "Mostrar clave no actualiza el campo y su icono")
+	check(visibility.icon.get_width() > 0 and visibility.icon.get_height() > 0, "El icono de ocultar no se importó")
+	visibility.button_pressed = false
+	check(password.secret and visibility.icon == show_icon and visibility.tooltip_text == "Mostrar contraseña", "Ocultar clave no restablece el campo y su icono")
 	var counts := {"submit": 0, "error": 0, "serialization": 0}
 	panel.submit.connect(func(): counts.submit += 1)
 	panel.error.connect(func(_message): counts.error += 1)
@@ -720,6 +729,18 @@ func _verify_password_change(fixtures: Dictionary) -> void:
 	check(ClientInterface.capabilities.accept(PackedByteArray([250, 1, 143, 0, 0, 0])), "No habilita cambio de contraseña")
 	var window = load("res://ui/hub/password_change_window.tscn").instantiate()
 	add_child(window)
+	var inputs := [window.current_password_input, window.new_password_input, window.confirm_password_input]
+	var toggles := [window.current_password_toggle, window.new_password_toggle, window.confirm_password_toggle]
+	for index in range(3):
+		var toggle: Button = toggles[index]
+		check(toggle.text.is_empty() and toggle.icon != null and toggle.icon.get_width() > 0, "Cambio de clave depende de un glifo del sistema")
+		var show_icon: Texture2D = toggle.icon
+		toggle.pressed.emit()
+		check(not inputs[index].secret and toggle.icon != show_icon and toggle.tooltip_text == "Ocultar contraseña", "El botón no revela su campo y cambia de icono")
+		for other in range(3):
+			check(inputs[other].secret == (other != index), "Un botón de visibilidad altera otro campo")
+		toggle.pressed.emit()
+		check(inputs[index].secret and toggle.icon == show_icon, "El botón no vuelve a ocultar la clave")
 	GameProtocol.Clear()
 	window.show_window()
 	window.show_window()
@@ -757,6 +778,8 @@ func _verify_password_change(fixtures: Dictionary) -> void:
 	window.current_password_toggle.pressed.emit()
 	window.RequestClose()
 	check(window.current_password_input.secret and window.current_password_input.text.is_empty() and window.new_password_input.text.is_empty() and not window.visible, "Cerrar conserva una clave o su modo visible")
+	for toggle in toggles:
+		check(toggle.icon == window.SHOW_PASSWORD_ICON and toggle.tooltip_text == "Mostrar contraseña", "Cerrar conserva el icono de una clave visible")
 	window._Disconnected()
 	check(window.operation_id.is_empty() and window._pending_id.is_empty() and window.accept_button.disabled, "Desconexión conserva autorización de cambio")
 	window.free()

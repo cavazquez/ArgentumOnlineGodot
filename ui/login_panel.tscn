@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bea3h14qh8jve"]
+[gd_scene load_steps=3 format=3 uid="uid://bea3h14qh8jve"]
 
 [ext_resource type="Script" uid="uid://c3544f3wcfksc" path="res://ui/login_panel.gd" id="1_6a27a"]
+[ext_resource type="Texture2D" path="res://Assets/UI/password-show.svg" id="2_eye"]
 
 [node name="LoginPanel" type="PanelContainer"]
 offset_right = 306.0
@@ -58,8 +59,8 @@ secret = true
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_stretch_ratio = 0.1
-text = "👁️"
-tooltip_text = "Mostrar/Ocultar contraseña"
+icon = ExtResource("2_eye")
+tooltip_text = "Mostrar contraseña"
 
 [node name="MarginContainer2" type="MarginContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
