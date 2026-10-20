@@ -73,6 +73,10 @@ jobs:
           wsl --install --distribution Ubuntu-24.04 --no-launch --web-download
           wsl --set-default Ubuntu-24.04
           wsl --distribution Ubuntu-24.04 --user root --exec sh -c 'apt-get update && apt-get install -y build-essential'
+      - name: Dispositivo firmado de audio para WASAPI del runner Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/prepare-windows-audio.ps1
       - name: Motor y templates oficiales con SHA256
         run: python tools/install-godot.py --all-templates --destination "$RUNNER_TEMP/pyao-godot"
       - name: Compilar sólo Redis de la fixture
@@ -99,6 +103,7 @@ jobs:
             build/portable-candidate/candidate-manifest.json
             build/portable-candidate/export.log
             build/native-verification/
+            build/audio-fixture.json
           retention-days: 7
 
   web-browser:

@@ -4,6 +4,7 @@ class_name AudioPlaybackProbe
 # Verifica el avance o fin real del sonido. Un único muestreo a los 50 ms
 # puede perder un sonido corto cuando el runner tarda en devolver el cuadro.
 static func played(owner: Node, wave: int = 17) -> bool:
+	if AudioServer.get_driver_name() == "Dummy": return false
 	AudioManager.PlayAudio(wave)
 	var player := AudioManager._active.get(wave) as AudioStreamPlayer
 	if player == null or player.stream == null or player.stream.get_length() <= 0:
