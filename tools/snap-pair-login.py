@@ -25,8 +25,10 @@ from tempfile import TemporaryDirectory
 from src.operations.redis_sandbox import RedisSandbox
 from src.operations.two_client_smoke import ProtocolPeer
 from src.network.packet_id import ServerPacketID
+from src.core.schema_manager import CURRENT_SCHEMA_VERSION
 
 from runtime_log import classify_runtime_log
+from store_schema_evidence import verify_schema
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -377,8 +379,7 @@ def main():
                             lambda: not store.exists(f"session:{uid}:owner"),
                             "El cierre de la UI no liberó su sesión",
                         )
-                        if store.hget("schema:state", "version") != "4":
-                            raise RuntimeError("Esquema Redis incorrecto")
+                        schema_version = verify_schema(store, CURRENT_SCHEMA_VERSION)
                         attempts.append(
                             {
                                 "attempt": attempt,
@@ -387,6 +388,7 @@ def main():
                                 "distinct_positions": len(positions),
                                 "inventory_confirmed_in_redis": True,
                                 "session_released": True,
+                                "redis_schema_version": schema_version,
                             }
                         )
                     finally:
@@ -419,6 +421,7 @@ def main():
             "graceful_sigterm": True,
             "production_data_used": False,
             "long_r10_acceptance": False,
+            "expected_redis_schema": CURRENT_SCHEMA_VERSION,
         }
         (output / "result.json").write_text(json.dumps(proof, indent=2) + "\n")
         print(json.dumps(proof))
