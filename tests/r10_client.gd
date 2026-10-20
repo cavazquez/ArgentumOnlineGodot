@@ -54,11 +54,15 @@ func snapshot() -> Dictionary:
 		"appearance": [character.renderer.body, character.renderer.head],
 		"panel": "", "characters": screen._gameWorld.get_child_count(),
 		"capabilities": ClientInterface.capabilities.enabled, "trading": context.trading,
-		"using_skill": context.usingSkill, "world_characters": {},
+		"using_skill": context.usingSkill, "world_characters": {}, "character_effects": {},
 		"modals": hub._VisibleModals().map(func(w): return w.name)}
 	for visible_character in screen._gameWorld.GetMapContainer()._characterCollection:
 		result.world_characters[str(visible_character.instanceId)] = [visible_character.gridPosition.x,
 			visible_character.gridPosition.y, visible_character.renderer.body, visible_character.renderer.head]
+		var effect: CharacterEffect = visible_character.effect
+		result.character_effects[str(visible_character.instanceId)] = {"id": effect.effect_id,
+			"loops": effect.effect_loops, "visible": effect.is_visible_in_tree(),
+			"playing": effect.is_playing(), "frame": effect.frame}
 	if is_instance_valid(hub._currentPanel):
 		var panel = hub._currentPanel
 		if panel is PlayerTradePanel:

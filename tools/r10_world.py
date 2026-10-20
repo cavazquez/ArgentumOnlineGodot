@@ -618,6 +618,21 @@ class R10World:
         )
         self.passed("clan", "R07", create_invite_accept_chat_details_leave=True)
 
+    def meditation_effect(self, index, active):
+        actor = str(self.ids[1])
+        return self.view(
+            index,
+            lambda v: (
+                (fx := v.get("character_effects", {}).get(actor)) is not None
+                and (
+                    fx["id"] == 16 and fx["loops"] == -1 and fx["visible"] and fx["playing"]
+                    if active
+                    else fx["id"] == 0 and not fx["visible"] and not fx["playing"]
+                )
+            ),
+            f"meditación {'visible' if active else 'retirada'} en cliente {index}",
+        )
+
     def magic_combat(self, store, locations):
         x, y = locations["base"]
         self.relocate(store, {1: (1, x, y), 2: (1, x + 1, y)}, reset=True)
@@ -640,6 +655,20 @@ class R10World:
             "Objetivo inválido no cobra maná"
         )
         self.command(1, "chat", text="/meditar")
+        for index in (1, 2):
+            view = self.meditation_effect(index, True)
+            frame = view["character_effects"][str(self.ids[1])]["frame"]
+            self.view(
+                index,
+                lambda v: v["character_effects"][str(self.ids[1])]["frame"] != frame,
+                "la animación de meditación avanza en ambos clientes",
+            )
+            self.command(index, "capture", label="meditation-both")
+        self.command(2, "logout")
+        self.wait(lambda: not store.exists(f"session:{self.ids[2]}:owner"), "liberar observador")
+        self.command(2, "login")
+        self.meditation_effect(2, True)
+        self.command(2, "capture", label="meditation-reconnected")
         self.wait(
             lambda: self.stats(store, 1)["min_mana"] > mana,
             "recuperación de maná meditando",
@@ -648,11 +677,24 @@ class R10World:
         self.view(1, lambda v: v["mana"] > mana, "maná de meditación en UI")
         self.command(1, "chat", text="/meditar")
         self.console(1, "Dejas de meditar")
+        for index in (1, 2): self.meditation_effect(index, False)
+        self.command(1, "chat", text="/meditar")
+        for index in (1, 2): self.meditation_effect(index, True)
+        self.command(1, "step", action="ui_left")
+        self.view(1, lambda v: v["x"] == x-1 and v["y"] == y, "movimiento cancela meditación")
+        for index in (1, 2):
+            self.meditation_effect(index, False)
+            self.command(index, "capture", label="meditation-stopped")
+        self.command(1, "step", action="ui_right")
+        self.view(1, lambda v: v["x"] == x and v["y"] == y, "regresar al punto de combate")
         self.passed(
             "meditation",
             "R06",
             mana_before=mana,
             mana_after=self.stats(store, 1)["min_mana"],
+            both_clients_animated=True,
+            observer_reconnect_restores_effect=True,
+            manual_and_movement_stop_both=True,
         )
         self.command(1, "use", slot=23)
         self.wait(

@@ -126,15 +126,15 @@ class EconomyWorld(R10World):
         self.command(1, "drop_gold", amount=1000)
         self.wait(lambda: self.stats(store, 1)["gold"] == 0, "tirar 1000 oro desde el botón del HUD")
         key = "ground_items:1"
-        ground = json.loads(store.get(key))
-        piles = ground[f"{x},{y}"]
+        field = f"{x},{y}"
+        piles = json.loads(store.hget(key, field) or "[]")
         pile = next(row for row in piles if row["item_id"] == 12 and row["quantity"] == 1000)
         stack = pile["stack_id"]
         assert pile["devaluation_day"] == day
         # Simular el cruce del corte sólo en el Redis descartable del ensayo.
         store.hset("config:economy:daily_tax", "ground_activation_day", day-1)
         pile["devaluation_day"] = day-1
-        store.set(key, json.dumps(ground), keepttl=True)
+        store.hset(key, field, json.dumps(piles))
         self.command(1, "step", action="ui_left")
         self.view(1, lambda v: v["x"] == x-1 and v["y"] == y, "dejar libre el montón")
         self.command(2, "step", action="ui_left")
@@ -142,7 +142,7 @@ class EconomyWorld(R10World):
         self.command(2, "pickup")
         self.wait(lambda: self.stats(store, 2)["gold"] == 990, "recoger 990 tras la devaluación del suelo")
         self.view(2, lambda v: v["gold"] == 990, "HUD del segundo cliente con 990 oro")
-        assert not any(row["stack_id"] == stack for values in json.loads(store.get(key)).values() for row in values)
+        assert not any(row["stack_id"] == stack for row in json.loads(store.hget(key, field) or "[]"))
         self.command(2, "capture", label="ground-devaluation")
         self.passed("economy-ground-devaluation", "Devaluación del 1% en el suelo", initial=1000, collected=990, collector="second-client", real_hud_drop=True, controlled_cutoff=True)
 
