@@ -57,3 +57,8 @@ ventanas gráficas. Para cada jugador exige el paquete de aparición y al menos
 dos frames visibles en ambos clientes; también comprueba que el efecto finito
 termine. Las capturas `login-1` y `login-2` se toman al observar la animación,
 sin depender de que un comando posterior llegue antes de su finalización.
+
+En pruebas locales con sonido audible se agrega `--client-audio PulseAudio`.
+El driver se exige al iniciar y queda registrado en el resultado; la regresión
+también exige el inicio y fin de los WAV de login y curación, con buses sin mute.
+`Dummy` sigue disponible para los ensayos de CI que no tienen salida de audio.

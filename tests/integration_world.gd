@@ -26,6 +26,12 @@ func wait_for(predicate: Callable, label: String, seconds: float = 30.0) -> bool
 
 func _ready() -> void:
 	print("R10_NATIVE: ", OS.has_feature("r10_acceptance"))
+	print("INTEGRATION_AUDIO_DRIVER: ", AudioServer.get_driver_name())
+	var expected_audio := OS.get_environment("PYAO_TEST_AUDIO_DRIVER")
+	if not expected_audio.is_empty() and AudioServer.get_driver_name() != expected_audio:
+		push_error("El driver de audio activo no coincide con el requerido: " + expected_audio)
+		get_tree().quit(1)
+		return
 	ClientInterface.capabilities_changed.connect(func():
 		print("R10_CAPABILITIES: tick=", Time.get_ticks_msec(), " enabled=", ClientInterface.capabilities.enabled))
 	var password := OS.get_environment("PYAO_TEST_PASSWORD")

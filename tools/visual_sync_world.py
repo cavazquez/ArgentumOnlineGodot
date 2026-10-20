@@ -25,6 +25,16 @@ def login_effect_seen(view, actor):
 
 
 class VisualSyncWorld(R10World):
+    def audio_completed(self, view, resource=None):
+        return self.expected_audio_driver not in (None, "Dummy") and view.get("audio_driver") == self.expected_audio_driver and any(
+            row.get("started") and row.get("finished")
+            and row.get("driver") == self.expected_audio_driver
+            and not row.get("bus_muted") and not row.get("master_muted")
+            and row.get("bus_db", -80) > -60 and row.get("master_db", -80) > -60
+            and (resource is None or row.get("resource") == resource)
+            for row in view.get("audio_playback", [])
+        )
+
     def run(self, locations):
         self.wait(
             lambda: all("INTEGRATION_WORLD: READY" in (self.output / f"godot-{i}.log").read_text() for i in (1, 2)),
@@ -48,8 +58,21 @@ class VisualSyncWorld(R10World):
                     self.view(viewer, lambda v: v.get("character_effects", {}).get(str(self.ids[actor]), {}).get("id") == 0,
                               f"efecto finito de login {actor} finalizado en cliente {viewer}")
                     self.command(viewer, "capture", label=f"login-{actor}-ended")
+                if self.expected_audio_driver and self.expected_audio_driver != "Dummy":
+                    self.view(actor, lambda v: self.audio_completed(v, "res://Assets/Sfx/3.wav"),
+                              f"sonido de login completo por audio real en cliente {actor}")
             self.passed("login-fx", "Login y reconexión con animación finita en ambos clientes",
                         actors=[1, 2], both_clients_animated=True, both_stopped=True)
+            if self.expected_audio_driver and self.expected_audio_driver != "Dummy":
+                for viewer in (1, 2):
+                    self.command(viewer, "capture_reset", label="audio-heal")
+                before = self.stats(store, 1)["min_hp"]
+                self.command(1, "cast", slot=1, x=x, y=y)
+                self.wait(lambda: self.stats(store, 1)["min_hp"] > before, "curación real para probar el audio")
+                for viewer in (1, 2):
+                    self.view(viewer, self.audio_completed, f"sonido del hechizo reproducido completamente en cliente {viewer}")
+                self.passed("real-audio", "Login y hechizo con audio real en ambos clientes",
+                            driver=self.expected_audio_driver, completed=True)
             self.meditation(store, x, y, self.stats(store, 1)["min_mana"])
         for viewer in (1, 2): self.command(viewer, "soak")
         return self.steps

@@ -468,6 +468,7 @@ def worker(args):
                 PYAO_TEST_RELEASED=str(reconnect_gates[index - 1]),
                 PYAO_TEST_CONTROL=str(work / f"control-{index}"),
                 PYAO_TEST_SCREENSHOT=str(output / f"godot-{index}.png"),
+                PYAO_TEST_AUDIO_DRIVER=args.client_audio or "",
                 XDG_DATA_HOME=str(work / f"client-{index}/data"),
                 XDG_CONFIG_HOME=str(work / f"client-{index}/config"),
                 XDG_CACHE_HOME=str(work / f"client-{index}/cache"),
@@ -481,7 +482,10 @@ def worker(args):
                 if args.client_executable
                 else [str(args.godot), "--path", str(ROOT)]
             )
-            if args.scenario != "platform": command += ["--audio-driver", "Dummy"]
+            if args.client_audio:
+                command += ["--audio-driver", args.client_audio]
+            elif args.scenario != "platform":
+                command += ["--audio-driver", "Dummy"]
             command += ["--rendering-method", "gl_compatibility"]
             if native_platform:
                 # WARP/Apple Software Renderer/llvmpipe comparten CPU con los
@@ -503,6 +507,7 @@ def worker(args):
             clients.append(client)
         started = time.monotonic()
         scenario = R10World(redis, work, output, names, clients, server)
+        scenario.expected_audio_driver = args.client_audio
         scenario.server_port = endpoint
         scenario.benchmark_password = password
 
@@ -753,6 +758,11 @@ def worker(args):
             "wheel_sha256": hashlib.sha256(args.wheel.read_bytes()).hexdigest() if args.wheel else None,
             "redis": "8.10.2",
             "godot": args.godot_version,
+            "client_audio_driver_requested": args.client_audio,
+            "client_audio_drivers": [
+                re.search(r"INTEGRATION_AUDIO_DRIVER: (\w+)", (output / f"godot-{i}.log").read_text()).group(1)
+                for i in (1, 2)
+            ],
             "graceful_sigterm": True,
         }
         proof["live_tls_sessions_drained"] = 2
@@ -822,6 +832,8 @@ def main():
         help="Regresión que se ejecuta antes del período de observación",
     )
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--client-audio", choices=("Dummy", "PulseAudio"),
+                        help="Driver explícito para ambos clientes; permite audio audible en desarrollo")
     parser.add_argument("--server-profile", action="store_true", help="Diagnóstico acotado de latencias, sólo para el servidor fuente de la fixture")
     parser.add_argument(
         "--server-debug",
@@ -995,6 +1007,8 @@ def main():
         arguments += ["--source"] if args.source else ["--wheel", str(args.wheel)]
         if args.headless:
             arguments.append("--headless")
+        if args.client_audio:
+            arguments += ["--client-audio", args.client_audio]
         if args.server_debug:
             arguments.append("--server-debug")
         if args.server_profile:

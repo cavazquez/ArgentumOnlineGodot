@@ -14,8 +14,21 @@ var server_console_count := 0
 func run(owner: Node) -> bool:
 	host = owner
 	ClientInterface.dataReceived.connect(_packet)
+	AudioManager.child_entered_tree.connect(_watch_audio, CONNECT_DEFERRED)
 	host.get_tree().process_frame.connect(_observe)
 	return await super.run(owner)
+
+func _watch_audio(node: Node) -> void:
+	if not is_instance_valid(node) or not node is AudioStreamPlayer or node.stream == null or capture_label.is_empty():
+		return
+	var bus := AudioServer.get_bus_index(node.bus)
+	var master := AudioServer.get_bus_index("Master")
+	var entry := {"resource": node.stream.resource_path, "label": capture_label,
+		"started": node.playing, "finished": false, "driver": AudioServer.get_driver_name(),
+		"bus_muted": AudioServer.is_bus_mute(bus), "master_muted": AudioServer.is_bus_mute(master),
+		"bus_db": AudioServer.get_bus_volume_db(bus), "master_db": AudioServer.get_bus_volume_db(master)}
+	audio_frames.append(entry)
+	node.finished.connect(func(): entry.finished = true, CONNECT_ONE_SHOT)
 
 func _packet(data: PackedByteArray) -> void:
 	if not data.is_empty() and data[0] == 248:
