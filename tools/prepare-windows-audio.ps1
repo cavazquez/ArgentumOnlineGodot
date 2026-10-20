@@ -1,5 +1,5 @@
 # Sólo para el runner descartable: WASAPI requiere un endpoint de audio real.
-# VB-CABLE oficial firmado; patrón de instalación de LABSN/sound-ci-helpers.
+# VB-CABLE oficial firmado y DevCon del NuGet WDK oficial de Microsoft.
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_OS -ne 'Windows') {
     throw 'La fixture de audio sólo se instala en GitHub Actions Windows.'
@@ -14,10 +14,14 @@ if ((Get-FileHash $pyaoArchive -Algorithm SHA256).Hash -ne 'b950e39f01af1d04ea62
 $pyaoDriver = Join-Path $pyaoAudio 'driver'
 Expand-Archive -Path $pyaoArchive -DestinationPath $pyaoDriver
 $pyaoDevcon = Join-Path $pyaoAudio 'devcon.exe'
-Invoke-WebRequest 'https://raw.githubusercontent.com/LABSN/sound-ci-helpers/e9d6ba52163a3283714a68412036ddf33f78d49c/windows/devcon.exe' -OutFile $pyaoDevcon
-if ((Get-FileHash $pyaoDevcon -Algorithm SHA256).Hash -ne '97cff42f8c0fe4fbdf991273159516bf78090625a933c3983ebd6f62284e329a') {
-    throw 'SHA256 distinto para devcon.'
+$pyaoWdkArchive = Join-Path $pyaoAudio 'wdk.zip'
+Invoke-WebRequest 'https://api.nuget.org/v3-flatcontainer/microsoft.windows.wdk.x64/10.0.28000.2526/microsoft.windows.wdk.x64.10.0.28000.2526.nupkg' -OutFile $pyaoWdkArchive
+if ((Get-FileHash $pyaoWdkArchive -Algorithm SHA256).Hash -ne '63c939fb5a79295bf40e941db592681272219b04edff095fe2f3d123e5579a90') {
+    throw 'SHA256 distinto para el WDK oficial.'
 }
+$pyaoWdk = Join-Path $pyaoAudio 'wdk'
+Expand-Archive -Path $pyaoWdkArchive -DestinationPath $pyaoWdk
+Copy-Item (Join-Path $pyaoWdk 'c/tools/10.0.28000.0/x64/devcon.exe') $pyaoDevcon
 $pyaoHelperSignature = Get-AuthenticodeSignature $pyaoDevcon
 if ($pyaoHelperSignature.Status -ne 'Valid' -or $pyaoHelperSignature.SignerCertificate.Subject -notmatch 'Microsoft') {
     throw 'devcon no tiene una firma Microsoft válida.'
