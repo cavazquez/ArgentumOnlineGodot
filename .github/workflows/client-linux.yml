@@ -13,6 +13,11 @@ on:
         description: Commit exacto del servidor de la misma versión que este cliente
         type: string
         required: true
+      test_gameplay:
+        description: Ejecutar regresiones nativas sin construir Snaps ni otros portables
+        type: choice
+        options: [none, lifetime-stats, all]
+        default: none
 
 permissions:
   contents: read
@@ -166,7 +171,7 @@ jobs:
           test -z "$(git ls-files --others --exclude-standard)"
 
   import-and-export:
-    if: github.event_name == 'workflow_dispatch' && inputs.build_packages
+    if: github.event_name == 'workflow_dispatch' && (inputs.build_packages || inputs.test_gameplay != 'none')
     needs: quality
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -382,7 +387,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [skills, spells, navigation, duel, potions, expansion, npc-policy, economy, npcs, lifetime-stats]
+        scenario: ${{ fromJSON(inputs.test_gameplay == 'lifetime-stats' && '["lifetime-stats"]' || '["skills","spells","navigation","duel","potions","expansion","npc-policy","economy","npcs","lifetime-stats"]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
