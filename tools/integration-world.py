@@ -139,6 +139,11 @@ def stop(process):
             process.wait(timeout=5)
 
 
+def child_process_options():
+    # CTRL_BREAK debe llegar sólo al hijo propio, nunca al grupo del runner.
+    return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {}
+
+
 class NativeRedis:
     """Alternativa local al contenedor, sobre el mismo Redis 8.10.2 real.
 
@@ -231,6 +236,7 @@ class NativeRedis:
             ],
             stdout=self.log,
             stderr=subprocess.STDOUT,
+            **child_process_options(),
         )
         with self.client():
             pass
@@ -378,6 +384,9 @@ def worker(args):
             if args.scenario != "r10"
             else "40",
         )
+        windows_platform = os.name == "nt" and args.source and args.scenario == "platform"
+        if windows_platform:
+            environment["PYTHONASYNCIODEBUG"] = "1"
         server_log = stack.enter_context((output / "server.log").open("wb"))
         entry = Path(sys.executable).parent / ("pyao-server.exe" if os.name == "nt" else "pyao-server")
         server_entry = [sys.executable, "-m", "src.run_server"] if args.source else [str(entry)]
@@ -399,7 +408,7 @@ def worker(args):
             env=environment,
             stdout=server_log,
             stderr=subprocess.STDOUT,
-            **({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {}),
+            **child_process_options(),
         )
         stack.callback(stop, server)
         # La fixture fuente valida y recompila los 290 mapas en frío. Ese trabajo
@@ -422,6 +431,7 @@ def worker(args):
             "elapsed_seconds": round(time.monotonic() - startup_started, 3),
             "login_budget_changed": False,
             "redis_storage": getattr(redis, "storage_kind", "docker-volume"),
+            "client_max_fps": 30 if windows_platform else None,
         }, indent=2) + "\n")
         clients = []
         reconnect_gates = [work / f"client-{index}-released" for index in (1, 2)]
@@ -460,6 +470,10 @@ def worker(args):
             )
             if args.scenario != "platform": command += ["--audio-driver", "Dummy"]
             command += ["--rendering-method", "gl_compatibility"]
+            if windows_platform:
+                # El runner usa WARP, renderizado por CPU. Dos loops sin límite
+                # compiten con servidor/Redis por los mismos núcleos virtuales.
+                command += ["--max-fps", "30"]
             if not args.client_executable:
                 command += ["res://tests/integration_world.tscn"]
             if args.headless:
@@ -470,6 +484,7 @@ def worker(args):
                 cwd=work,
                 stdout=client_log,
                 stderr=subprocess.STDOUT,
+                **child_process_options(),
             )
             stack.callback(stop, client)
             clients.append(client)
@@ -488,7 +503,7 @@ def worker(args):
                 env=environment,
                 stdout=server_log,
                 stderr=subprocess.STDOUT,
-                **({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {}),
+                **child_process_options(),
             )
             stack.callback(stop, server)
             deadline = time.monotonic() + 60
@@ -628,6 +643,7 @@ def worker(args):
                     env=ui_environment,
                     stdout=ui_log,
                     stderr=subprocess.STDOUT,
+                    **child_process_options(),
                 )
                 try:
                     deadline = time.monotonic() + 120

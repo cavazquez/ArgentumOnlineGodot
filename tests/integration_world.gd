@@ -5,6 +5,14 @@ var failed := false
 var moved := false
 var peer_chat_seen := false
 
+func world_ready(game_id: int) -> bool:
+	var game := instance_from_id(game_id) as GameScreen
+	return is_instance_valid(game) and game._gameContext.player_map > 0 and game._gameWorld.GetCharacter(game._mainCharacterInstanceId) != null and game._gameContext.playerInventory.GetSlot(0).quantity > 0
+
+func inventory_ack(game_id: int, item_id: int) -> bool:
+	var game := instance_from_id(game_id) as GameScreen
+	return is_instance_valid(game) and game._gameContext.playerInventory.GetSlot(29).item.index == item_id
+
 func wait_for(predicate: Callable, label: String, seconds: float = 30.0) -> bool:
 	var deadline := Time.get_ticks_msec() + int(seconds * 1000)
 	while not predicate.call():
@@ -51,7 +59,8 @@ func _ready() -> void:
 	if not await wait_for(func(): return ScreenController.currentScreen is GameScreen, "alta y login"):
 		return
 	var game = ScreenController.currentScreen as GameScreen
-	if not await wait_for(func(): return game._gameContext.player_map > 0 and game._gameWorld.GetCharacter(game._mainCharacterInstanceId) != null and game._gameContext.playerInventory.GetSlot(0).quantity > 0, "mapa, personaje e inventario"):
+	var game_id: int = game.get_instance_id()
+	if not await wait_for(func(): return world_ready(game_id), "mapa, personaje e inventario"):
 		return
 	var hub: HubController = game._gameInput
 	var inventory: InventoryContainer = hub._inventoryContainer
@@ -62,7 +71,7 @@ func _ready() -> void:
 	var item_id: int = game._gameContext.playerInventory.GetSlot(0).item.index
 	inventory.GetInventorySlot(0).pressed.emit()
 	inventory.DropItem(29, inventory.CreateDragData(0))
-	if not await wait_for(func(): return game._gameContext.playerInventory.GetSlot(29).item.index == item_id, "ACK de inventario en slot 30"):
+	if not await wait_for(func(): return inventory_ack(game_id, item_id), "ACK de inventario en slot 30"):
 		return
 	print("INTEGRATION_WORLD: READY map=", game._gameContext.player_map, " slots=30 tls=true")
 	if not OS.get_environment("PYAO_TEST_CONTROL").is_empty():

@@ -140,7 +140,7 @@ func execute(command: Dictionary) -> bool:
 		await RenderingServer.frame_post_draw
 		var image := host.get_viewport().get_texture().get_image()
 		var rendered := DisplayServer.get_name() != "headless" and image != null and image.get_width() >= 640
-		platform_probe = {"rendering": rendered, "audio": audio, "input": input_saved and keyboard, "input_saved": input_saved, "keyboard": keyboard_probe, "preferences": saved, "display_driver": DisplayServer.get_name(), "audio_driver": AudioServer.get_driver_name()}
+		platform_probe = {"rendering": rendered, "audio": audio, "input": input_saved and keyboard, "input_saved": input_saved, "keyboard": keyboard_probe, "preferences": saved, "display_driver": DisplayServer.get_name(), "audio_driver": AudioServer.get_driver_name(), "engine_max_fps": Engine.max_fps, "measured_fps": Engine.get_frames_per_second()}
 		return rendered and audio and input_saved and keyboard and saved
 	if command.op == "ui_phase":
 		var game := ScreenController.currentScreen as GameScreen
