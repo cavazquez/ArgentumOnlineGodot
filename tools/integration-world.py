@@ -416,8 +416,12 @@ def worker(args):
                 XDG_CONFIG_HOME=str(work / f"client-{index}/config"),
                 XDG_CACHE_HOME=str(work / f"client-{index}/cache"),
             )
+            executable = args.client_executable
+            if executable and args.source and args.scenario == "platform":
+                from native_client_profile import isolated_copy
+                executable = isolated_copy(executable, work, index, sys.platform)
             command = (
-                [str(args.client_executable)]
+                [str(executable)]
                 if args.client_executable
                 else [str(args.godot), "--path", str(ROOT)]
             )
