@@ -127,7 +127,9 @@ func _MovePlayer(heading:int) -> void:
 		#No se porque esto esta asi. Lo unico que logra es que el personaje pegue un salto cuando camina
 		#Obligando al usuario a presionar la tecla L(PosUpdate)
 		GameProtocol.WriteWalk(heading)
-		if !_gameContext.userDescansar && !_gameContext.userMeditar:
+		# WALK cancela meditación en el servidor. El actor debe predecir también
+		# ese primer paso: el broadcast de movimiento sólo llega a los demás.
+		if !_gameContext.userDescansar:
 			_gameWorld.MoveCharacter(_mainCharacterInstanceId, heading)
 	else:
 		if character.renderer.heading != heading:

@@ -37,3 +37,28 @@ navegación de ambos clientes y cruce de salida marina. Son regresiones sobre
 fuentes con renderizado real, independientes de una aceptación prolongada o de
 una publicación de paquetes. Los resultados completos, complejidades y hashes se
 conservan en [la documentación del servidor](https://github.com/cavazquez/pyao-server/blob/main/docs/operations/runtime-performance.md).
+
+El ensayo `--scenario economy` usa el esquema Redis 6 del servidor: inspecciona
+y modifica exclusivamente el campo de la casilla dentro de `ground_items:<mapa>`.
+Conserva el TTL al simular el corte diario, sin reemplazar el resto del mapa.
+La regresión gráfica comprueba tirar 1.000 monedas desde el HUD, recoger 990 con
+el segundo cliente, reiniciar y conservar inventario, libro de hechizos y stock.
+La migración del servidor y sus garantías están en
+[suelo por casilla](https://github.com/cavazquez/pyao-server/blob/main/docs/operations/redis-ground-layout.md).
+
+La regresión de meditación observa el efecto activo del personaje en ambos
+clientes y comprueba que sus frames avanzan. También verifica la reconstrucción
+al reconectar el observador y la retirada en ambos al cancelar o caminar. Las
+capturas `meditation-both`, `meditation-reconnected` y `meditation-stopped`
+acompañan las aserciones; el texto local «Meditando» no acredita el efecto remoto.
+
+`--scenario visual-sync` recorre sólo login/reconexión y meditación en dos
+ventanas gráficas. Para cada jugador exige el paquete de aparición y al menos
+dos frames visibles en ambos clientes; también comprueba que el efecto finito
+termine. Las capturas `login-1` y `login-2` se toman al observar la animación,
+sin depender de que un comando posterior llegue antes de su finalización.
+
+En pruebas locales con sonido audible se agrega `--client-audio PulseAudio`.
+El driver se exige al iniciar y queda registrado en el resultado; la regresión
+también exige el inicio y fin de los WAV de login y curación, con buses sin mute.
+`Dummy` sigue disponible para los ensayos de CI que no tienen salida de audio.

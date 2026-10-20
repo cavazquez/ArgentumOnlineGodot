@@ -26,6 +26,12 @@ func wait_for(predicate: Callable, label: String, seconds: float = 30.0) -> bool
 
 func _ready() -> void:
 	print("R10_NATIVE: ", OS.has_feature("r10_acceptance"))
+	print("INTEGRATION_AUDIO_DRIVER: ", AudioServer.get_driver_name())
+	var expected_audio := OS.get_environment("PYAO_TEST_AUDIO_DRIVER")
+	if not expected_audio.is_empty() and AudioServer.get_driver_name() != expected_audio:
+		push_error("El driver de audio activo no coincide con el requerido: " + expected_audio)
+		get_tree().quit(1)
+		return
 	ClientInterface.capabilities_changed.connect(func():
 		print("R10_CAPABILITIES: tick=", Time.get_ticks_msec(), " enabled=", ClientInterface.capabilities.enabled))
 	var password := OS.get_environment("PYAO_TEST_PASSWORD")
@@ -89,6 +95,7 @@ func _ready() -> void:
 	var started := Time.get_ticks_msec()
 	var until := started + duration * 1000
 	var actions := ["ui_right", "ui_down", "ui_left", "ui_up"]
+	var directions := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]
 	var sequence := 0
 	var next_capture := started + 300000
 	while Time.get_ticks_msec() < until:
@@ -103,26 +110,46 @@ func _ready() -> void:
 			return
 		var character = game._gameWorld.GetCharacter(game._mainCharacterInstanceId)
 		var before: Vector2i = character.gridPosition
+		# En una observación breve un único frame lento puede consumir el plazo.
+		# Elegir primero una dirección habilitada por el mismo cliente, sin moverlo
+		# por fuera de Input ni dar por probado un movimiento que no ocurrió.
+		for attempt in range(actions.size()):
+			var target: Vector2i = before + directions[sequence % actions.size()]
+			if target.x >= 1 and target.x <= 100 and target.y >= 1 and target.y <= 100 and game._CanMoveTo(target.x, target.y):
+				break
+			sequence += 1
 		Input.action_press(actions[sequence % actions.size()])
 		await get_tree().create_timer(0.35).timeout
 		Input.action_release(actions[sequence % actions.size()])
 		await get_tree().create_timer(0.35).timeout
+		if not is_instance_valid(character) or not is_instance_valid(hub):
+			get_tree().quit(1)
+			return
 		moved = moved or character.gridPosition != before
 		hub._consoleInputLineEdit.show()
 		hub._consoleInputLineEdit.grab_focus()
 		hub._consoleInputLineEdit.text = "pyao-integration-" + OS.get_environment("PYAO_TEST_INDEX")
 		hub._consoleInputLineEdit.text_submitted.emit(hub._consoleInputLineEdit.text)
 		await get_tree().create_timer(1.0).timeout
+		if not is_instance_valid(hub):
+			get_tree().quit(1)
+			return
 		peer_chat_seen = peer_chat_seen or hub._consoleRichTextLabel.get_parsed_text().contains("pyao-integration-" + OS.get_environment("PYAO_TEST_PEER"))
 		sequence += 1
 		print("INTEGRATION_WORLD: HEARTBEAT seconds=", (Time.get_ticks_msec() - started) / 1000, " movement=", moved, " peer_chat=", peer_chat_seen)
-		await get_tree().create_timer(minf(18.0, maxf(0.0, float(until - Time.get_ticks_msec()) / 1000.0))).timeout
+		# Una casilla ocupada puede bloquear la primera dirección. Probar otra
+		# antes de consumir toda una observación corta, sin omitir la aserción.
+		var interval := 18.0 if moved and peer_chat_seen else 0.1
+		await get_tree().create_timer(minf(interval, maxf(0.0, float(until - Time.get_ticks_msec()) / 1000.0))).timeout
 		# El mensaje puede llegar durante la espera, especialmente si el renderer
 		# del segundo portable tarda más en procesar el comando de inicio.
 		if is_instance_valid(hub):
 			peer_chat_seen = peer_chat_seen or hub._consoleRichTextLabel.get_parsed_text().contains("pyao-integration-" + OS.get_environment("PYAO_TEST_PEER"))
 	if not moved or not peer_chat_seen:
 		push_error("INTEGRATION_WORLD: falta movimiento o chat entre pares")
+		get_tree().quit(1)
+		return
+	if not is_instance_valid(game) or not is_instance_valid(hub):
 		get_tree().quit(1)
 		return
 	var expected_slots: Dictionary = {}
