@@ -28,7 +28,7 @@ Los canales marcados como pendientes enlazan sus issues de implementación.
 
 Cliente Godot de ProyectoAO, basado en el [port de brian-christopher](https://github.com/brian-christopher/ArgentumOnlineGodot) del cliente Argentum Online 0.13.3 liberado por Shak.
 
-La descarga vigente de pruebas es **1.0.0rc3**: [cliente y Snap](https://github.com/cavazquez/ArgentumOnlineGodot/releases/tag/v1.0.0rc3) · [servidor de la misma versión](https://github.com/cavazquez/pyao-server/releases/tag/v1.0.0rc3). GitHub excluye las prereleases de `/releases/latest`; por eso se enlaza la versión concreta.
+Descargas de pruebas: [releases del cliente y Snap](https://github.com/cavazquez/ArgentumOnlineGodot/releases) · [releases del servidor](https://github.com/cavazquez/pyao-server/releases). Instalar la misma versión en ambos. GitHub excluye las prereleases de `/releases/latest`; los indicadores superiores incluyen las RC publicadas.
 
 Los PR ejecutan comprobaciones de herramientas, Godot, protocolo y TLS sin exportar
 el juego. Las compilaciones y la publicación requieren una ejecución manual;
@@ -101,7 +101,7 @@ Las acciones de administración sin handler permanecen deshabilitadas.
 La distribución Linux como `pyao-client` se construye con la receta de
 [Snap](docs/SNAP.md), que incluye procedencia del commit y el motor fijado.
 
-El cliente y el servidor usan la misma versión de producto: `1.0.0rc3`. Snap toma ese valor de `project.godot`; la procedencia conserva además el commit y el motor.
+El cliente y el servidor usan la misma versión de producto: `1.0.0rc4`. Snap toma ese valor de `project.godot`; la procedencia conserva además el commit y el motor.
 
 `tools/release-pair.py` prepara los tres Snaps y publica servidor/cliente como
 una entrega coordinada: valida commits fusionados, CI, hashes, R01–R10 y el

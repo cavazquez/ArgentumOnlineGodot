@@ -22,7 +22,7 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       actions: read
       contents: write
@@ -42,7 +42,7 @@ jobs:
         run: |
           gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN" > run.json
           gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN/jobs?per_page=100" > jobs.json
-          python3 tools/github_release.py check-run --run run.json --jobs jobs.json --commit "$RELEASE_COMMIT" --workflow client-linux.yml --required quality --required import-and-export --required 'package-snap*' --required 'portable-native*' --required web-browser --required integration-world --required 'mechanics-world (skills)' --required 'mechanics-world (spells)' --required 'mechanics-world (navigation)' --required 'mechanics-world (duel)' --required 'mechanics-world (potions)' --required 'mechanics-world (expansion)' --required 'mechanics-world (npc-policy)' --required 'mechanics-world (economy)' --required 'mechanics-world (npcs)'
+          python3 tools/github_release.py check-run --run run.json --jobs jobs.json --commit "$RELEASE_COMMIT" --workflow client-linux.yml --required quality --required import-and-export --required 'package-snap*' --required 'portable-native*' --required web-browser --required integration-world --required 'mechanics-world (skills)' --required 'mechanics-world (spells)' --required 'mechanics-world (navigation)' --required 'mechanics-world (duel)' --required 'mechanics-world (potions)' --required 'mechanics-world (expansion)' --required 'mechanics-world (npc-policy)' --required 'mechanics-world (economy)' --required 'mechanics-world (npcs)' --required 'mechanics-world (lifetime-stats)' --required 'mechanics-world (structure-profile)' --required 'mechanics-world (visual-sync)' --required 'mechanics-world (equipment)'
           gh run download "$BUILD_RUN" --repo "$GH_REPO" --name "pyao-client-linux-$RELEASE_COMMIT" --dir incoming/native
           gh run download "$BUILD_RUN" --repo "$GH_REPO" --name "pyao-client-snap-amd64-$RELEASE_COMMIT" --dir incoming/amd64
           gh run download "$BUILD_RUN" --repo "$GH_REPO" --name "pyao-client-snap-arm64-$RELEASE_COMMIT" --dir incoming/arm64
@@ -50,20 +50,15 @@ jobs:
           gh run download "$BUILD_RUN" --repo "$GH_REPO" --name "web-$RELEASE_COMMIT" --dir incoming/portables/web
       - name: Preparar hashes y procedencia sin recompilar
         run: python3 tools/github_release.py prepare --directory incoming --output release-dist --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --role client
-      - name: Crear borrador completo sin sobreescribir una release existente
-        run: |
-          prerelease=()
-          if [ "$RELEASE_PRERELEASE" = true ]; then prerelease=(--prerelease); fi
-          gh release create "$TAG" release-dist/* --repo "$GH_REPO" --verify-tag --draft --latest=false "${prerelease[@]}" --title "${GH_REPO##*/} $RELEASE_VERSION" --notes "Artefactos verificados de $RELEASE_COMMIT. Versión común de servidor y cliente: $RELEASE_VERSION. SHA256SUMS y release-manifest.json documentan los archivos publicados."
-      - name: Verificar los archivos descargados del borrador
-        run: |
-          gh release download "$TAG" --repo "$GH_REPO" --dir verified
-          cd verified
-          sha256sum --check ../release-dist/SHA256SUMS
-          cmp SHA256SUMS ../release-dist/SHA256SUMS
+      - name: Crear o completar el borrador sin sobrescribir archivos
+        run: python3 tools/github_release_upload.py stage --directory release-dist --tag "$TAG" --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --repository "$GH_REPO" --receipt release-stage.json
       - name: Publicar el borrador verificado
         if: inputs.publish
-        run: |
-          latest=false
-          if [ "$RELEASE_PRERELEASE" = false ]; then latest=true; fi
-          gh release edit "$TAG" --repo "$GH_REPO" --draft=false --prerelease="$RELEASE_PRERELEASE" --latest="$latest"
+        run: python3 tools/github_release_upload.py publish --directory release-dist --tag "$TAG" --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --repository "$GH_REPO" --receipt release-publish.json
+      - name: Conservar recibos de publicación
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: github-release-receipts-${{ inputs.tag }}
+          path: release-*.json
+          retention-days: 7
