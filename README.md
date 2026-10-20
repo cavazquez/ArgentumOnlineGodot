@@ -1,8 +1,8 @@
 # Argentum Online Godot para ProyectoAO
 
 <p align="center">
-  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/actions/workflows/client-linux.yml"><img src="https://github.com/cavazquez/ArgentumOnlineGodot/actions/workflows/client-linux.yml/badge.svg?branch=main" alt="CI del cliente"></a>
-  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/actions/workflows/release.yml"><img src="https://github.com/cavazquez/ArgentumOnlineGodot/actions/workflows/release.yml/badge.svg" alt="Workflow de Release"></a>
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/actions/workflows/client-linux.yml"><img src="https://img.shields.io/github/actions/workflow/status/cavazquez/ArgentumOnlineGodot/client-linux.yml?branch=main&amp;label=CI&amp;logo=github" alt="CI del cliente"></a>
+  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/cavazquez/ArgentumOnlineGodot/release.yml?label=Release&amp;logo=github" alt="Workflow de Release"></a>
   <a href="https://github.com/cavazquez/ArgentumOnlineGodot/releases"><img src="https://img.shields.io/github/v/release/cavazquez/ArgentumOnlineGodot?include_prereleases&amp;sort=date&amp;label=release" alt="Última release, incluidas versiones de prueba"></a>
   <a href="https://github.com/cavazquez/ArgentumOnlineGodot/releases"><img src="https://img.shields.io/github/downloads/cavazquez/ArgentumOnlineGodot/total" alt="Descargas de GitHub Releases"></a>
   <a href="docs/FUNCIONES.md"><img src="https://img.shields.io/badge/docs-referencia-007ec6?logo=readthedocs&amp;logoColor=white" alt="Documentación del cliente"></a>
