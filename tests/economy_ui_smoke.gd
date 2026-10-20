@@ -36,6 +36,13 @@ func _run() -> void:
 		stack.equipped = false
 		equipment_hub.update_equipment_label(0, stack)
 		check(equipment_hub.get_node("%" + row[1]).text == "0/0", "Desequipar el primer slot deja stats de otro tipo")
+	var original_cursor := ImageTexture.create_from_image(Image.create(8, 8, false, Image.FORMAT_RGBA8))
+	for cycle in range(32):
+		var scaled: Texture2D = equipment_scene._scale_cursor(original_cursor, 0.5)
+		check(scaled != null and scaled.get_size() == Vector2(4, 4), "Repetir login reduce el cursor compartido")
+		check(original_cursor.get_image().get_size() == Vector2i(8, 8), "Escalar modifica la imagen original")
+	var tiny := ImageTexture.create_from_image(Image.create(1, 1, false, Image.FORMAT_RGBA8))
+	check(equipment_scene._scale_cursor(tiny, 0.1).get_size() == Vector2(1, 1), "Un cursor pequeño genera una imagen de cero píxeles")
 	equipment_scene.free()
 	var context := WorldStateContext.new()
 	check(context.accept(_frame(1, 2, 300)), "Rechaza el saldo inicial")

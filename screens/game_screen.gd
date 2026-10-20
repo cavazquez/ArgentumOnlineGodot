@@ -56,20 +56,17 @@ func _ready() -> void:
 
 # Función para escalar el cursor a un tamaño más pequeño
 func _scale_cursor(texture: Texture2D, scale_factor: float) -> Texture2D:
-	# Obtener la imagen del cursor
-	var image = texture.get_image()
-	
-	# Calcular el nuevo tamaño
-	var original_size = image.get_size()
-	var new_size = original_size * scale_factor
-	
-	# Redimensionar la imagen
-	image.resize(int(new_size.x), int(new_size.y), Image.INTERPOLATE_BILINEAR)
-	
-	# Crear una nueva textura con la imagen redimensionada
-	var new_texture = ImageTexture.create_from_image(image)
-	
-	return new_texture
+	if texture == null or texture.get_width() < 1 or texture.get_height() < 1 or not is_finite(scale_factor) or scale_factor <= 0.0:
+		return null
+	var source := texture.get_image()
+	if source == null or source.is_empty():
+		return null
+	# El recurso puede estar compartido entre pantallas/logins. Escalar una copia
+	# evita reducir otra vez la imagen original hasta convertirla en 0 × 0.
+	var image := source.duplicate() as Image
+	var new_size := Vector2i(maxi(1, roundi(source.get_width() * scale_factor)), maxi(1, roundi(source.get_height() * scale_factor)))
+	image.resize(new_size.x, new_size.y, Image.INTERPOLATE_BILINEAR)
+	return ImageTexture.create_from_image(image)
 	 
 func _OnDisconnected() -> void:
 	if _presentation != null: _presentation.reset()
