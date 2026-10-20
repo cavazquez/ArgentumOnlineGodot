@@ -267,7 +267,8 @@ class Store:
 
     def channels(self, channel):
         track, risk = channel.split("/")
-        result = {}
+        # Una arquitectura nueva todavía no tiene revisión en este canal.
+        result = dict.fromkeys(PACKAGES)
         for name in REPOSITORIES:
             response = json.loads(
                 command(
@@ -299,7 +300,6 @@ class Store:
                         "version": entry["version"],
                         "sha3_384": entry["download"]["sha3-384"],
                     }
-        require(set(result) == PACKAGES, "La Store no devolvió el par completo")
         return result
 
     def upload(self, path, name, log):
@@ -328,6 +328,9 @@ class Store:
 
     def release(self, name, revision, channel):
         command(["snapcraft", "release", name, str(revision), channel], timeout=120)
+
+    def close(self, name, channel):
+        command(["snapcraft", "close", name, channel], timeout=120)
 
     def wait(self, expected, channel):
         deadline = time.monotonic() + 180
@@ -417,7 +420,9 @@ def promote(path, backend):
     receipt.update(status="promoting", promotion_started_at=now())
     save(path, receipt)
     try:
-        for candidate in receipt["candidates"].values():
+        ordered = sorted(receipt["candidates"], key=lambda key: receipt["baseline"][key] is None)
+        for key in ordered:
+            candidate = receipt["candidates"][key]
             # Se registra ANTES: un timeout puede ocurrir después de que la Store cambió.
             receipt["operations"].append(
                 {"action": "release", **candidate, "at": now()}
@@ -445,15 +450,40 @@ def rollback(path, receipt, backend):
     )
     for key, previous in receipt["baseline"].items():
         require(
-            previous["name"] == key.split("/")[0]
-            and type(previous["revision"]) is int
-            and previous["revision"] > 0,
+            previous is None or (
+                previous["name"] == key.split("/")[0]
+                and type(previous["revision"]) is int
+                and previous["revision"] > 0
+            ),
             "Revisión anterior inválida",
         )
     receipt.update(status="rolling-back")
     save(path, receipt)
     failures = []
+    # Snapcraft cierra un canal de todas las arquitecturas de ese nombre. Si
+    # se intentó estrenar una arquitectura, cerrar y reponer las revisiones
+    # previas restaura también su ausencia, sin dejar un Snap ARM64 huérfano.
+    newly_released = {
+        receipt["candidates"][key]["name"]
+        for key, previous in receipt["baseline"].items()
+        if previous is None and key in receipt["candidates"]
+        and any(
+            op.get("action") == "release"
+            and op.get("name") == receipt["candidates"][key]["name"]
+            and op.get("revision") == receipt["candidates"][key]["revision"]
+            for op in receipt["operations"]
+        )
+    }
+    for name in sorted(newly_released):
+        receipt["operations"].append({"action": "close", "name": name, "channel": channel, "at": now()})
+        save(path, receipt)
+        try:
+            backend.close(name, channel)
+        except BaseException as error:
+            failures.append(str(error))
     for previous in receipt["baseline"].values():
+        if previous is None:
+            continue
         try:
             backend.release(previous["name"], previous["revision"], channel)
         except BaseException as error:
