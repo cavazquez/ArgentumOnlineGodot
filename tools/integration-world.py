@@ -384,7 +384,8 @@ def worker(args):
             if args.scenario != "r10"
             else "40",
         )
-        windows_platform = os.name == "nt" and args.source and args.scenario == "platform"
+        native_platform = args.source and args.scenario == "platform"
+        windows_platform = os.name == "nt" and native_platform
         if windows_platform:
             environment["PYTHONASYNCIODEBUG"] = "1"
         server_log = stack.enter_context((output / "server.log").open("wb"))
@@ -431,7 +432,7 @@ def worker(args):
             "elapsed_seconds": round(time.monotonic() - startup_started, 3),
             "login_budget_changed": False,
             "redis_storage": getattr(redis, "storage_kind", "docker-volume"),
-            "client_max_fps": 30 if windows_platform else None,
+            "client_max_fps": 30 if native_platform else None,
         }, indent=2) + "\n")
         clients = []
         reconnect_gates = [work / f"client-{index}-released" for index in (1, 2)]
@@ -470,9 +471,9 @@ def worker(args):
             )
             if args.scenario != "platform": command += ["--audio-driver", "Dummy"]
             command += ["--rendering-method", "gl_compatibility"]
-            if windows_platform:
-                # El runner usa WARP, renderizado por CPU. Dos loops sin límite
-                # compiten con servidor/Redis por los mismos núcleos virtuales.
+            if native_platform:
+                # WARP/Apple Software Renderer/llvmpipe comparten CPU con los
+                # otros procesos. Usar el mismo presupuesto gráfico en cada SO.
                 command += ["--max-fps", "30"]
             if not args.client_executable:
                 command += ["res://tests/integration_world.tscn"]
