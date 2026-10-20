@@ -40,6 +40,7 @@ SCENARIO_TIMEOUT_SECONDS = {
     "potions": 1200,
     "expansion": 1200,
     "npc-policy": 1200,
+    "lifetime-stats": 900,
 }
 
 
@@ -299,7 +300,9 @@ def worker(args):
     work = Path.cwd()
     output = args.output
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    if args.scenario == "npc-policy":
+    if args.scenario == "lifetime-stats":
+        from lifetime_stats_world import LifetimeStatsWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "npc-policy":
         from npc_policy_world import NPCPolicyWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "potions":
         from potion_world import PotionWorld as R10World, acceptance, prepare_fixture

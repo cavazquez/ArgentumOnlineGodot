@@ -510,6 +510,7 @@ func _HandleMiniStats(p:MiniStats) -> void:
 		"CriminalesMatados": p.CriminalesMatados,
 		"UsuariosMatados": p.UsuariosMatados,
 		"NpcsMatados": p.NpcsMatados,
+		"Muertes": p.Muertes,
 		"Clase": p.Clase,
 		"PenaCarcel": p.PenaCarcel,
 	}

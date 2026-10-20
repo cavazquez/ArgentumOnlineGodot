@@ -102,6 +102,9 @@ func snapshot() -> Dictionary:
 			view.skill_rows.append({"id": index + 1, "name": row.get_child(0).text, "level": row.get_child(2).text, "plus_disabled": row.get_child(3).disabled, "plus_visible": row.get_child(3).visible, "progress":row.get_child(4).value if row.get_child(4) is ProgressBar else -1, "manual":row.get_child(4).text if row.get_child(4) is Label else ""})
 		view.skill_status = window._status.text
 	if is_instance_valid(hub._stats_window):
+		view.ministats = {}
+		for key in hub._stats_window.ministats_labels:
+			view.ministats[key] = hub._stats_window.ministats_labels[key].text
 		view.attributes = {}
 		for key in hub._stats_window.attribute_labels:
 			view.attributes[key] = hub._stats_window.attribute_labels[key].text

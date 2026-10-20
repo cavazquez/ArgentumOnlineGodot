@@ -3,7 +3,7 @@ class_name AOPacketFramer
 
 # Contrato compartido con pyao-server. 0 es un ID válido (Logged).
 const MAX_BUFFER_BYTES := 4096
-const WIDTHS := {"u8": 1, "i16": 2, "i32": 4, "f32": 4}
+const WIDTHS := {"u8": 1, "i16": 2, "i32": 4, "u32": 4, "f32": 4}
 var _contract: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/contract.json"))
 var _pending := PackedByteArray()
 var error := ""

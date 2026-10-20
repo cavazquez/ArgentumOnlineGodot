@@ -14,6 +14,7 @@ FULL_REQUIRED = {
     "spells-b-to-a",
     "full-reconnect",
     "full-benchmark",
+    "lifetime-statistics",
 }
 
 

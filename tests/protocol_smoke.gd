@@ -25,6 +25,7 @@ func _ready() -> void:
 				"u8": value = reader.get_u8()
 				"i16": value = reader.get_16()
 				"i32": value = reader.get_32()
+				"u32": value = reader.get_u32()
 				"f32": value = reader.get_float()
 				"str16":
 					var length := reader.get_u16()
@@ -33,6 +34,11 @@ func _ready() -> void:
 				check(value == fixture.values[field.name], fixture.name + ": campo " + field.name)
 		check(reader.get_available_bytes() == 0, fixture.name + ": bytes sobrantes")
 	_verify_framing(fixtures)
+	var mini_reader := StreamPeerBuffer.new()
+	mini_reader.data_array = by_name.mini_stats
+	mini_reader.seek(1)
+	var mini := MiniStats.new(mini_reader)
+	check(mini.Muertes == 9 and mini.NpcsMatados == 70000 and mini.PenaCarcel == 2, "MiniStats debe separar muertes, bajas y días sin truncar")
 	GameProtocol.Clear()
 	GameProtocol.WriteLoginExistingCharacter("Peña", "cláve1")
 	check(GameProtocol.Flush() == by_name.login_latin1, "Writer de login difiere de la fixture")
