@@ -15,7 +15,7 @@ def campaign(args):
     args.output.mkdir(parents=True, exist_ok=False)
     sources = {name: subprocess.check_output(["git", "-C", str(path), "rev-parse", "HEAD"], text=True).strip() for name, path in (("client", ROOT), ("server", args.server_project))}
     records = []
-    for scenario, seconds in (("full", 1800), ("potions", 20), ("expansion", 20), ("economy", 20), ("npcs", 20), ("npc-policy", 20)):
+    for scenario, seconds in (("expansion", 20), ("npc-policy", 20), ("potions", 20), ("economy", 20), ("npcs", 20), ("full", 1800)):
         output = args.output / scenario
         command = [sys.executable, str(ROOT / "tools/integration-world.py"), "--scenario", scenario, "--seconds", str(seconds), "--server-project", str(args.server_project), "--godot", str(args.godot), "--client-executable", str(args.client_executable), "--output", str(output), "--wheel", str(args.wheel)]
         subprocess.run(command, check=True)

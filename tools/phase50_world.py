@@ -174,9 +174,25 @@ class Phase50World(R10World):
                 after = store.hgetall(f"player:{uid}:user_stats")
                 assert int(after["min_mana"]) < int(before["min_mana"])
                 assert any(row["kind"] == "fx" for row in self.command(target, "snapshot")["fx_packets"])
+                victim_key = f"player:{victim}:user_stats"
+                if sid in (48, 49):
+                    mode = "damage" if sid == 48 else "heal"
+                    initial_hp = int(store.hget(victim_key, "min_hp"))
+                    effects = json.loads(store.hget(victim_key, "periodic_effects"))
+                    next_pulse = next(row["next"] for row in effects if row["mode"] == mode)
+                    self.wait(lambda: any(row["mode"] == mode and row["next"] > next_pulse for row in json.loads(store.hget(victim_key, "periodic_effects"))), "pulso real de " + mode, 10)
+                    current_hp = int(store.hget(victim_key, "min_hp"))
+                    assert current_hp < initial_hp if mode == "damage" else current_hp > initial_hp
+                    self.command(caster, "cast", slot=5, x=pos[1], y=pos[2])
+                    self.wait(lambda: store.hget(victim_key, "periodic_effects") == "[]", "disipar pulso confirmado")
+                elif sid == 50:
+                    hp = int(store.hget(victim_key, "min_hp"))
+                    self.command(caster, "cast", slot=1, x=pos[1], y=pos[2])
+                    self.wait(lambda: 0 < int(store.hget(victim_key, "barrier_capacity") or 0) < 100, "absorción real de la barrera")
+                    assert int(store.hget(victim_key, "min_hp")) == hp
             assert store.hget(f"player:{victim}:user_stats", "barrier_capacity") == "0"
             assert store.hget(f"player:{victim}:user_stats", "periodic_effects") == "[]"
-            assert self.count(store, caster, 406) == 4 and self.count(store, caster, 407) == 4
+            assert self.count(store, caster, 406) == 3 and self.count(store, caster, 407) == 4
         self.passed("expansion-magic", "Área, componentes, pulsos, barrera y disipación en ambos sentidos", spells=[47,48,49,50,51])
 
     def run(self, locations):
