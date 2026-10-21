@@ -195,6 +195,15 @@ func _AttachAnimation(spriteFrames:SpriteFrames, name:String, grhId:int) -> void
 			spriteFrames.add_frame("idle_" + name, atlasTexture)
 	
 	
+func _PreserveAlignment(sprite_frames: SpriteFrames, path: String) -> void:
+	# These corrections belong to the authored atlas, not the original indices.
+	if not ResourceLoader.exists(path):
+		return
+	var existing := load(path) as SpriteFrames
+	for key in [&"head_offset", &"avatar_offset"]:
+		if existing.has_meta(key):
+			sprite_frames.set_meta(key, existing.get_meta(key))
+
 func _Bodies() -> void:
 	var total = GameAssets.BodyAnimationList.size() - 1
 	labelStatus.text = "Exportando cuerpos... (0/%d)" % total
@@ -216,6 +225,7 @@ func _Bodies() -> void:
 		_AttachAnimation(spriteFrames, "north", data.north);
 		
 		var save_path = "res://Resources/Character/Bodies/body_%d.tres" % i
+		_PreserveAlignment(spriteFrames, save_path)
 		_ensure_directory_exists(save_path.get_base_dir())
 		ResourceSaver.save(spriteFrames, save_path);	
 	
@@ -308,7 +318,9 @@ func _Helmets() -> void:
 		_AttachHeadAnimation(spriteFrames, "south", data.south);
 		_AttachHeadAnimation(spriteFrames, "north", data.north);
 		
-		ResourceSaver.save(spriteFrames, "res://Resources/Character/Helmets/helmet_%d.tres" % i);	
+		var save_path = "res://Resources/Character/Helmets/helmet_%d.tres" % i
+		_PreserveAlignment(spriteFrames, save_path)
+		ResourceSaver.save(spriteFrames, save_path);
 
 
 func _Fxs() -> void: 
