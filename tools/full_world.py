@@ -252,6 +252,12 @@ class FullWorld(SkillsWorld):
             self.ui_checks(store, x + 4, y)
             from lifetime_stats_world import exercise as lifetime_statistics
             lifetime_statistics(self, store, locations)
+            # Las capturas de condena dejan estadísticas abiertas. Cerrar el
+            # modal antes del chat que libera mascotas para el catálogo mágico.
+            for i in (1, 2):
+                self.command(i, "close_mechanics")
+                self.view(i, lambda v: "StatsWindow" not in v.get("modals", []),
+                          "estadísticas cerradas antes del catálogo de hechizos")
             self.initial_points = int(self.skill_state(store).get("points", 0))
             for reverse, label in [(False, "a-to-b"), (True, "b-to-a")]:
                 if reverse:
