@@ -101,7 +101,7 @@ Las acciones de administración sin handler permanecen deshabilitadas.
 La distribución Linux como `pyao-client` se construye con la receta de
 [Snap](docs/SNAP.md), que incluye procedencia del commit y el motor fijado.
 
-El cliente y el servidor usan la misma versión de producto: `1.0.0rc4`. Snap toma ese valor de `project.godot`; la procedencia conserva además el commit y el motor.
+El cliente y el servidor usan la misma versión de producto: `1.0.0rc5`. Snap toma ese valor de `project.godot`; la procedencia conserva además el commit y el motor.
 
 `tools/release-pair.py` prepara los tres Snaps y publica servidor/cliente como
 una entrega coordinada: valida commits fusionados, CI, hashes, R01–R10 y el
