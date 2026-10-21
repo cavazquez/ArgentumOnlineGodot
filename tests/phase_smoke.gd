@@ -165,17 +165,30 @@ func _run() -> void:
 	# Cuerpos raciales que publica pyao, cabezas propias y cuatro orientaciones.
 	var weapon_position := character.renderer._weaponAnimatedSprite.position
 	var shield_position := character.renderer._shieldAnimatedSprite.position
-	for racial in [[1, 1], [5, 301], [4, 401]]:
+	for racial in [[1, 1, Vector2(0, 3)], [5, 301, Vector2.ZERO], [4, 401, Vector2.ZERO], [1, 1, Vector2(0, 3)]]:
 		character.renderer.body = racial[0]
 		character.renderer.head = racial[1]
 		var data = GameAssets.BodyAnimationList[racial[0]]
-		var expected_head := character.renderer._head_base + Vector2(data.offsetX, data.offsetY)
-		var expected_helmet := character.renderer._helmet_base + Vector2(data.offsetX, data.offsetY)
+		var expected_head: Vector2 = character.renderer._head_base + Vector2(data.offsetX, data.offsetY) + racial[2]
+		var expected_helmet: Vector2 = character.renderer._helmet_base + Vector2(data.offsetX, data.offsetY) + racial[2]
 		for heading in [Enums.Heading.North, Enums.Heading.East, Enums.Heading.South, Enums.Heading.West]:
 			character.renderer.heading = heading
 			character.renderer.Stop()
 			_check(character.renderer._headAnimatedSprite.position == expected_head and character.renderer._helmetAnimatedSprite.position == expected_helmet, "Alineación racial incorrecta en una orientación")
 			_check(character.renderer._weaponAnimatedSprite.position == weapon_position and character.renderer._shieldAnimatedSprite.position == shield_position, "Cambiar raza/orientación desplazó arma o escudo")
+	# El cuello debe tocar el cuerpo también al caminar, sin alterar otras razas.
+	character.renderer.body = 1
+	character.renderer.head = 3
+	for direction in ["north", "east", "south", "west"]:
+		var face := character.renderer._headAnimatedSprite
+		var face_texture := face.sprite_frames.get_frame_texture("idle_" + direction, 0)
+		var neck_bottom := face.position.y - face_texture.get_height() / 2.0 + face_texture.get_image().get_used_rect().end.y
+		for animation in ["idle_" + direction, "walk_" + direction]:
+			var torso := character.renderer._bodyAnimatedSprite
+			for frame in range(torso.sprite_frames.get_frame_count(animation)):
+				var texture := torso.sprite_frames.get_frame_texture(animation, frame)
+				var collar_top := torso.position.y - texture.get_height() / 2.0 + texture.get_image().get_used_rect().position.y
+				_check(neck_bottom >= collar_top, "Hueco entre cabeza y cuerpo en %s, cuadro %d" % [animation, frame])
 	# El yelmo de placas debe dejar libres los ojos y conservar el anclaje racial.
 	for racial in [[1, 3], [5, 301], [4, 401]]:
 		character.renderer.body = racial[0]
@@ -201,6 +214,17 @@ func _run() -> void:
 	character.renderer.helmet = -1
 	_check(character.renderer._headAnimatedSprite.sprite_frames != null and character.renderer._bodyAnimatedSprite.sprite_frames != null and character.renderer._helmetAnimatedSprite.sprite_frames != null, "Falta fallback de apariencia ausente")
 	character.queue_free()
+	# Regenerar los atlas conserva ambos ajustes y no los copia a otros cuerpos.
+	var exporter = load("res://Tools/Exportador.gd").new()
+	for sample in [
+		["res://Resources/Character/Bodies/body_1.tres", &"head_offset", Vector2(0, 3)],
+		["res://Resources/Character/Bodies/body_4.tres", &"head_offset", Vector2.ZERO],
+		["res://Resources/Character/Helmets/helmet_3.tres", &"avatar_offset", Vector2(0, -8)],
+	]:
+		var regenerated := SpriteFrames.new()
+		exporter._PreserveAlignment(regenerated, sample[0])
+		_check(regenerated.get_meta(sample[1], Vector2.ZERO) == sample[2], "Regenerar un atlas pierde su ajuste de alineación")
+	exporter.free()
 	# El timeout pertenece al efecto: fin natural, watchdog y cambio de mapa
 	# deben liberar ambos sin callbacks posteriores sobre nodos desaparecidos.
 	var world: MapContainer = load("res://engine/map_container.tscn").instantiate()

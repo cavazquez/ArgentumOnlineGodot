@@ -27,6 +27,9 @@ func _align_head() -> void:
 	if _body > 0 and _body < GameAssets.BodyAnimationList.size():
 		var data = GameAssets.BodyAnimationList[_body]
 		offset = Vector2(data.offsetX, data.offsetY)
+	# Some atlases leave padding above the collar; move head and helmet together.
+	var head_offset: Vector2 = _bodyAnimatedSprite.sprite_frames.get_meta("head_offset", Vector2.ZERO)
+	offset += head_offset
 	_headAnimatedSprite.position = _head_base + offset
 	var helmet_offset: Vector2 = _helmetAnimatedSprite.sprite_frames.get_meta("avatar_offset", Vector2.ZERO)
 	_helmetAnimatedSprite.position = _helmet_base + offset + helmet_offset
@@ -105,8 +108,8 @@ func _set_head(id:int) -> void:
 
 func _set_body(id:int) -> void:
 	_body = id
-	_align_head()
 	_bodyAnimatedSprite.sprite_frames = _LoadSpriteFrames("res://Resources/Character/Bodies/body_%d.tres" % id)
+	_align_head()
 	
 	if _verticalAlign:
 		if _bodyAnimatedSprite.sprite_frames.get_frame_count("idle_south"):

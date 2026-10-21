@@ -91,6 +91,7 @@ atlas = ExtResource("1_j4adx")
 region = Rect2(100, 90, 25, 45)
 
 [resource]
+metadata/head_offset = Vector2(0, 3)
 animations = [{
 "frames": [{
 "duration": 1.0,
