@@ -559,6 +559,9 @@ def worker(args):
         from src.utils.redis_config import RedisKeys
 
         shutdown_errors = {}
+        periodic_screenshots = []
+        next_screenshot = started + 300
+        scenario.deadline = started + args.seconds + SCENARIO_TIMEOUT_SECONDS[args.scenario]
         while any(client.poll() is None for client in clients):
             server_text = (output / "server.log").read_text()
             if (
@@ -590,6 +593,16 @@ def worker(args):
                             reconnect_gates[index - 1].write_text("released\n")
             if any(client.poll() not in (None, 0) for client in clients):
                 raise RuntimeError("Falló un cliente Godot; códigos=" + str([client.poll() for client in clients]) + "; revisar logs")
+            if args.seconds >= 1800 and next_screenshot <= time.monotonic() < started + args.seconds - 30:
+                directory = output / "screenshots"
+                directory.mkdir(exist_ok=True)
+                minute = round((next_screenshot - started) / 60)
+                for index in (1, 2):
+                    path = directory / f"minute-{minute:02d}-client-{index}.png"
+                    scenario.command(index, "screenshot", path=str(path))
+                    periodic_screenshots.append({"client": index, "minute": minute, "file": str(path.relative_to(output)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+                (output / "screenshots.json").write_text(json.dumps(periodic_screenshots, indent=2) + "\n")
+                next_screenshot += 300
             if (
                 server.poll() is not None
                 or time.monotonic() - started
@@ -787,6 +800,7 @@ def worker(args):
                 for i in (1, 2)
             ],
             "graceful_sigterm": True,
+            "periodic_screenshots": periodic_screenshots,
         }
         proof["live_tls_sessions_drained"] = 2
         proof["release_version"] = args.release_version

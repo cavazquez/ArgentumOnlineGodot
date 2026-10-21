@@ -11,13 +11,22 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def scenario_command(args, scenario, seconds, output):
+    command = [sys.executable, str(ROOT / "tools/integration-world.py"), "--scenario", scenario, "--seconds", str(seconds), "--server-project", str(args.server_project), "--godot", str(args.godot), "--client-executable", str(args.client_executable), "--output", str(output), "--wheel", str(args.wheel)]
+    if args.server_bundle:
+        command += ["--server-bundle", str(args.server_bundle)]
+    if args.client_audio:
+        command += ["--client-audio", args.client_audio]
+    return command
+
+
 def campaign(args):
     args.output.mkdir(parents=True, exist_ok=False)
     sources = {name: subprocess.check_output(["git", "-C", str(path), "rev-parse", "HEAD"], text=True).strip() for name, path in (("client", ROOT), ("server", args.server_project))}
     records = []
     for scenario, seconds in (("expansion", 20), ("npc-policy", 20), ("potions", 20), ("economy", 20), ("npcs", 20), ("full", 1800)):
         output = args.output / scenario
-        command = [sys.executable, str(ROOT / "tools/integration-world.py"), "--scenario", scenario, "--seconds", str(seconds), "--server-project", str(args.server_project), "--godot", str(args.godot), "--client-executable", str(args.client_executable), "--output", str(output), "--wheel", str(args.wheel)]
+        command = scenario_command(args, scenario, seconds, output)
         subprocess.run(command, check=True)
         result = json.loads((output / "result.json").read_text())
         if not result.get("passed", result.get("regression_passed")) or result.get("client_commit") != sources["client"] or result.get("server_commit") != sources["server"]:
@@ -31,6 +40,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("server-project", "godot", "client-executable", "wheel", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--server-bundle", type=Path, help="Probar el mismo servidor privado de los canales nativos")
+    parser.add_argument("--client-audio", help="Controlador nativo para oír y validar toda la campaña")
     args = parser.parse_args()
-    for name in vars(args): setattr(args, name, getattr(args, name).resolve())
+    for name, value in vars(args).items():
+        if isinstance(value, Path): setattr(args, name, value.resolve())
     campaign(args)
