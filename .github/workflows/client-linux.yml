@@ -9,6 +9,15 @@ on:
         description: Exportar Linux y construir Snap explícitamente
         type: boolean
         default: false
+      native_only:
+        description: Validar sólo instaladores nativos, sin construir Snaps ni web
+        type: boolean
+        default: false
+      native_platform:
+        description: Plataforma del diagnóstico native_only; la publicación completa usa all
+        type: choice
+        options: [all, linux, linux-arm64, windows, macos-arm64, macos-amd64]
+        default: all
       server_ref:
         description: Commit exacto del servidor de la misma versión que este cliente
         type: string
@@ -27,12 +36,45 @@ env:
   PYTHONUTF8: "1"
 
 concurrency:
-  group: client-linux-${{ github.ref }}-${{ github.event_name }}
+  group: client-linux-${{ github.ref }}-${{ github.event_name }}-${{ inputs.native_only && inputs.native_platform || 'all' }}
   cancel-in-progress: true
 
 jobs:
+  native-config:
+    if: github.event_name == 'workflow_dispatch' && (inputs.build_packages || inputs.native_only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - name: Seleccionar únicamente runners nativos conocidos
+        id: matrix
+        env:
+          NATIVE_PLATFORM: ${{ inputs.native_platform }}
+          BUILD_ALL_PACKAGES: ${{ inputs.build_packages }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          platforms = {
+              "linux": {"target": "linux", "runner": "ubuntu-24.04"},
+              "linux-arm64": {"target": "linux-arm64", "runner": "ubuntu-24.04-arm"},
+              "windows": {"target": "windows", "runner": "windows-2025"},
+              "macos-arm64": {"target": "macos", "runner": "macos-15"},
+              "macos-amd64": {"target": "macos", "runner": "macos-15-intel"},
+          }
+          selected = os.environ["NATIVE_PLATFORM"] or "all"
+          if os.environ["BUILD_ALL_PACKAGES"] == "true" and selected != "all":
+              raise ValueError("La publicación completa requiere las cinco plataformas")
+          rows = list(platforms.values()) if selected == "all" else [platforms[selected]]
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
+              output.write("value=" + json.dumps({"include": rows}) + "\n")
+          PY
+
   portable-native:
-    if: github.event_name == 'workflow_dispatch' && inputs.build_packages
+    needs: native-config
+    if: github.event_name == 'workflow_dispatch' && (inputs.build_packages || inputs.native_only)
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     defaults:
@@ -40,13 +82,7 @@ jobs:
         shell: bash
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - {target: linux, runner: ubuntu-24.04}
-          - {target: linux-arm64, runner: ubuntu-24.04-arm}
-          - {target: windows, runner: windows-2025}
-          - {target: macos, runner: macos-15}
-          - {target: macos, runner: macos-15-intel}
+      matrix: ${{ fromJSON(needs.native-config.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
