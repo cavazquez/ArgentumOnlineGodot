@@ -60,6 +60,9 @@ jobs:
           enable-cache: false
       - name: Preparar Python fijado
         run: |
+          # El editor no debe importar PNGs dentro del checkout/entorno del servidor.
+          mkdir -p build
+          touch build/.gdignore
           uv python install 3.14
           uv sync --project build/server-under-test --locked --group build
       - name: Extraer mapas del servidor para la fixture nativa
@@ -93,6 +96,8 @@ jobs:
           python tools/export-portable.py export --platform "$TARGET_PLATFORM" --godot "$GODOT_BIN" --output build/portable-candidate
       - name: Construir servidor privado para los nuevos canales del mismo par
         run: |
+          git -C build/server-under-test status --short
+          test -z "$(git -C build/server-under-test status --porcelain)"
           uv build --project build/server-under-test --out-dir "$PWD/build/server-dist"
           server_wheels=(build/server-dist/*.whl)
           test "${#server_wheels[@]}" -eq 1
