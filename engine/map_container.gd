@@ -5,6 +5,8 @@ const GridPositionKey = "GridPosition"
 
 var _view:Node2D
 var _map_id := 0
+var _door_locations: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/door-locations.json"))
+var _door_graphics: Dictionary[int, bool] = {}
 var _cache: MapViewCache
 
 var _characterCollection:Array[Character]
@@ -17,8 +19,11 @@ var _character_order: Dictionary[int, int] = {}
 var _next_character_order := 0
 var _objects_by_position: Dictionary[Vector2i, Node2D] = {}
 var _object_slots: Dictionary[int, int] = {}
+var _door_sprites: Dictionary[Vector2i, Sprite2D] = {}
+var _active_doors: Dictionary[Vector2i, bool] = {}
 
 func _ready() -> void:
+	for graphic in _door_locations.graphics: _door_graphics[int(graphic)] = true
 	_cache = MapViewCache.new()
 	add_child(_cache)
 	_tiles.resize(100 * 100)
@@ -40,8 +45,26 @@ func LoadMap(id:int) -> bool:
 	_map_id = id
 	_tiles = GameAssets.ApplyWaterMask(id, _view.get_meta("data"))
 	%MapView.add_child(_view)
+	_ClearBakedDoors(id)
 	_cache.schedule(id)
 	return true
+
+func _ClearBakedDoors(id: int) -> void:
+	var cleared := _view.has_meta("dynamic_doors_cleared")
+	var cells: Array = _door_locations.maps.get(str(id), [])
+	_active_doors.clear()
+	for cell in cells:
+		_active_doors[Vector2i(int(cell[0]), int(cell[1]))] = true
+		if cleared: continue
+		var layer2 := _view.get_node_or_null("Layer2") as TileMapLayer
+		if layer2 != null: layer2.erase_cell(Vector2i(int(cell[0])-1, int(cell[1])-1))
+		var layer3 := _view.get_node_or_null("Layer3")
+		if layer3 != null:
+			var position := Vector2((int(cell[0])-1)*32+16, int(cell[1])*32)
+			for node in layer3.get_children():
+				if node is Sprite2D and node.position == position and not node.has_meta(GridPositionKey):
+					node.hide()
+	_view.set_meta("dynamic_doors_cleared", true)
 
 func GetTile(x:int, y:int) -> int:
 	if x < 0 or y < 0 or x >= 100 or y >= 100: return Enums.TileState.Blocked
@@ -155,6 +178,17 @@ func GetCharacterAt(x:int, y:int) -> Character:
 	return cell[0] if not cell.is_empty() else null
 	
 func AddObject(grhId:int, x:int, y:int) -> void:
+	var cell := Vector2i(x, y)
+	if _active_doors.has(cell) and _door_graphics.has(grhId):
+		if _door_sprites.has(cell):
+			_RetireDoor(_door_sprites[cell])
+		var graphic := grhId
+		if GameAssets.GrhDataList[graphic].frameCount > 1: graphic = GameAssets.GrhDataList[graphic].frames[1]
+		var door := _CreateSprite(GameAssets.GrhDataList[graphic], x-1, y-1)
+		door.set_meta(GridPositionKey, cell)
+		_door_sprites[cell] = door
+		_AddSortedSprite(door)
+		return
 	if grhId > 0:
 		if GameAssets.GrhDataList[grhId].frameCount > 1:
 			grhId = GameAssets.GrhDataList[grhId].frames[1]
@@ -167,13 +201,13 @@ func AddObject(grhId:int, x:int, y:int) -> void:
 		if sprite.region_rect.size == Vector2(32, 32):
 			_GetLayer("Layer2").add_child(sprite)
 		else:
-			_GetLayer("Layer3").add_child(sprite)
+			_AddSortedSprite(sprite)
 	
 func DeleteObject(x:int, y:int) -> void:
 	var node := GetObjectAt(x, y)
 	if node:
 		_UntrackObject(node)
-		node.queue_free()
+		_RetireGraphic(node)
 
 func GetObjectAt(x: int, y: int) -> Node2D:
 	return _objects_by_position.get(Vector2i(x, y))
@@ -202,18 +236,39 @@ func _UntrackObject(node: Node2D) -> void:
 	node.tree_exiting.disconnect(_UntrackObject.bind(node))
 	
 func _DeleteEntities() -> void:
+	for door in _door_sprites.values(): _RetireDoor(door)
+	_door_sprites.clear()
 	var entities := _characterCollection + _objectCollection
 	for character in _characterCollection.duplicate(): _UntrackCharacter(character)
 	for object in _objectCollection.duplicate(): _UntrackObject(object)
 	_next_character_order = 0
 	for entity in entities:
 		if is_instance_valid(entity):
-			if entity.get_parent(): entity.get_parent().remove_child(entity)
-			entity.queue_free()
+			_RetireGraphic(entity)
 	if _view:
 		for layer in _view.get_children():
 			for child in layer.get_children():
 				if child.get_meta("pyao_dynamic_fx", false): child.queue_free()
+
+func _RetireDoor(door: Sprite2D) -> void:
+	_RetireGraphic(door)
+
+func _RetireGraphic(graphic: Node2D) -> void:
+	var parent := graphic.get_parent()
+	var owner: Node2D = parent if parent != null and parent.get_meta("pyao_graphic_anchor", false) else graphic
+	owner.hide()
+	owner.queue_free()
+
+func _AddSortedSprite(sprite: Sprite2D) -> void:
+	# El ancla participa en y-sort. El Sprite2D se libera como hijo de un
+	# propietario normal, igual que las capas visuales de CharacterRenderer.
+	# La regresión door_layers cubre reemplazos y cambios de mapa en un frame.
+	var anchor := Node2D.new()
+	anchor.set_meta("pyao_graphic_anchor", true)
+	anchor.position = sprite.position
+	sprite.position = Vector2.ZERO
+	anchor.add_child(sprite)
+	_GetLayer("Layer3").add_child(anchor)
 
 func _CreateSprite(grhData:GrhData, x:int, y:int) -> Sprite2D:
 	var sprite = Sprite2D.new()

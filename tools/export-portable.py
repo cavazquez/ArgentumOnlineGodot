@@ -75,9 +75,13 @@ def export(target, output, engine, reuse=None):
                         shutil.copyfileobj(source, destination)
                     path.chmod((info.external_attr >> 16) & 0o777 or 0o644)
         (output / filename).unlink()
+    if target in {"linux", "linux-arm64"}:
+        subprocess.run([sys.executable, str(ROOT / "tools/build_tray.py"), "--output", str(output / "pyao-tray")], check=True)
+        shutil.copy2(ROOT / "Assets/Branding/pyao-client-128.png", output / "pyao-client.png")
+        shutil.copy2(ROOT / "tools/install-desktop.py", output / "install-desktop.py")
     for name in ("LICENSE", "README.md"):
         shutil.copy2(ROOT / name, output / name)
-    (output / "PORTABLE.txt").write_text("PyAO Client " + product + "\nUsar un servidor de la misma versión.\nEste paquete incluye sus recursos y no requiere instalar Godot.\nmacOS: firma ad hoc, sin notarización; abrir mediante el menú contextual si Gatekeeper lo solicita.\n")
+    (output / "PORTABLE.txt").write_text("PyAO Client " + product + "\nUsar un servidor de la misma versión.\nEste paquete incluye sus recursos y no requiere instalar Godot.\nLinux: python3 install-desktop.py agrega el acceso de menú desde la ubicación final del portable.\nmacOS: firma ad hoc, sin notarización; abrir mediante el menú contextual si Gatekeeper lo solicita.\n")
     files = {str(path.relative_to(output)).replace(os.sep, "/"): digest(path) for path in sorted(output.rglob("*")) if path.is_file()}
     record = {"version": product, "commit": commit, "dirty": dirty, "platform": target, "godot": version, "files": files, "verified": False}
     (output / "candidate-manifest.json").write_text(json.dumps(record, indent=2) + "\n")
@@ -95,7 +99,9 @@ def seal(output, evidence):
             raise ValueError("El candidato cambió después de construirse: " + name)
     if proof.get("candidate_manifest_sha256") != digest(output / "candidate-manifest.json"):
         raise ValueError("La prueba no referencia este manifiesto exacto")
-    for check in ("rendering", "audio", "input", "login", "preferences", "outside_checkout"):
+    checks = ("rendering", "audio", "input", "login", "preferences", "outside_checkout")
+    if record["platform"] != "web": checks += ("desktop",)
+    for check in checks:
         if proof.get(check) is not True:
             raise ValueError("Falta verificación nativa: " + check)
     suffix = record['platform'] + ("-" + proof["native_machine"] if record['platform'] == "macos" else "")

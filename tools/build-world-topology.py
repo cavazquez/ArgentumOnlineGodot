@@ -9,13 +9,25 @@ from pathlib import Path
 import tomllib
 
 
-def build(source, scene_dir, metadata):
+def crossing_direction(x, y, tx, ty):
+    """Recognize AO's authored edge and inner landing coordinates, not interior portals."""
+    west = x <= 9 and tx >= 91
+    east = x >= 92 and tx <= 10
+    north = y <= 7 and ty >= 93
+    south = y >= 93 and ty <= 8
+    dx = -1 if west else 1 if east else 0
+    dy = -1 if north else 1 if south else 0
+    return dx, dy
+
+
+def build(source, scene_dir, metadata, roles=None):
     maps = {
         int(p.stem.removeprefix("Map"))
         for p in scene_dir.glob("Map*.tscn")
         if p.stem.removeprefix("Map").isdigit()
     }
     names = {}
+    map_roles = json.loads(roles.read_text())["maps"] if roles and roles.is_file() else {}
     if metadata and metadata.exists():
         names = {
             int(k.removeprefix("map_")): v.get("name", k)
@@ -41,8 +53,7 @@ def build(source, scene_dir, metadata):
                         {"from": a, "to": b, "reason": "mapa o coordenada ausente"}
                     )
                     continue
-                dx = -1 if x <= 9 and tx >= 92 else 1 if x >= 92 and tx <= 9 else 0
-                dy = -1 if y <= 9 and ty >= 92 else 1 if y >= 92 and ty <= 9 else 0
+                dx, dy = crossing_direction(x, y, tx, ty) if a != b else (0, 0)
                 kind = (
                     "diagonal" if dx and dy else "cardinal" if dx or dy else "teleport"
                 )
@@ -77,6 +88,8 @@ def build(source, scene_dir, metadata):
                 if e["from"] != a or not e["reciprocal"] or e["kind"] == "teleport":
                     continue
                 b = e["to"]
+                if b in positions:
+                    continue  # Never reassign a map already placed in another component.
                 dx, dy = e["direction"]
                 desired = (local[a][0] + dx, local[a][1] + dy)
                 if b in local:
@@ -103,11 +116,16 @@ def build(source, scene_dir, metadata):
         for key, (x, y) in local.items():
             positions[key] = [x - minx + component, y - miny]
         component += width + 3
+    for edge in edges:
+        a, b = positions[edge["from"]], positions[edge["to"]]
+        edge["layout"] = "folded" if edge["kind"] != "teleport" and [b[0]-a[0], b[1]-a[1]] != edge["direction"] else "geographic"
+    for conflict in conflicts:
+        conflict["resolution"] = "preserve authored route; display folded edge without moving an already assigned map"
     return {
         "version": 1,
         "sources": sources,
         "maps": {
-            str(i): {"name": names.get(i, f"Mapa {i}"), "position": positions[i]}
+            str(i): {"name": names.get(i, f"Mapa {i}"), "position": positions[i], "role": map_roles.get(str(i), {}).get("role", "playable")}
             for i in sorted(maps)
         },
         "edges": edges,
@@ -121,9 +139,10 @@ def main():
     p.add_argument("--source", type=Path, required=True)
     p.add_argument("--scenes", type=Path, default=Path("Maps"))
     p.add_argument("--metadata", type=Path)
+    p.add_argument("--roles", type=Path)
     p.add_argument("--output", type=Path, default=Path("protocol/world-topology.json"))
     a = p.parse_args()
-    data = build(a.source, a.scenes, a.metadata)
+    data = build(a.source, a.scenes, a.metadata, a.roles)
     a.output.write_text(
         json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n"
     )

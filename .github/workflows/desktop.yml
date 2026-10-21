@@ -1,0 +1,42 @@
+name: Desktop integration
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-tray:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-2025, macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+        with:
+          version: "0.13.1"
+      - name: Install Python
+        run: uv python install 3.14
+      - name: Install verified engine
+        run: uv run --no-project --python 3.14 python tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
+      - name: Import native resources
+        run: '"$GODOT_BIN" --headless --path . --editor --import > import.log 2>&1'
+      - name: Minimize and restore with native status indicator
+        env:
+          PYAO_DESKTOP_SCREENSHOT: ${{ runner.temp }}/desktop.png
+        run: |
+          "$GODOT_BIN" --path . --rendering-method gl_compatibility --audio-driver Dummy --quit-after 600 res://tests/desktop_tray_smoke.tscn > desktop.log 2>&1
+          uv run --no-project --python 3.14 python -c 'import pathlib,sys; sys.path.insert(0,"tools"); from runtime_log import classify_runtime_log; logs=[pathlib.Path(p).read_text() for p in ("import.log","desktop.log")]; assert all(classify_runtime_log(log)["passed"] for log in logs), logs; assert "DESKTOP_TRAY: PASS" in logs[1]'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: desktop-${{ matrix.runner }}
+          path: |
+            import.log
+            desktop.log
+            ${{ runner.temp }}/desktop.png

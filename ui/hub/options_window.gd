@@ -91,6 +91,13 @@ func _add_extended_options() -> void:
 		check.button_pressed = Global.get(info[1])
 		check.toggled.connect(func(value): Global.set(info[1], value))
 		_content.add_child(check)
+	var tray := CheckBox.new()
+	tray.text = "Al cerrar o minimizar, mantener en bandeja"
+	tray.button_pressed = Global.minimizeToTray
+	tray.disabled = not DesktopTray.available
+	tray.tooltip_text = "Requiere una bandeja del sistema disponible. El juego continúa conectado."
+	tray.toggled.connect(func(value): Global.minimizeToTray = value)
+	_content.add_child(tray)
 	for info in [["Texto de consola", "consoleFontSize"], ["Nombres", "nameFontSize"]]:
 		var row := HBoxContainer.new()
 		_content.add_child(row)

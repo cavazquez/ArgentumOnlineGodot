@@ -12,11 +12,36 @@ import subprocess
 import sys
 import tempfile
 
+from runtime_log import classify_runtime_log
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def sha(path):
     with path.open("rb") as stream: return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def verify_desktop(executable, target, output):
+    """Usa los mismos bytes del portable, con una entrada y perfil aislados."""
+    profile = "PyAO-tray-validation-" + executable.parent.parent.name
+    config = '[application]\nrun/main_scene="res://tests/desktop_tray_smoke.tscn"\nconfig/use_custom_user_dir=true\nconfig/custom_user_dir_name=' + json.dumps(profile) + '\n'
+    (executable.parent / "override.cfg").write_text(config)
+    if target == "macos":
+        (executable.parent.parent / "Resources/override.cfg").write_text(config)
+    environment = dict(os.environ, PYAO_DESKTOP_SCREENSHOT=str(output / "desktop.png"))
+    for suffix in ("DATA", "CONFIG", "CACHE"):
+        folder = executable.parent / ("desktop-" + suffix.lower())
+        folder.mkdir(exist_ok=True)
+        environment[f"XDG_{suffix}_HOME"] = str(folder)
+    if target in {"linux", "linux-arm64"}: environment["PYAO_DESKTOP_ALLOW_NO_HOST"] = "1"
+    with (output / "desktop.log").open("wb") as stream:
+        subprocess.run([str(executable), "--rendering-method", "gl_compatibility", "--audio-driver", "Dummy", "--max-fps", "30"], cwd=executable.parent, env=environment, stdout=stream, stderr=subprocess.STDOUT, check=True, timeout=40)
+    log = (output / "desktop.log").read_text()
+    host = "DESKTOP_TRAY: PASS" in log
+    fallback = target in {"linux", "linux-arm64"} and "DESKTOP_TRAY_FALLBACK: PASS" in log
+    if not classify_runtime_log(log)["passed"] or not (host or fallback):
+        raise ValueError("La integración de escritorio del portable no pasó")
+    return {"passed": True, "host_available": host, "accessible_without_host": fallback, "executable_sha256": sha(executable)}
 
 
 def smoke(candidate, server, engine, output, redis_runtime):
@@ -55,8 +80,10 @@ def smoke(candidate, server, engine, output, redis_runtime):
         proof = {"passed": verified, "platform": target, "client_commit": record["commit"], "server_commit": result["server_commit"], "candidate_manifest_sha256": sha(candidate / "candidate-manifest.json"), "login": verified, "outside_checkout": not runtime.is_relative_to(ROOT), "native_system": platform.platform(), "native_machine": platform.machine()}
         for check in ("rendering", "audio", "input", "preferences"):
             proof[check] = len(steps) == 2 and all(row["observations"].get(check) is True for row in steps)
+        proof["desktop_evidence"] = verify_desktop(executable, target, output)
+        proof["desktop"] = proof["desktop_evidence"]["passed"]
         (output / "native-proof.json").write_text(json.dumps(proof, indent=2) + "\n")
-        if not all(proof[key] is True for key in ("passed", "login", "rendering", "audio", "input", "preferences", "outside_checkout")):
+        if not all(proof[key] is True for key in ("passed", "login", "rendering", "audio", "input", "preferences", "outside_checkout", "desktop")):
             raise ValueError("La prueba nativa no acredita todos los requisitos")
 
 

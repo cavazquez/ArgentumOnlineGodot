@@ -7,7 +7,7 @@ import sys
 import time
 
 from full_world import FullWorld
-from lifetime_stats_view import FIELDS, ministats_match
+from lifetime_stats_view import FIELDS, LABELS, ministats_match
 from skills_world import prepare_fixture as base_fixture
 
 
@@ -73,7 +73,7 @@ def show(world, store, label, jail_days=None):
             lambda v, i=i: ministats_match(
                 v, expected[i], None if jail_days is None else jail_days.get(i)
             ),
-            "contadores del servidor en estadísticas",
+            "contadores y condena del servidor en estadísticas",
         )
         world.screen(label, i)
     return {i: result[i]["ministats"] for i in (1, 2)}

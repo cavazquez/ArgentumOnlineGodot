@@ -14,6 +14,11 @@ spec.loader.exec_module(module)
 
 
 class TopologyTests(unittest.TestCase):
+    def test_real_inner_border_arrivals_and_shifted_coast(self):
+        for values, expected in [((9, 40, 91, 40), (-1, 0)), ((92, 40, 10, 40), (1, 0)), ((40, 7, 40, 93), (0, -1)), ((40, 94, 40, 8), (0, 1)), ((7, 40, 93, 60), (-1, 0)), ((50, 50, 60, 60), (0, 0))]:
+            with self.subTest(values=values):
+                self.assertEqual(expected, module.crossing_direction(*values))
+
     def test_no_reverse_teleport_is_invented(self):
         with tempfile.TemporaryDirectory() as work:
             root = Path(work)

@@ -3,6 +3,7 @@ extends Window
 # Se emite cuando se actualiza un skill
 signal draft_changed(skill_index: int, new_value: int)
 signal action_requested(skill_id: int)
+signal dismissed
 
 # Lista de skills y sus nombres
 var SKILL_NAMES: Array[String] = SkillCatalog.names()
@@ -110,6 +111,7 @@ func _on_cancel_pressed():
 	if _pending_id.is_empty():
 		set_skills(initial_skill_values.duplicate())
 	hide()
+	dismissed.emit()
 
 func _on_accept_pressed():
 	if not _pending_id.is_empty() or operation_id.is_empty() or not has_skill_changes():

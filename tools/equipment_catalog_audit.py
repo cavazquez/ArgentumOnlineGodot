@@ -28,13 +28,13 @@ def audit(server, client):
     for item_id, item in sorted(items.items()):
         kind = item.get("ObjType")
         if kind not in LAYERS:
-            if kind == 18 or "botas" in item.get("Name", "").lower():
+            if "botas" in item.get("Name", "").lower():
                 unsupported.append(
                     {
                         "item_id": item_id,
                         "name": item["Name"],
                         "obj_type": kind,
-                        "reason": "no_equipment_slot_or_avatar_layer",
+                        "reason": "boots_deferred_issue_181",
                     }
                 )
             continue
@@ -65,6 +65,8 @@ def audit(server, client):
         "rows": rows,
         "missing_resources": missing,
         "unsupported_equipment": unsupported,
+        "accessories": [{"item_id": key, "name": value["Name"], "slot": "accessory", "avatar_layer": "not_applicable"} for key, value in sorted(items.items()) if value.get("ObjType") == 18],
+        "complete_selected_avatar_coverage": not missing,
         "complete_avatar_coverage": not missing and not unsupported,
         "missing_resource_issue": "https://github.com/cavazquez/ArgentumOnlineGodot/issues/180",
         "boots_issue": "https://github.com/cavazquez/ArgentumOnlineGodot/issues/181",

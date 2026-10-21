@@ -91,10 +91,10 @@ var _stats_window
 var _world_windows: Dictionary = {}
 var _world_buttons: Array[Button] = []
 
-var _user_weapon_slot:int
-var _user_shield_slot:int
-var _user_helmet_slot:int
-var _user_armor_slot:int
+var _user_weapon_slot:int = -1
+var _user_shield_slot:int = -1
+var _user_helmet_slot:int = -1
+var _user_armor_slot:int = -1
 
 func _ready() -> void:
 	minimap.tooltip_text = "Clic derecho: mapa mundial"
@@ -255,19 +255,19 @@ func update_equipment_label(slot:int, item_stack:ItemStack) -> void:
 		match slot:
 			_user_weapon_slot:
 				%LblWeapon.text = "0/0"
-				_user_weapon_slot = 0
+				_user_weapon_slot = -1
 			
 			_user_shield_slot:
 				%LblShield.text = "0/0"
-				_user_shield_slot = 0
+				_user_shield_slot = -1
 			
 			_user_armor_slot:
 				%LblArmor.text = "0/0"
-				_user_armor_slot = 0
+				_user_armor_slot = -1
 			
 			_user_helmet_slot:
 				%LblHelmet.text = "0/0"
-				_user_helmet_slot = 0
+				_user_helmet_slot = -1
 	
 func _CameraTransformVector(vec:Vector2) -> Vector2:
 	return _camera.get_canvas_transform().affine_inverse() * vec
@@ -552,11 +552,11 @@ func _on_main_viewport_container_gui_input(event: InputEvent) -> void:
 
 
 func _on_btn_quit_pressed() -> void:
-	get_tree().quit()
+	DesktopTray.Close()
  
 
 func _on_btn_minimize_pressed() -> void:
-	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
+	DesktopTray.Minimize()
 
 
 func _on_btn_drop_gold_pressed() -> void:
@@ -593,12 +593,17 @@ func _on_btn_skills_pressed() -> void:
 	if _skills_window == null:
 		_skills_window = SkillsWindowScene.instantiate()
 		_skills_window.action_requested.connect(UseSkill)
+		_skills_window.dismissed.connect(_cancel_skills_popup)
 		add_child(_skills_window)
 		_RegisterModal(_skills_window)
 	# Establecer el flag para indicar que estamos esperando las habilidades
 	_waiting_for_skills_popup = true
 	# Solicitar las habilidades al servidor
 	GameProtocol.WriteRequestSkills()
+
+func _cancel_skills_popup() -> void:
+	# Cerrar expresa una decisión incluso si el snapshot todavía está en vuelo.
+	_waiting_for_skills_popup = false
 
 func _on_btn_stadistics_pressed() -> void:
 	# Enviar solicitudes para poblar la ventana de estadísticas
@@ -629,6 +634,7 @@ func _show_skills_window(skills:Array) -> void:
 	if _skills_window == null:
 		_skills_window = SkillsWindowScene.instantiate()
 		_skills_window.action_requested.connect(UseSkill)
+		_skills_window.dismissed.connect(_cancel_skills_popup)
 		add_child(_skills_window)
 		_RegisterModal(_skills_window)
 	_skills_window.set_skills(skills)

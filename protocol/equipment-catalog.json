@@ -1,0 +1,3584 @@
+{
+  "catalogue_files_sha256": {
+    "data/items/consumables/drinks.toml": "97f779cd0d1775ecfa02e132cbf20add0959486acc812600070748b6fb67359a",
+    "data/items/consumables/food.toml": "1e459987feb8fa51e4c9ec0bc01b2887c05cf4e66bcd16661959205b8b685187",
+    "data/items/consumables/potions.toml": "82953ade0f44a1f92caed56f47c3fc2d1b58b3ed21d0c995ccc156bae557ea4c",
+    "data/items/consumables/scrolls.toml": "0c2aecf1d3ae36a99de8582849a360590df9e7ff4747227a080ec1cf77086bb8",
+    "data/items/equipment/armors.toml": "9dcc1f2e1dfbbb6a265b8cf5436e53fa705bc2179acbbe59765f588573ff3e71",
+    "data/items/equipment/helmets.toml": "bac35b855cabdd1a84c548a00efa2e232d0f62a24c91d44e6fcce2584f0658ac",
+    "data/items/equipment/jewels.toml": "134ad558136d3508f3a11f771d7dec9577df6e0d851d41dacf638ecde5039f1e",
+    "data/items/equipment/rings.toml": "778c7012efa62fa755fd063565036f9b3fc996ccaa1eb6b75f8156a449045460",
+    "data/items/equipment/shields.toml": "074809085789e2e7c06263741ddb0c4fa4aa143fc27e46a64c41d1629c6453dd",
+    "data/items/equipment/weapons.toml": "b4203935e235e32fbb170e73363535a79eaee1af56f7c14b43f0254212274e45",
+    "data/items/misc/arrows.toml": "99fa072e2805f5b6b182ae30bd93e3c2a659b5c71f7f4d1ec10c26da19c9e3e2",
+    "data/items/misc/boats.toml": "bca3a01a1359594afc9063ff281b5ea27109e0b04f1d13473a87567fa83eb788",
+    "data/items/misc/bottles.toml": "1e25d81953a70c1c66f1982db35d813d3c64c3556145e6826acaaed125e0bd06",
+    "data/items/misc/money.toml": "e17a6a334e2a166d19f31f5d6956b4fbf344467ad7fced3095a2f7633d988ce0",
+    "data/items/misc/other.toml": "1487707a5480018afe086d8e76b48915306ba994d9a6329b34a0a3054a582a4d",
+    "data/items/misc/teleports.toml": "affaeb5778f1b505e2d3aaefba73a325c341235e975f34a6c7e9858091faafa6",
+    "data/items/resources/flowers.toml": "4cc0548e1984bdce9a476be6b04236a8faf196360f7a7373536a72fc797b86a6",
+    "data/items/resources/gems.toml": "77056280148ef5ea6d221ebb5d3b0ebb17f2d8819a13eeec324d4cb93a8aa16e",
+    "data/items/resources/minerals.toml": "3430f03bd90888b62273fd961e3e6ed8e145ff82916d396c75dca4a4d860498d",
+    "data/items/resources/wood.toml": "a6dcacb50a919be91cc2daea627e64a0cd56eb13e746805780677e75374ffca4",
+    "data/items/tools/blacksmith.toml": "e7e144ab8f2b3ed13d94909cea61248d326de53859031ff70e88b19398e0f5e0",
+    "data/items/tools/books.toml": "1361e78f823ec9c45e2ea181e4ba200af96b5ee42524ad115056550609e5ed04",
+    "data/items/tools/instruments.toml": "4511f02c7ae78739483f41a93e15ba7dec359204caa20ed6643d14d193ce7f10",
+    "data/items/tools/keys.toml": "fd8c17ff6d0f6c2d4258794988ca346e91f3e663ae1bd79d135f754e15536aa2",
+    "data/items/world_objects/containers.toml": "b877dc54190044074c91e9679662e7b7d220e62efb8af8eeefa57f8d9fbbecfd",
+    "data/items/world_objects/doors.toml": "686cb0365ab607c30d1582eb1b63965e741aa01cdb09bbf3786fe30cccc8965c",
+    "data/items/world_objects/furniture.toml": "41722275ef7b3659d2e1593101d44796f8c9903f443a87523d012bf27778f427",
+    "data/items/world_objects/mines.toml": "83bcc4077930428a288520551be3884cc6651935c416e166dba6c78450c85f92",
+    "data/items/world_objects/signs.toml": "75a42f891a73b3a6567551c0955759aa8a571eeead38d84d22ceb2ae0853fb1d",
+    "data/items/world_objects/trees.toml": "8d757426beb1b507e1471e5b023635a396b18d681fadcc113be746f1995d0c9c"
+  },
+  "items_by_slot": {
+    "weapon": 51,
+    "armor": 263,
+    "shield": 13,
+    "helmet": 15
+  },
+  "animation_references": 381,
+  "rows": [
+    {
+      "item_id": 2,
+      "name": "Espada Larga",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 21,
+      "resource": "Resources/Character/Weapons/weapon_21.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 2,
+      "name": "Espada Larga",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 72,
+      "resource": "Resources/Character/Weapons/weapon_72.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 3,
+      "name": "Hacha",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 25,
+      "resource": "Resources/Character/Weapons/weapon_25.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 9,
+      "name": "Horquilla",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 26,
+      "resource": "Resources/Character/Weapons/weapon_26.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 15,
+      "name": "Daga",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 12,
+      "resource": "Resources/Character/Weapons/weapon_12.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 15,
+      "name": "Daga",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 48,
+      "resource": "Resources/Character/Weapons/weapon_48.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 19,
+      "name": "Espada Dos Manos",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Weapons/weapon_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 19,
+      "name": "Espada Dos Manos",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 66,
+      "resource": "Resources/Character/Weapons/weapon_66.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 30,
+      "name": "Armadura de Cuero",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 22,
+      "resource": "Resources/Character/Bodies/body_22.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 31,
+      "name": "Vestimentas Comunes",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Bodies/body_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 32,
+      "name": "Vestimentas Comunes",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 2,
+      "resource": "Resources/Character/Bodies/body_2.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 35,
+      "name": "Vestimentas Comunes",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 3,
+      "resource": "Resources/Character/Bodies/body_3.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 45,
+      "name": "Ropa de Clan",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 35,
+      "resource": "Resources/Character/Bodies/body_35.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 80,
+      "name": "Ropa de Clan",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 35,
+      "resource": "Resources/Character/Bodies/body_35.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 123,
+      "name": "Espada Vikinga",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 22,
+      "resource": "Resources/Character/Weapons/weapon_22.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 123,
+      "name": "Espada Vikinga",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 55,
+      "resource": "Resources/Character/Weapons/weapon_55.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 124,
+      "name": "Katana",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 27,
+      "resource": "Resources/Character/Weapons/weapon_27.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 124,
+      "name": "Katana",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 54,
+      "resource": "Resources/Character/Weapons/weapon_54.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 125,
+      "name": "Sable",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 56,
+      "resource": "Resources/Character/Weapons/weapon_56.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 125,
+      "name": "Sable",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 57,
+      "resource": "Resources/Character/Weapons/weapon_57.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 126,
+      "name": "Hacha Larga de Guerra",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 3,
+      "resource": "Resources/Character/Weapons/weapon_3.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 126,
+      "name": "Hacha Larga de Guerra",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 67,
+      "resource": "Resources/Character/Weapons/weapon_67.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 127,
+      "name": "Hacha de Leñador",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 23,
+      "resource": "Resources/Character/Weapons/weapon_23.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 128,
+      "name": "Escudo de Hierro",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 4,
+      "resource": "Resources/Character/Shields/shield_4.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 129,
+      "name": "Hacha de Guerra Dos Filos",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 24,
+      "resource": "Resources/Character/Weapons/weapon_24.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 130,
+      "name": "Escudo de Plata",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 6,
+      "resource": "Resources/Character/Shields/shield_6.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 131,
+      "name": "Casco de Hierro Completo",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 6,
+      "resource": "Resources/Character/Helmets/helmet_6.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 132,
+      "name": "Casco de Hierro",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Helmets/helmet_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 133,
+      "name": "Escudo Imperial",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Shields/shield_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 135,
+      "name": "Túnica Roja Burda",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 50,
+      "resource": "Resources/Character/Bodies/body_50.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 138,
+      "name": "Caña de Pescar",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 20,
+      "resource": "Resources/Character/Weapons/weapon_20.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 138,
+      "name": "Caña de Pescar",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 76,
+      "resource": "Resources/Character/Weapons/weapon_76.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 159,
+      "name": "Hacha de Bárbaro",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 19,
+      "resource": "Resources/Character/Weapons/weapon_19.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 164,
+      "name": "Espada Corta",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 14,
+      "resource": "Resources/Character/Weapons/weapon_14.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 164,
+      "name": "Espada Corta",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 64,
+      "resource": "Resources/Character/Weapons/weapon_64.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 165,
+      "name": "Daga +1",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 34,
+      "resource": "Resources/Character/Weapons/weapon_34.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 165,
+      "name": "Daga +1",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 49,
+      "resource": "Resources/Character/Weapons/weapon_49.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 170,
+      "name": "Vestimenta de Mujer (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 44,
+      "resource": "Resources/Character/Bodies/body_44.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 187,
+      "name": "Piquete de Minero",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 30,
+      "resource": "Resources/Character/Weapons/weapon_30.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 187,
+      "name": "Piquete de Minero",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 74,
+      "resource": "Resources/Character/Weapons/weapon_74.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 195,
+      "name": "Armadura de Placas Completa",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 45,
+      "resource": "Resources/Character/Bodies/body_45.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 196,
+      "name": "Túnica de Mago",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 46,
+      "resource": "Resources/Character/Bodies/body_46.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 198,
+      "name": "Serrucho",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 31,
+      "resource": "Resources/Character/Weapons/weapon_31.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 198,
+      "name": "Serrucho",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 73,
+      "resource": "Resources/Character/Weapons/weapon_73.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 238,
+      "name": "Túnica Azul",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 49,
+      "resource": "Resources/Character/Bodies/body_49.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 239,
+      "name": "Túnica Roja",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 50,
+      "resource": "Resources/Character/Bodies/body_50.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 240,
+      "name": "Ropa de Enano (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 52,
+      "resource": "Resources/Character/Bodies/body_52.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 243,
+      "name": "Armadura de Placas Completa (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 54,
+      "resource": "Resources/Character/Bodies/body_54.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 356,
+      "name": "Armadura de las Sombras",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 48,
+      "resource": "Resources/Character/Bodies/body_48.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 357,
+      "name": "Túnica de Monje",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 79,
+      "resource": "Resources/Character/Bodies/body_79.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 359,
+      "name": "Cota de Mallas",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 57,
+      "resource": "Resources/Character/Bodies/body_57.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 360,
+      "name": "Armadura de Cazador",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 58,
+      "resource": "Resources/Character/Bodies/body_58.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 365,
+      "name": "Daga +2",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 35,
+      "resource": "Resources/Character/Weapons/weapon_35.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 365,
+      "name": "Daga +2",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 50,
+      "resource": "Resources/Character/Weapons/weapon_50.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 366,
+      "name": "Daga +3",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 36,
+      "resource": "Resources/Character/Weapons/weapon_36.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 366,
+      "name": "Daga +3",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 51,
+      "resource": "Resources/Character/Weapons/weapon_51.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 367,
+      "name": "Daga +4",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 52,
+      "resource": "Resources/Character/Weapons/weapon_52.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 367,
+      "name": "Daga +4",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 53,
+      "resource": "Resources/Character/Weapons/weapon_53.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 369,
+      "name": "Armadura Legionaria",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 77,
+      "resource": "Resources/Character/Bodies/body_77.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 370,
+      "name": "Capucha de Cazador",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 9,
+      "resource": "Resources/Character/Helmets/helmet_9.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 372,
+      "name": "Manto de Sacerdote del Imperio",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 92,
+      "resource": "Resources/Character/Bodies/body_92.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 379,
+      "name": "Armadura Legionaria (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 81,
+      "resource": "Resources/Character/Bodies/body_81.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 381,
+      "name": "Túnica Antigua",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 38,
+      "resource": "Resources/Character/Bodies/body_38.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 382,
+      "name": "Vestido Azul (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 80,
+      "resource": "Resources/Character/Bodies/body_80.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 383,
+      "name": "Sombrero Mágico",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 7,
+      "resource": "Resources/Character/Helmets/helmet_7.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 389,
+      "name": "Martillo de Herrero",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 29,
+      "resource": "Resources/Character/Weapons/weapon_29.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 389,
+      "name": "Martillo de Herrero",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 75,
+      "resource": "Resources/Character/Weapons/weapon_75.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 390,
+      "name": "Armadura de Placas Completa +1",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 194,
+      "resource": "Resources/Character/Bodies/body_194.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 391,
+      "name": "Armadura de Placas Completa +2",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 195,
+      "resource": "Resources/Character/Bodies/body_195.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 392,
+      "name": "Armadura de Placas Completa +1 (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 192,
+      "resource": "Resources/Character/Bodies/body_192.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 393,
+      "name": "Armadura de Placas Completa +2 (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 191,
+      "resource": "Resources/Character/Bodies/body_191.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 398,
+      "name": "Garrote",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 4,
+      "resource": "Resources/Character/Weapons/weapon_4.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 398,
+      "name": "Garrote",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 70,
+      "resource": "Resources/Character/Weapons/weapon_70.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 399,
+      "name": "Cimitarra",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 5,
+      "resource": "Resources/Character/Weapons/weapon_5.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 399,
+      "name": "Cimitarra",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 71,
+      "resource": "Resources/Character/Weapons/weapon_71.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 400,
+      "name": "Vara de Mago",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 6,
+      "resource": "Resources/Character/Weapons/weapon_6.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 400,
+      "name": "Vara de Mago",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 58,
+      "resource": "Resources/Character/Weapons/weapon_58.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 401,
+      "name": "Martillo de Guerra",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 28,
+      "resource": "Resources/Character/Weapons/weapon_28.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 401,
+      "name": "Martillo de Guerra",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 28,
+      "resource": "Resources/Character/Weapons/weapon_28.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 402,
+      "name": "Espada Mata Dragones",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 15,
+      "resource": "Resources/Character/Weapons/weapon_15.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 402,
+      "name": "Espada Mata Dragones",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 65,
+      "resource": "Resources/Character/Weapons/weapon_65.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 403,
+      "name": "Espada de Plata",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 13,
+      "resource": "Resources/Character/Weapons/weapon_13.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 403,
+      "name": "Espada de Plata",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 63,
+      "resource": "Resources/Character/Weapons/weapon_63.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 404,
+      "name": "Escudo de Tortuga",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 3,
+      "resource": "Resources/Character/Shields/shield_3.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 405,
+      "name": "Casco de Plata",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 8,
+      "resource": "Resources/Character/Helmets/helmet_8.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 460,
+      "name": "Daga (Newbie)",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 12,
+      "resource": "Resources/Character/Weapons/weapon_12.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 460,
+      "name": "Daga (Newbie)",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 48,
+      "resource": "Resources/Character/Weapons/weapon_48.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 463,
+      "name": "Vestimentas Comunes (Newbie)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Bodies/body_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 464,
+      "name": "Vestimentas Comunes (Newbie)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 2,
+      "resource": "Resources/Character/Bodies/body_2.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 465,
+      "name": "Vestimentas Comunes (Newbie)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 3,
+      "resource": "Resources/Character/Bodies/body_3.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 466,
+      "name": "Harapos de Mendigo (E/G) (Newbie)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 300,
+      "resource": "Resources/Character/Bodies/body_300.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 478,
+      "name": "Arco Simple",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 41,
+      "resource": "Resources/Character/Weapons/weapon_41.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 478,
+      "name": "Arco Simple",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 40,
+      "resource": "Resources/Character/Weapons/weapon_40.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 479,
+      "name": "Arco Compuesto",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 7,
+      "resource": "Resources/Character/Weapons/weapon_7.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 479,
+      "name": "Arco Compuesto",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 59,
+      "resource": "Resources/Character/Weapons/weapon_59.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 481,
+      "name": "Armadura de Dragón",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 89,
+      "resource": "Resources/Character/Bodies/body_89.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 482,
+      "name": "Armadura de Dragón (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 90,
+      "resource": "Resources/Character/Bodies/body_90.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 483,
+      "name": "Armadura de Dragón (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 91,
+      "resource": "Resources/Character/Bodies/body_91.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 484,
+      "name": "Manto de Noble",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 93,
+      "resource": "Resources/Character/Bodies/body_93.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 485,
+      "name": "Armadura Legendaria",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 94,
+      "resource": "Resources/Character/Bodies/body_94.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 486,
+      "name": "Ropa de Estilo (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 95,
+      "resource": "Resources/Character/Bodies/body_95.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 487,
+      "name": "Dama de las Tinieblas (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 96,
+      "resource": "Resources/Character/Bodies/body_96.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 488,
+      "name": "White Lady (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 97,
+      "resource": "Resources/Character/Bodies/body_97.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 489,
+      "name": "Armadura de Placas Azul",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 98,
+      "resource": "Resources/Character/Bodies/body_98.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 490,
+      "name": "Ropa de Minero",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 100,
+      "resource": "Resources/Character/Bodies/body_100.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 491,
+      "name": "Escudo Real RM",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Shields/shield_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 492,
+      "name": "Armadura Real (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 102,
+      "resource": "Resources/Character/Bodies/body_102.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 493,
+      "name": "Armadura de Placas Rojas (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 103,
+      "resource": "Resources/Character/Bodies/body_103.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 494,
+      "name": "Escudo Legionario RM",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 5,
+      "resource": "Resources/Character/Shields/shield_5.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 495,
+      "name": "Armadura Escarlata",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 105,
+      "resource": "Resources/Character/Bodies/body_105.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 496,
+      "name": "Armadura de la Ciénaga",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 106,
+      "resource": "Resources/Character/Bodies/body_106.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 497,
+      "name": "Armadura de Placas de Gala",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 107,
+      "resource": "Resources/Character/Bodies/body_107.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 499,
+      "name": "Cota de Mallas (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 109,
+      "resource": "Resources/Character/Bodies/body_109.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 500,
+      "name": "Armadura Bruñida (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 110,
+      "resource": "Resources/Character/Bodies/body_110.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 501,
+      "name": "Ropa de Campesino",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 111,
+      "resource": "Resources/Character/Bodies/body_111.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 502,
+      "name": "Ropa de Campesino (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 112,
+      "resource": "Resources/Character/Bodies/body_112.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 503,
+      "name": "Trampa Visual (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 113,
+      "resource": "Resources/Character/Bodies/body_113.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 504,
+      "name": "Atuendo Combinado (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 114,
+      "resource": "Resources/Character/Bodies/body_114.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 505,
+      "name": "Atuendo Azul (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 115,
+      "resource": "Resources/Character/Bodies/body_115.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 506,
+      "name": "Atuendo Rosa (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 116,
+      "resource": "Resources/Character/Bodies/body_116.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 507,
+      "name": "Ropa Violeta (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 117,
+      "resource": "Resources/Character/Bodies/body_117.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 508,
+      "name": "Ropa Estuaria (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 118,
+      "resource": "Resources/Character/Bodies/body_118.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 509,
+      "name": "Túnica de Maga Oscura (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 119,
+      "resource": "Resources/Character/Bodies/body_119.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 510,
+      "name": "Vestido Indulgente (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 120,
+      "resource": "Resources/Character/Bodies/body_120.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 511,
+      "name": "Vestido de Novia Sensual (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 121,
+      "resource": "Resources/Character/Bodies/body_121.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 512,
+      "name": "Vestido Calipso (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 123,
+      "resource": "Resources/Character/Bodies/body_123.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 513,
+      "name": "Vestido de Bruja (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 124,
+      "resource": "Resources/Character/Bodies/body_124.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 514,
+      "name": "Vestido de Bruja Especial (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 125,
+      "resource": "Resources/Character/Bodies/body_125.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 515,
+      "name": "Ropa Legendaria",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 126,
+      "resource": "Resources/Character/Bodies/body_126.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 516,
+      "name": "Túnica de Maga del Imperio (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 127,
+      "resource": "Resources/Character/Bodies/body_127.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 517,
+      "name": "Túnica de Mago del Imperio",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 128,
+      "resource": "Resources/Character/Bodies/body_128.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 518,
+      "name": "Túnica de Mago Oscuro",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 129,
+      "resource": "Resources/Character/Bodies/body_129.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 519,
+      "name": "Túnica Legendaria",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 130,
+      "resource": "Resources/Character/Bodies/body_130.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 520,
+      "name": "Armadura de Gran Sacerdotisa Imperial (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 131,
+      "resource": "Resources/Character/Bodies/body_131.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 521,
+      "name": "Armadura Real",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 64,
+      "resource": "Resources/Character/Bodies/body_64.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 523,
+      "name": "Manto de Sacerdote Demoníaco",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 134,
+      "resource": "Resources/Character/Bodies/body_134.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 524,
+      "name": "Túnica Roja Especial (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 135,
+      "resource": "Resources/Character/Bodies/body_135.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 525,
+      "name": "Túnica Combinada (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 136,
+      "resource": "Resources/Character/Bodies/body_136.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 526,
+      "name": "Túnica Combinada de Mujer (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 137,
+      "resource": "Resources/Character/Bodies/body_137.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 527,
+      "name": "Ropa de Enana (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 138,
+      "resource": "Resources/Character/Bodies/body_138.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 528,
+      "name": "Túnica Negra",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 140,
+      "resource": "Resources/Character/Bodies/body_140.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 529,
+      "name": "Armadura de Cuero (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 142,
+      "resource": "Resources/Character/Bodies/body_142.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 543,
+      "name": "Red de Pesca",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 77,
+      "resource": "Resources/Character/Weapons/weapon_77.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 549,
+      "name": "Túnica de Mago del Imperio (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 133,
+      "resource": "Resources/Character/Bodies/body_133.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 556,
+      "name": "Espada Mata Dragones NatOs",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 15,
+      "resource": "Resources/Character/Weapons/weapon_15.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 556,
+      "name": "Espada Mata Dragones NatOs",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 65,
+      "resource": "Resources/Character/Weapons/weapon_65.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 558,
+      "name": "Túnica de Mago Oscuro (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 23,
+      "resource": "Resources/Character/Bodies/body_23.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 559,
+      "name": "Daga de Plata",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 12,
+      "resource": "Resources/Character/Weapons/weapon_12.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 561,
+      "name": "Hacha de Leñador (Newbie)",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 23,
+      "resource": "Resources/Character/Weapons/weapon_23.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 562,
+      "name": "Piquete de Minero (Newbie)",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 30,
+      "resource": "Resources/Character/Weapons/weapon_30.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 562,
+      "name": "Piquete de Minero (Newbie)",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 74,
+      "resource": "Resources/Character/Weapons/weapon_74.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 563,
+      "name": "Caña de pescar (Newbie)",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 20,
+      "resource": "Resources/Character/Weapons/weapon_20.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 563,
+      "name": "Caña de pescar (Newbie)",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 76,
+      "resource": "Resources/Character/Weapons/weapon_76.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 564,
+      "name": "Serrucho (Newbie)",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 31,
+      "resource": "Resources/Character/Weapons/weapon_31.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 564,
+      "name": "Serrucho (Newbie)",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 73,
+      "resource": "Resources/Character/Weapons/weapon_73.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 565,
+      "name": "Martillo de Herrero (Newbie)",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 29,
+      "resource": "Resources/Character/Weapons/weapon_29.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 565,
+      "name": "Martillo de Herrero (Newbie)",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 75,
+      "resource": "Resources/Character/Weapons/weapon_75.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 614,
+      "name": "Túnica de Archimago",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 140,
+      "resource": "Resources/Character/Bodies/body_140.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 615,
+      "name": "Túnica de Archimago (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 135,
+      "resource": "Resources/Character/Bodies/body_135.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 616,
+      "name": "Armadura de Guerrero Campeón",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 89,
+      "resource": "Resources/Character/Bodies/body_89.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 617,
+      "name": "Armadura de Guerrero Campeón (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 91,
+      "resource": "Resources/Character/Bodies/body_91.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 619,
+      "name": "Daga Envenenada",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 12,
+      "resource": "Resources/Character/Weapons/weapon_12.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 625,
+      "name": "Escudo AlejoLp",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Shields/shield_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 628,
+      "name": "Túnica de Archimago Imperial",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 61,
+      "resource": "Resources/Character/Bodies/body_61.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 629,
+      "name": "Armadura Nobilísima",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 62,
+      "resource": "Resources/Character/Bodies/body_62.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 630,
+      "name": "Túnica Celestial",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 101,
+      "resource": "Resources/Character/Bodies/body_101.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 631,
+      "name": "Armadura de Líder Imperial (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 131,
+      "resource": "Resources/Character/Bodies/body_131.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 632,
+      "name": "Armadura de Guerrero Real (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 110,
+      "resource": "Resources/Character/Bodies/body_110.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 633,
+      "name": "Túnica Marrón de Mago Imperial (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 136,
+      "resource": "Resources/Character/Bodies/body_136.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 634,
+      "name": "Túnica Egregia de Mago Oscuro",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 78,
+      "resource": "Resources/Character/Bodies/body_78.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 635,
+      "name": "Armadura Lóbrega (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 104,
+      "resource": "Resources/Character/Bodies/body_104.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 636,
+      "name": "Túnica de Líder del Caos (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 135,
+      "resource": "Resources/Character/Bodies/body_135.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 637,
+      "name": "Túnica de líder del Caos",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 140,
+      "resource": "Resources/Character/Bodies/body_140.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 638,
+      "name": "Armadura de Guardián del Demonio",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 89,
+      "resource": "Resources/Character/Bodies/body_89.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 639,
+      "name": "Armadura de Guardián del Demonio (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 91,
+      "resource": "Resources/Character/Bodies/body_91.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 640,
+      "name": "Túnica de Archimago del Caos",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 50,
+      "resource": "Resources/Character/Bodies/body_50.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 641,
+      "name": "Ropa de Pordiosero",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 47,
+      "resource": "Resources/Character/Bodies/body_47.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 646,
+      "name": "Túnica Real Pretoriana",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 63,
+      "resource": "Resources/Character/Bodies/body_63.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 648,
+      "name": "Armadura de Cazador (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 155,
+      "resource": "Resources/Character/Bodies/body_155.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 650,
+      "name": "Túnica Pretoriana",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 50,
+      "resource": "Resources/Character/Bodies/body_50.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 656,
+      "name": "Túnica Pretoriana (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 135,
+      "resource": "Resources/Character/Bodies/body_135.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 658,
+      "name": "Vara de Fresno",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 8,
+      "resource": "Resources/Character/Weapons/weapon_8.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 658,
+      "name": "Vara de Fresno",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 60,
+      "resource": "Resources/Character/Weapons/weapon_60.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 659,
+      "name": "Bastón Nudoso",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 9,
+      "resource": "Resources/Character/Weapons/weapon_9.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 659,
+      "name": "Bastón Nudoso",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 61,
+      "resource": "Resources/Character/Weapons/weapon_61.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 660,
+      "name": "Báculo Engarzado",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 10,
+      "resource": "Resources/Character/Weapons/weapon_10.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 660,
+      "name": "Báculo Engarzado",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 62,
+      "resource": "Resources/Character/Weapons/weapon_62.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 661,
+      "name": "Sombrero de Aprendiz",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 3,
+      "resource": "Resources/Character/Helmets/helmet_3.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 662,
+      "name": "Sombrero de Mago",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 4,
+      "resource": "Resources/Character/Helmets/helmet_4.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 663,
+      "name": "Arco Simple Reforzado",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 43,
+      "resource": "Resources/Character/Weapons/weapon_43.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 663,
+      "name": "Arco Simple Reforzado",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 42,
+      "resource": "Resources/Character/Weapons/weapon_42.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 664,
+      "name": "Arco Compuesto Reforzado",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 45,
+      "resource": "Resources/Character/Weapons/weapon_45.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 664,
+      "name": "Arco Compuesto Reforzado",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 44,
+      "resource": "Resources/Character/Weapons/weapon_44.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 665,
+      "name": "Arco de Cazador",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 47,
+      "resource": "Resources/Character/Weapons/weapon_47.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 665,
+      "name": "Arco de Cazador",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 46,
+      "resource": "Resources/Character/Weapons/weapon_46.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 667,
+      "name": "Cota de Mallas (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 156,
+      "resource": "Resources/Character/Bodies/body_156.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 668,
+      "name": "Armadura de Cuero (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 157,
+      "resource": "Resources/Character/Bodies/body_157.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 669,
+      "name": "Ropa Real",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 158,
+      "resource": "Resources/Character/Bodies/body_158.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 670,
+      "name": "Túnica de Mago (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 159,
+      "resource": "Resources/Character/Bodies/body_159.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 671,
+      "name": "Túnica de Monje (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 160,
+      "resource": "Resources/Character/Bodies/body_160.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 672,
+      "name": "Armadura de Elite (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 161,
+      "resource": "Resources/Character/Bodies/body_161.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 675,
+      "name": "Vestimenta Imperial",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 174,
+      "resource": "Resources/Character/Bodies/body_174.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 676,
+      "name": "Vestimenta Imperial (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 175,
+      "resource": "Resources/Character/Bodies/body_175.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 677,
+      "name": "Vestimenta Legionaria",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 176,
+      "resource": "Resources/Character/Bodies/body_176.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 678,
+      "name": "Vestimenta Legionaria (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 177,
+      "resource": "Resources/Character/Bodies/body_177.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 679,
+      "name": "Túnica Conspicua de Mago Imperial",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 173,
+      "resource": "Resources/Character/Bodies/body_173.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 680,
+      "name": "Armadura de Gran Sacerdote Imperial",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 172,
+      "resource": "Resources/Character/Bodies/body_172.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 681,
+      "name": "Armadura Nobilísima (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 179,
+      "resource": "Resources/Character/Bodies/body_179.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 682,
+      "name": "Túnica Conspicua de Mago Imperial (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 171,
+      "resource": "Resources/Character/Bodies/body_171.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 683,
+      "name": "Armadura Lóbrega",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 170,
+      "resource": "Resources/Character/Bodies/body_170.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 684,
+      "name": "Armadura de Gran Sacerdote Demoníaco",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 169,
+      "resource": "Resources/Character/Bodies/body_169.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 685,
+      "name": "Armadura Lóbrega (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 168,
+      "resource": "Resources/Character/Bodies/body_168.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 686,
+      "name": "Túnica Egregia de Mago Oscuro (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 167,
+      "resource": "Resources/Character/Bodies/body_167.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 687,
+      "name": "Túnica Palatina",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 61,
+      "resource": "Resources/Character/Bodies/body_61.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 688,
+      "name": "Pequeña Túnica Palatina (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 166,
+      "resource": "Resources/Character/Bodies/body_166.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 689,
+      "name": "Túnica Avernal",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 140,
+      "resource": "Resources/Character/Bodies/body_140.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 690,
+      "name": "Pequeña Túnica Avernal (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 165,
+      "resource": "Resources/Character/Bodies/body_165.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 691,
+      "name": "Armadura de Ilustre Caballero",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 178,
+      "resource": "Resources/Character/Bodies/body_178.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 693,
+      "name": "Armadura Magna (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 132,
+      "resource": "Resources/Character/Bodies/body_132.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 694,
+      "name": "Armadura de Ilustre Caballero (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 164,
+      "resource": "Resources/Character/Bodies/body_164.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 695,
+      "name": "Armadura de Pequeño Pandemonium (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 163,
+      "resource": "Resources/Character/Bodies/body_163.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 701,
+      "name": "Armadura Infame",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 162,
+      "resource": "Resources/Character/Bodies/body_162.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 707,
+      "name": "Vestimenta de Noble (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 180,
+      "resource": "Resources/Character/Bodies/body_180.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 708,
+      "name": "Escudo Infernal",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 5,
+      "resource": "Resources/Character/Shields/shield_5.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 753,
+      "name": "Mayal Triple",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Weapons/weapon_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 851,
+      "name": "Laureles",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 5,
+      "resource": "Resources/Character/Helmets/helmet_5.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 854,
+      "name": "Armadura de las Sombras (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 539,
+      "resource": "Resources/Character/Bodies/body_539.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 859,
+      "name": "Arco (Newbie)",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 41,
+      "resource": "Resources/Character/Weapons/weapon_41.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 859,
+      "name": "Arco (Newbie)",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 40,
+      "resource": "Resources/Character/Weapons/weapon_40.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 861,
+      "name": "Espada (Newbie)",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 21,
+      "resource": "Resources/Character/Weapons/weapon_21.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 862,
+      "name": "Bastón de Mago (Newbie)",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 8,
+      "resource": "Resources/Character/Weapons/weapon_8.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 867,
+      "name": "Túnica de Gnomo (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 34,
+      "resource": "Resources/Character/Bodies/body_34.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 876,
+      "name": "Vestimenta de Game Master",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 255,
+      "resource": "Resources/Character/Bodies/body_255.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 877,
+      "name": "Túnica de Gran Hechicero (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 311,
+      "resource": "Resources/Character/Bodies/body_311.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 878,
+      "name": "Túnica de Gran Hechicera (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 302,
+      "resource": "Resources/Character/Bodies/body_302.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 879,
+      "name": "Vestido Bordado de Gala (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 340,
+      "resource": "Resources/Character/Bodies/body_340.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 880,
+      "name": "Túnica del Oráculo (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 336,
+      "resource": "Resources/Character/Bodies/body_336.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 881,
+      "name": "Armadura de la Ciénaga (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 232,
+      "resource": "Resources/Character/Bodies/body_232.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 882,
+      "name": "Anillas Livianas de Aventurero (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 329,
+      "resource": "Resources/Character/Bodies/body_329.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 883,
+      "name": "Cota de Anillas Compuesta (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 315,
+      "resource": "Resources/Character/Bodies/body_315.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 884,
+      "name": "Cota de Anillas Compuesta (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 324,
+      "resource": "Resources/Character/Bodies/body_324.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 885,
+      "name": "Armadura Liviana de Hierro (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 321,
+      "resource": "Resources/Character/Bodies/body_321.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 886,
+      "name": "Vestido de Arquera (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 325,
+      "resource": "Resources/Character/Bodies/body_325.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 887,
+      "name": "Cotas de Manto Marrón (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 337,
+      "resource": "Resources/Character/Bodies/body_337.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 888,
+      "name": "Brial del Bosque (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 339,
+      "resource": "Resources/Character/Bodies/body_339.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 889,
+      "name": "Anillas Con Manto Verde (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 314,
+      "resource": "Resources/Character/Bodies/body_314.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 890,
+      "name": "Armadura de Cuero de Oso Pardo (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 320,
+      "resource": "Resources/Character/Bodies/body_320.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 891,
+      "name": "Armadura de Cuero de Oso Pardo (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 327,
+      "resource": "Resources/Character/Bodies/body_327.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 892,
+      "name": "Coraza Compuesta Roja (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 328,
+      "resource": "Resources/Character/Bodies/body_328.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 893,
+      "name": "Anillas Con Manto Verde (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 329,
+      "resource": "Resources/Character/Bodies/body_329.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 894,
+      "name": "Armadura de Cruzada (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 330,
+      "resource": "Resources/Character/Bodies/body_330.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 895,
+      "name": "Armadura Legendaria (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 319,
+      "resource": "Resources/Character/Bodies/body_319.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 896,
+      "name": "Túnica de Morgana (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 338,
+      "resource": "Resources/Character/Bodies/body_338.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 897,
+      "name": "Cota de Piquero (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 333,
+      "resource": "Resources/Character/Bodies/body_333.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 898,
+      "name": "Armadura de Placas de Gala (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 313,
+      "resource": "Resources/Character/Bodies/body_313.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 899,
+      "name": "Cota de Peto Liso (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 326,
+      "resource": "Resources/Character/Bodies/body_326.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 900,
+      "name": "Anillas Con Manto Desgastado (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 334,
+      "resource": "Resources/Character/Bodies/body_334.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 901,
+      "name": "Coraza Compuesta de Mujer (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 322,
+      "resource": "Resources/Character/Bodies/body_322.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 902,
+      "name": "Cota de Mallas Enteriza (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 332,
+      "resource": "Resources/Character/Bodies/body_332.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 903,
+      "name": "Armadura de Campeón (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 317,
+      "resource": "Resources/Character/Bodies/body_317.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 904,
+      "name": "Placas Combinadas (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 331,
+      "resource": "Resources/Character/Bodies/body_331.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 905,
+      "name": "Suprema Armadura Dorada (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 318,
+      "resource": "Resources/Character/Bodies/body_318.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 906,
+      "name": "Manto del Dragón (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 342,
+      "resource": "Resources/Character/Bodies/body_342.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 907,
+      "name": "Túnica Real Pretoriana (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 180,
+      "resource": "Resources/Character/Bodies/body_180.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 908,
+      "name": "Vestimentas de Pescador (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 301,
+      "resource": "Resources/Character/Bodies/body_301.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 909,
+      "name": "Vestido de Novia (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 289,
+      "resource": "Resources/Character/Bodies/body_289.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 910,
+      "name": "Atuendo de Gnomo (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 278,
+      "resource": "Resources/Character/Bodies/body_278.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 911,
+      "name": "Vestimenta Bordo de Poblador (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 296,
+      "resource": "Resources/Character/Bodies/body_296.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 912,
+      "name": "Vestimenta Verde de Poblador (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 294,
+      "resource": "Resources/Character/Bodies/body_294.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 913,
+      "name": "Ropaje de Ermitaño (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 281,
+      "resource": "Resources/Character/Bodies/body_281.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 914,
+      "name": "Ropaje de Aldeana (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 288,
+      "resource": "Resources/Character/Bodies/body_288.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 915,
+      "name": "Ropaje de Aldeano (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 291,
+      "resource": "Resources/Character/Bodies/body_291.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 916,
+      "name": "Vestimenta Elegante (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 292,
+      "resource": "Resources/Character/Bodies/body_292.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 917,
+      "name": "Vestimenta de Minero (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 295,
+      "resource": "Resources/Character/Bodies/body_295.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 918,
+      "name": "Gabán de Cuero Pequeño (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 282,
+      "resource": "Resources/Character/Bodies/body_282.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 919,
+      "name": "Alifafe de Serpiente (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 290,
+      "resource": "Resources/Character/Bodies/body_290.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 920,
+      "name": "Ropaje de Herrero (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 293,
+      "resource": "Resources/Character/Bodies/body_293.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 921,
+      "name": "Túnica Sírica Elegante (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 297,
+      "resource": "Resources/Character/Bodies/body_297.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 922,
+      "name": "Traje de Capitán Pirata (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 298,
+      "resource": "Resources/Character/Bodies/body_298.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 923,
+      "name": "Traje de Noble (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 299,
+      "resource": "Resources/Character/Bodies/body_299.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 924,
+      "name": "Vestimenta de Explorador (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 278,
+      "resource": "Resources/Character/Bodies/body_278.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 925,
+      "name": "Peto de Gladiadora (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 274,
+      "resource": "Resources/Character/Bodies/body_274.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 926,
+      "name": "Hombreras de Amazona (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 276,
+      "resource": "Resources/Character/Bodies/body_276.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 927,
+      "name": "Alifafe de Lobo (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 279,
+      "resource": "Resources/Character/Bodies/body_279.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 928,
+      "name": "Barragán de Cazador (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 277,
+      "resource": "Resources/Character/Bodies/body_277.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 929,
+      "name": "Barragán Compuesto (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 280,
+      "resource": "Resources/Character/Bodies/body_280.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 930,
+      "name": "Toga de Aprendiz (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 309,
+      "resource": "Resources/Character/Bodies/body_309.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 931,
+      "name": "Vestido Elegante Púrpura (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 307,
+      "resource": "Resources/Character/Bodies/body_307.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 932,
+      "name": "Sotana de Gran Hechicero (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 310,
+      "resource": "Resources/Character/Bodies/body_310.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 933,
+      "name": "Cota Liviana Verde (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 284,
+      "resource": "Resources/Character/Bodies/body_284.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 934,
+      "name": "Cotas Livianas (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 286,
+      "resource": "Resources/Character/Bodies/body_286.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 935,
+      "name": "Cotas con Peto Compuesto (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 285,
+      "resource": "Resources/Character/Bodies/body_285.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 936,
+      "name": "Túnica de Gran Hechicera (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 302,
+      "resource": "Resources/Character/Bodies/body_302.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 937,
+      "name": "Cota de Peto Púrpura (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 283,
+      "resource": "Resources/Character/Bodies/body_283.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 938,
+      "name": "Traje de Bruja (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 303,
+      "resource": "Resources/Character/Bodies/body_303.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 939,
+      "name": "Túnica de Gala Roja (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 312,
+      "resource": "Resources/Character/Bodies/body_312.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 940,
+      "name": "Cota de Mallas Enteriza (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 287,
+      "resource": "Resources/Character/Bodies/body_287.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 941,
+      "name": "Traje Seductor de Pitonisa (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 306,
+      "resource": "Resources/Character/Bodies/body_306.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 942,
+      "name": "Vestido de Gala Turquesa (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 308,
+      "resource": "Resources/Character/Bodies/body_308.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 943,
+      "name": "Sobrevesta Élfica (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 390,
+      "resource": "Resources/Character/Bodies/body_390.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 944,
+      "name": "Vestido Aurë (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 343,
+      "resource": "Resources/Character/Bodies/body_343.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 945,
+      "name": "Vestido de Gala Alcarinqua (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 341,
+      "resource": "Resources/Character/Bodies/body_341.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 946,
+      "name": "Vestimentas de Poblador Élfico (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 351,
+      "resource": "Resources/Character/Bodies/body_351.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 947,
+      "name": "Hábito Liviano de Ritual (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 353,
+      "resource": "Resources/Character/Bodies/body_353.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 948,
+      "name": "Vestido Bordado de Elite (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 354,
+      "resource": "Resources/Character/Bodies/body_354.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 949,
+      "name": "Hábito Liviano de Ritual (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 349,
+      "resource": "Resources/Character/Bodies/body_349.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 950,
+      "name": "Sírica Élfica Rojiza (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 352,
+      "resource": "Resources/Character/Bodies/body_352.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 951,
+      "name": "Prenda de la Naturaleza (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 350,
+      "resource": "Resources/Character/Bodies/body_350.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 952,
+      "name": "Ropa de Explorador Élfico (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 348,
+      "resource": "Resources/Character/Bodies/body_348.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 953,
+      "name": "Manto Élfico Púrpura (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 345,
+      "resource": "Resources/Character/Bodies/body_345.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 954,
+      "name": "Hábito de Ritual de Hombre (H/E/EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 346,
+      "resource": "Resources/Character/Bodies/body_346.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 955,
+      "name": "Hábito de Ritual Femenino (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 347,
+      "resource": "Resources/Character/Bodies/body_347.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 956,
+      "name": "Valya Silmeanar (H/E/EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 355,
+      "resource": "Resources/Character/Bodies/body_355.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 957,
+      "name": "Vestido de Enana (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 375,
+      "resource": "Resources/Character/Bodies/body_375.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 958,
+      "name": "Vestimenta Común (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 370,
+      "resource": "Resources/Character/Bodies/body_370.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 959,
+      "name": "Ropa de Carpintero Enano (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 373,
+      "resource": "Resources/Character/Bodies/body_373.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 960,
+      "name": "Ropa de Leñador (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 368,
+      "resource": "Resources/Character/Bodies/body_368.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 961,
+      "name": "Ropa de Minero (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 364,
+      "resource": "Resources/Character/Bodies/body_364.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 962,
+      "name": "Túnica Elegante (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 371,
+      "resource": "Resources/Character/Bodies/body_371.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 963,
+      "name": "Ropaje de Luchador de Las Minas (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 374,
+      "resource": "Resources/Character/Bodies/body_374.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 964,
+      "name": "Ropa de Viajero (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 361,
+      "resource": "Resources/Character/Bodies/body_361.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 965,
+      "name": "Antigua Armadura Dorada (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 360,
+      "resource": "Resources/Character/Bodies/body_360.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 966,
+      "name": "Alifafe de Pirata (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 372,
+      "resource": "Resources/Character/Bodies/body_372.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 967,
+      "name": "Ropas de Buscador (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 376,
+      "resource": "Resources/Character/Bodies/body_376.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 968,
+      "name": "Armadura Grabada Completa (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 359,
+      "resource": "Resources/Character/Bodies/body_359.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 969,
+      "name": "Túnica Dorada de Gala (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 363,
+      "resource": "Resources/Character/Bodies/body_363.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 970,
+      "name": "Armadura de Placas Livianas Thor (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 356,
+      "resource": "Resources/Character/Bodies/body_356.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 971,
+      "name": "Armadura Metal Oscuro (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 362,
+      "resource": "Resources/Character/Bodies/body_362.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 972,
+      "name": "Túnica de Mahal (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 365,
+      "resource": "Resources/Character/Bodies/body_365.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 973,
+      "name": "Armadura de Placas Livianas Thor (E/G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 377,
+      "resource": "Resources/Character/Bodies/body_377.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 974,
+      "name": "Capa de Monje Cocida con Mithril (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 367,
+      "resource": "Resources/Character/Bodies/body_367.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 975,
+      "name": "Cota de Mallas Larga (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 366,
+      "resource": "Resources/Character/Bodies/body_366.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 976,
+      "name": "Armadura Pesada de Hierro y Bronce (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 357,
+      "resource": "Resources/Character/Bodies/body_357.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 977,
+      "name": "Vestimenta Esclava (EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 380,
+      "resource": "Resources/Character/Bodies/body_380.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 978,
+      "name": "Harapos de la Cueva (EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 379,
+      "resource": "Resources/Character/Bodies/body_379.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 979,
+      "name": "Armadura Maghtere Roja (EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 378,
+      "resource": "Resources/Character/Bodies/body_378.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 980,
+      "name": "Armadura de Combate Liviana (EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 344,
+      "resource": "Resources/Character/Bodies/body_344.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 981,
+      "name": "Piwafwi de Fuego (EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 381,
+      "resource": "Resources/Character/Bodies/body_381.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 982,
+      "name": "Armadura Melee de Explorador (EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 382,
+      "resource": "Resources/Character/Bodies/body_382.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 983,
+      "name": "Piwafwi Purpura del Silencio (EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 383,
+      "resource": "Resources/Character/Bodies/body_383.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 984,
+      "name": "Piwafwi Alto Narbondel (EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 384,
+      "resource": "Resources/Character/Bodies/body_384.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 985,
+      "name": "Piwafwi Socere de Lloth (EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 385,
+      "resource": "Resources/Character/Bodies/body_385.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 986,
+      "name": "Túnica de Druida",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 56,
+      "resource": "Resources/Character/Bodies/body_56.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 990,
+      "name": "Mazo del Juicio",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 32,
+      "resource": "Resources/Character/Weapons/weapon_32.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 990,
+      "name": "Mazo del Juicio",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 68,
+      "resource": "Resources/Character/Weapons/weapon_68.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 991,
+      "name": "Vestimentas Olímpicas (EO)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 479,
+      "resource": "Resources/Character/Bodies/body_479.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 992,
+      "name": "Vestimentas Olímpicas (EO-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 480,
+      "resource": "Resources/Character/Bodies/body_480.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 993,
+      "name": "Vestimentas Olímpicas (E-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 481,
+      "resource": "Resources/Character/Bodies/body_481.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 994,
+      "name": "Vestimentas Olímpicas (E)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 482,
+      "resource": "Resources/Character/Bodies/body_482.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 995,
+      "name": "Vestimentas Olímpicas (H-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 483,
+      "resource": "Resources/Character/Bodies/body_483.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 996,
+      "name": "Vestimentas Olímpicas (H)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 484,
+      "resource": "Resources/Character/Bodies/body_484.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 998,
+      "name": "Vestimentas Olímpicas (G-M)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 485,
+      "resource": "Resources/Character/Bodies/body_485.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 999,
+      "name": "Vestimentas Olímpicas (G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 486,
+      "resource": "Resources/Character/Bodies/body_486.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1037,
+      "name": "Escudo Legionario",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 9,
+      "resource": "Resources/Character/Shields/shield_9.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1038,
+      "name": "Escudo Real",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 7,
+      "resource": "Resources/Character/Shields/shield_7.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1039,
+      "name": "Manto de Sacerdote del Imperio (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 547,
+      "resource": "Resources/Character/Bodies/body_547.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1040,
+      "name": "Armadura de Gran Sacerdote Imperial (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 545,
+      "resource": "Resources/Character/Bodies/body_545.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1041,
+      "name": "Manto de Sacerdote Demoníaco (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 548,
+      "resource": "Resources/Character/Bodies/body_548.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1042,
+      "name": "Armadura de Gran Sacerdote Demoníaco (E/G)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 546,
+      "resource": "Resources/Character/Bodies/body_546.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1044,
+      "name": "Túnica (H/E/EO) (Newbie)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 46,
+      "resource": "Resources/Character/Bodies/body_46.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1045,
+      "name": "Túnica (E/G) (Newbie)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 159,
+      "resource": "Resources/Character/Bodies/body_159.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1046,
+      "name": "Armadura de Cuero (H/E/EO) (Newbie)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 22,
+      "resource": "Resources/Character/Bodies/body_22.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1047,
+      "name": "Armadura de Cuero (E/G) (Newbie)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 157,
+      "resource": "Resources/Character/Bodies/body_157.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1048,
+      "name": "Escudo (Newbie)",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 3,
+      "resource": "Resources/Character/Shields/shield_3.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1051,
+      "name": "Casco Simple (Newbie)",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Helmets/helmet_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1052,
+      "name": "Capucha de Cazador (Newbie)",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 9,
+      "resource": "Resources/Character/Helmets/helmet_9.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1053,
+      "name": "Armadura de Cuero Reforzado",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 22,
+      "resource": "Resources/Character/Bodies/body_22.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1054,
+      "name": "Casco de Cuero",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Helmets/helmet_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1057,
+      "name": "Armadura de Placas de Hierro",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 45,
+      "resource": "Resources/Character/Bodies/body_45.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1058,
+      "name": "Yelmo de Placas de Hierro",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 3,
+      "resource": "Resources/Character/Helmets/helmet_3.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1061,
+      "name": "Armadura de Escamas de Dragón",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 89,
+      "resource": "Resources/Character/Bodies/body_89.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1062,
+      "name": "Yelmo de Escamas de Dragón",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 3,
+      "resource": "Resources/Character/Helmets/helmet_3.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1065,
+      "name": "Túnica de las Sombras",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 48,
+      "resource": "Resources/Character/Bodies/body_48.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1066,
+      "name": "Capucha de las Sombras",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 9,
+      "resource": "Resources/Character/Helmets/helmet_9.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1069,
+      "name": "Túnica Arcana Reforzada",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 46,
+      "resource": "Resources/Character/Bodies/body_46.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1070,
+      "name": "Sombrero de Mago Élfico",
+      "slot": "helmet",
+      "variant": "normal",
+      "animation": 15,
+      "resource": "Resources/Character/Helmets/helmet_15.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1073,
+      "name": "Armadura de Aprendiz (Newbie)",
+      "slot": "armor",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "Resources/Character/Bodies/body_1.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1081,
+      "name": "Escudo de Acero",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 4,
+      "resource": "Resources/Character/Shields/shield_4.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1082,
+      "name": "Escudo Dracónico",
+      "slot": "shield",
+      "variant": "normal",
+      "animation": 6,
+      "resource": "Resources/Character/Shields/shield_6.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1083,
+      "name": "Espada Rúnica",
+      "slot": "weapon",
+      "variant": "normal",
+      "animation": 13,
+      "resource": "Resources/Character/Weapons/weapon_13.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1083,
+      "name": "Espada Rúnica",
+      "slot": "weapon",
+      "variant": "small_race",
+      "animation": 63,
+      "resource": "Resources/Character/Weapons/weapon_63.tres",
+      "resource_exists": true
+    }
+  ],
+  "missing_resources": [],
+  "unsupported_equipment": [
+    {
+      "item_id": 1055,
+      "name": "Botas de Cuero",
+      "obj_type": 20,
+      "reason": "boots_deferred_issue_181"
+    },
+    {
+      "item_id": 1059,
+      "name": "Botas de Placas de Hierro",
+      "obj_type": 20,
+      "reason": "boots_deferred_issue_181"
+    },
+    {
+      "item_id": 1063,
+      "name": "Botas de Escamas de Dragón",
+      "obj_type": 20,
+      "reason": "boots_deferred_issue_181"
+    },
+    {
+      "item_id": 1067,
+      "name": "Botas de las Sombras",
+      "obj_type": 20,
+      "reason": "boots_deferred_issue_181"
+    },
+    {
+      "item_id": 1071,
+      "name": "Botas Arcanas",
+      "obj_type": 20,
+      "reason": "boots_deferred_issue_181"
+    }
+  ],
+  "accessories": [
+    {
+      "item_id": 208,
+      "name": "Flauta Mágica",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 696,
+      "name": "Laúd Mágico",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 697,
+      "name": "Anillo Mágico",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 698,
+      "name": "Anillo de Resistencia Mágica",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 699,
+      "name": "Anillo de Disolución Mágica",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 700,
+      "name": "Anillo de los Dioses",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 863,
+      "name": "Flauta Mágica (Newbie)",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 864,
+      "name": "Laúd Mágico (Newbie)",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 873,
+      "name": "Guantes de Hurto",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 1036,
+      "name": "Guantes de Lucha",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 1049,
+      "name": "Laúd Élfico",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    },
+    {
+      "item_id": 1050,
+      "name": "Flauta Élfica",
+      "slot": "accessory",
+      "avatar_layer": "not_applicable"
+    }
+  ],
+  "complete_selected_avatar_coverage": true,
+  "complete_avatar_coverage": false,
+  "missing_resource_issue": "https://github.com/cavazquez/ArgentumOnlineGodot/issues/180",
+  "boots_issue": "https://github.com/cavazquez/ArgentumOnlineGodot/issues/181",
+  "rings_issue": "https://github.com/cavazquez/pyao-server/issues/367"
+}

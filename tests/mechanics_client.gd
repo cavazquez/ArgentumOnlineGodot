@@ -8,6 +8,8 @@ var frames: Array = []
 var audio_frames: Array = []
 var platform_probe: Dictionary = {}
 var keyboard_probe: Dictionary = {}
+var loot_probe: Dictionary = {}
+var terrain_probe: Dictionary = {}
 var seen := {}
 var server_console_count := 0
 
@@ -94,6 +96,8 @@ func _capture_login_effect(label: String) -> void:
 func snapshot() -> Dictionary:
 	var view := super.snapshot()
 	view.platform_probe = platform_probe.duplicate(true)
+	view.loot_probe = loot_probe.duplicate(true)
+	view.terrain_probe = terrain_probe.duplicate(true)
 	view.fx_packets = packets.duplicate(true)
 	view.server_console_count = server_console_count
 	view.fx_frames = frames.duplicate(true)
@@ -102,6 +106,17 @@ func snapshot() -> Dictionary:
 		return view
 	var hub = ScreenController.currentScreen._gameInput
 	var context = ScreenController.currentScreen._gameContext
+	view.item_details = {}
+	for slot in range(30):
+		var stack: ItemStack = context.playerInventory.GetSlot(slot)
+		if stack.quantity > 0:
+			view.item_details[str(slot + 1)] = {"id": stack.item.index, "name": stack.item.name, "type": stack.item.type,
+				"min_hit": stack.item.minHit, "max_hit": stack.item.maxHit,
+				"min_def": stack.item.minDef, "max_def": stack.item.maxDef,
+				"icon_loaded": stack.item.icon != null}
+	view.gear_labels = {"weapon": hub.get_node("%LblWeapon").text,
+		"shield": hub.get_node("%LblShield").text, "armor": hub.get_node("%LblArmor").text,
+		"helmet": hub.get_node("%LblHelmet").text}
 	view.statuses = {"paralyzed": context.userParalizado, "dumb": context.userEstupido, "blind": context.userCiego}
 	view.actor_visibility = {}
 	view.actor_equipment = {}
@@ -268,6 +283,25 @@ func execute(command: Dictionary) -> bool:
 		return await super.execute(command)
 	var hub = ScreenController.currentScreen._gameInput
 	match command.op:
+		"terrain_probe":
+			var container: MapContainer = ScreenController.currentScreen._gameWorld.GetMapContainer()
+			var flags := container.GetTile(int(command.x)-1, int(command.y)-1)
+			terrain_probe = {"blocked": bool(flags & Enums.TileState.Blocked), "water": bool(flags & Enums.TileState.Water)}
+		"loot_probe":
+			var world: MapContainer = ScreenController.currentScreen._gameWorld.GetMapContainer()
+			var graphic := int(command.graphic)
+			if GameAssets.GrhDataList[graphic].frameCount > 1:
+				graphic = GameAssets.GrhDataList[graphic].frames[1]
+			var definition: GrhData = GameAssets.GrhDataList[graphic]
+			loot_probe = {"visible": false, "region_matches": false, "texture_matches": false}
+			var observed: Array = world._objectCollection.duplicate()
+			observed.append_array(world._door_sprites.values())
+			for object in observed:
+				var sprite := object as Sprite2D
+				if sprite != null and sprite.get_meta(MapContainer.GridPositionKey) == Vector2i(command.x, command.y):
+					loot_probe = {"visible": sprite.is_visible_in_tree(),
+						"region_matches": sprite.region_rect == definition.region,
+						"texture_matches": sprite.texture == GameAssets.GetTexture(definition.fileId)}
 		"ability":
 			if not is_instance_valid(hub._skills_window) or not hub._skills_window.visible:
 				hub._on_btn_skills_pressed()
@@ -373,6 +407,10 @@ func keyboard_flows(game: GameScreen) -> bool:
 				window = hub._skills_window
 		await host.get_tree().process_frame
 		await host.get_tree().process_frame
+		var visible_deadline := Time.get_ticks_msec() + 8000
+		while not window.visible and Time.get_ticks_msec() < visible_deadline:
+			await host.get_tree().process_frame
+		if not window.visible: return false
 		keyboard_probe[action + "_focused"] = await focus_native_window(window)
 		if not keyboard_probe[action + "_focused"]: return false
 		var tab := InputEventKey.new()
@@ -384,6 +422,7 @@ func keyboard_flows(game: GameScreen) -> bool:
 		if not keyboard_probe[action]: return false
 		window.close_requested.emit()
 		await host.get_tree().process_frame
+		if window.visible: return false
 	var controls := ControlsWindow.new()
 	hub.add_child(controls)
 	controls.popup_centered()

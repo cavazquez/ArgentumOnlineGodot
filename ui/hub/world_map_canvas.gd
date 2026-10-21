@@ -25,7 +25,7 @@ func _draw() -> void:
 		var from := point(int(edge.from))
 		var to := point(int(edge.to))
 		if not Rect2(Vector2.ZERO, size).grow(100).has_point(from) and not Rect2(Vector2.ZERO, size).grow(100).has_point(to): continue
-		if edge.kind == "teleport": draw_dashed_line(from, to, Color.GRAY, 1.0, 4.0)
+		if edge.kind == "teleport" or edge.get("layout", "geographic") == "folded": draw_dashed_line(from, to, Color.ORANGE if edge.kind != "teleport" else Color.GRAY, 1.0, 4.0)
 		else: draw_line(from, to, Color.DARK_GRAY, 1.0)
 		if not edge.reciprocal:
 			var direction := (to - from).normalized()

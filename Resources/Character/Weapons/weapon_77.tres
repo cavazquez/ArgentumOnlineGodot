@@ -1,0 +1,62 @@
+[gd_resource type="SpriteFrames" load_steps=14 format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/Equipment/fishing-net.svg" id="1_net"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_0_0"]
+atlas = ExtResource("1_net")
+region = Rect2(0, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_0_1"]
+atlas = ExtResource("1_net")
+region = Rect2(48, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_0_2"]
+atlas = ExtResource("1_net")
+region = Rect2(96, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_1_0"]
+atlas = ExtResource("1_net")
+region = Rect2(0, 48, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_1_1"]
+atlas = ExtResource("1_net")
+region = Rect2(48, 48, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_1_2"]
+atlas = ExtResource("1_net")
+region = Rect2(96, 48, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_2_0"]
+atlas = ExtResource("1_net")
+region = Rect2(0, 96, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_2_1"]
+atlas = ExtResource("1_net")
+region = Rect2(48, 96, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_2_2"]
+atlas = ExtResource("1_net")
+region = Rect2(96, 96, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_3_0"]
+atlas = ExtResource("1_net")
+region = Rect2(0, 144, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_3_1"]
+atlas = ExtResource("1_net")
+region = Rect2(48, 144, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_net_3_2"]
+atlas = ExtResource("1_net")
+region = Rect2(96, 144, 48, 48)
+
+[resource]
+animations = [{"frames": [{"duration": 1.0, "texture": SubResource("AtlasTexture_net_0_0")}], "loop": true, "name": &"idle_north", "speed": 8.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("AtlasTexture_net_0_0")}, {"duration": 1.0, "texture": SubResource("AtlasTexture_net_0_1")}, {"duration": 1.0, "texture": SubResource("AtlasTexture_net_0_2")}], "loop": true, "name": &"walk_north", "speed": 8.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("AtlasTexture_net_1_0")}], "loop": true, "name": &"idle_east", "speed": 8.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("AtlasTexture_net_1_0")}, {"duration": 1.0, "texture": SubResource("AtlasTexture_net_1_1")}, {"duration": 1.0, "texture": SubResource("AtlasTexture_net_1_2")}], "loop": true, "name": &"walk_east", "speed": 8.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("AtlasTexture_net_2_0")}], "loop": true, "name": &"idle_south", "speed": 8.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("AtlasTexture_net_2_0")}, {"duration": 1.0, "texture": SubResource("AtlasTexture_net_2_1")}, {"duration": 1.0, "texture": SubResource("AtlasTexture_net_2_2")}], "loop": true, "name": &"walk_south", "speed": 8.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("AtlasTexture_net_3_0")}], "loop": true, "name": &"idle_west", "speed": 8.0},
+{"frames": [{"duration": 1.0, "texture": SubResource("AtlasTexture_net_3_0")}, {"duration": 1.0, "texture": SubResource("AtlasTexture_net_3_1")}, {"duration": 1.0, "texture": SubResource("AtlasTexture_net_3_2")}], "loop": true, "name": &"walk_west", "speed": 8.0}]
+metadata/pyao_source = "Original ProyectoAO vector artwork, MIT; distinct directional net held by the character."

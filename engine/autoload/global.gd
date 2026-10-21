@@ -78,6 +78,7 @@ func reload_preferences() -> void:
 	rainIntensity = 1.0
 	peripheralFog = 0.0
 	transitionEffects = true
+	minimizeToTray = false
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), 0.0)
 	# Cargar configuración guardada
 	var cfg = ConfigFile.new()
@@ -106,6 +107,7 @@ func reload_preferences() -> void:
 		rainIntensity = float(cfg.get_value("ui", "rain_intensity", 1.0))
 		peripheralFog = float(cfg.get_value("ui", "peripheral_fog", 0.0))
 		transitionEffects = bool(cfg.get_value("ui", "transition_effects", true))
+		minimizeToTray = bool(cfg.get_value("ui", "minimize_to_tray", false))
 	_apply_accessibility()
 		
 
@@ -121,6 +123,8 @@ var showNames := true:
 	set(value):
 		showNames = value
 		preferences_changed.emit()
+var minimizeToTray := false
+
 var showFPS := false:
 	set(value):
 		showFPS = value
@@ -144,6 +148,7 @@ func save_preferences() -> Error:
 	cfg.set_value("ui", "rain_intensity", rainIntensity)
 	cfg.set_value("ui", "peripheral_fog", peripheralFog)
 	cfg.set_value("ui", "transition_effects", transitionEffects)
+	cfg.set_value("ui", "minimize_to_tray", minimizeToTray)
 	cfg.set_value("ui", "console_font_size", consoleFontSize)
 	cfg.set_value("ui", "name_font_size", nameFontSize)
 	cfg.set_value("ui", "show_names", showNames)

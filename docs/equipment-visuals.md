@@ -14,17 +14,23 @@ válidos. También recorre cuatro orientaciones, reconexiones, un portal real y 
 desequipado. Las capturas `equip-*` muestran ambas ventanas. El escenario está
 disponible en la ejecución manual de GitHub Actions sin habilitar paquetes.
 
-La [auditoría completa](equipment-visual-audit.json) comprende 342 piezas y 381
-referencias, contando variantes de raza. No acredita cobertura total: faltan el
-yelmo 1058 (Anim 2 es casco vacío), el martillo 401 para personajes pequeños
-(Anim 77 no existe en el índice original) y la red 543 (sin Anim asignada).
-Se siguen en [#180](https://github.com/cavazquez/ArgentumOnlineGodot/issues/180).
+El [inventario actual](../protocol/equipment-catalog.json) contiene 381
+referencias, contando variantes de raza. `tests/equipment_catalog.tscn` carga los
+SpriteFrames reales, todas sus direcciones y sus texturas. El yelmo 1058 usa la
+capa 3 que indica su NumRopaje; el martillo 401 conserva la animación 28 también
+para personajes pequeños. La red 543 tiene ahora su capa 77, con un SVG original
+de 144×192 y doce frames de 48×48: se lleva al costado del personaje, conservando
+la cara y el torso visibles. El yelmo de placas tiene una cobertura facial
+amplia en su gráfico original. La [auditoría anterior](equipment-visual-audit.json)
+se conserva como registro del estado previo a las correcciones de
+[#180](https://github.com/cavazquez/ArgentumOnlineGodot/issues/180).
 
 Las cinco botas están clasificadas como muebles y carecen de ranura y capa del
-avatar. Los anillos del catálogo también carecen de una ranura compatible con el
-equipamiento actual; se siguen en
+avatar. Su representación se pospone por decisión del usuario y mantiene abierta
+esa parte del #179. Los doce anillos, focos y guantes del catálogo ya usan la
+ranura de accesorios del servidor, con sus restricciones y efectos; no requieren
+una capa visual del avatar. Se documentan en
 [#367 del servidor](https://github.com/cavazquez/pyao-server/issues/367).
-Estas categorías quedan pendientes de implementación.
 
 En el [cliente clásico AO Libre](https://github.com/ao-libre/ao-cliente/blob/master/CODIGO/Areas/TileEngine.bas#L157-L172)
 el personaje tiene cuerpo, cabeza, casco, arma y escudo, sin capa independiente de
@@ -38,7 +44,7 @@ La elección y el soporte pendiente se documentan en
 Para reproducir el inventario de recursos sin ejecutar el juego:
 
 ```sh
-python tools/equipment_catalog_audit.py --server-project ../pyao-server --output docs/equipment-visual-audit.json
+python tools/equipment_catalog_audit.py --server-project ../pyao-server --output protocol/equipment-catalog.json
 ```
 
 La regresión gráfica usa `tools/integration-world.py`, `--source`, `--scenario

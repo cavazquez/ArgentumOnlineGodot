@@ -21,14 +21,14 @@ apps:
   pyao-client:
     command: bin/pyao-client-launch
     extensions: [gpu]
-    plugs: [network, x11, opengl, audio-playback, desktop, desktop-legacy]
+    plugs: [network, x11, opengl, audio-playback, desktop, desktop-legacy, unity7]
     desktop: share/applications/pyao-client.desktop
 parts:
   client:
     plugin: nil
     source: .
-    build-packages: [python3, git, xvfb, xauth, libx11-6, libxcursor1, libxinerama1, libxrandr2, libxi6, libxrender1, libfontconfig1, libxkbcommon0, libasound2t64, libpulse0, libgl1, libegl1, libgl1-mesa-dri, libvulkan1, mesa-vulkan-drivers]
-    stage-packages: [xkb-data, libasound2-data, libxkbcommon0, libx11-6, libxcursor1, libxinerama1, libxrandr2, libxi6, libxrender1, libfontconfig1, libasound2t64, libpulse0, libudev1, ca-certificates, xdg-utils]
+    build-packages: [gcc, pkg-config, libgtk-3-dev, libayatana-appindicator3-dev, python3, git, xvfb, xauth, libx11-6, libxcursor1, libxinerama1, libxrandr2, libxi6, libxrender1, libfontconfig1, libxkbcommon0, libasound2t64, libpulse0, libgl1, libegl1, libgl1-mesa-dri, libvulkan1, mesa-vulkan-drivers]
+    stage-packages: [libgtk-3-0t64, libayatana-appindicator3-1, xkb-data, libasound2-data, libxkbcommon0, libx11-6, libxcursor1, libxinerama1, libxrandr2, libxi6, libxrender1, libfontconfig1, libasound2t64, libpulse0, libudev1, ca-certificates, xdg-utils]
     override-build: |
       set -eu
       cd "$CRAFT_PART_SRC"
@@ -36,10 +36,12 @@ parts:
       GODOT_BIN=$(env -u GITHUB_ENV python3 tools/install-godot.py --destination "$engine_dir")
       export GODOT_BIN XDG_DATA_HOME="$engine_dir/data"
       tools/smoke-godot.sh
+      python3 tools/build_tray.py
       tools/export-linux.sh
       client_arch=x86_64
       if [ "$CRAFT_ARCH_BUILD_FOR" = arm64 ]; then client_arch=arm64; fi
       install -Dm755 "build/pyao-client.$client_arch" "$CRAFT_PART_INSTALL/bin/pyao-client"
+      install -Dm755 build/desktop/pyao-tray "$CRAFT_PART_INSTALL/bin/pyao-tray"
       install -Dm755 snap/local/pyao-client-launch "$CRAFT_PART_INSTALL/bin/pyao-client-launch"
       install -Dm644 snap/gui/pyao-client.desktop "$CRAFT_PART_INSTALL/share/applications/pyao-client.desktop"
       install -Dm644 icon.svg "$CRAFT_PART_INSTALL/meta/gui/pyao-client.svg"

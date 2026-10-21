@@ -55,6 +55,7 @@ case "$classification" in
   *) exit 1 ;;
 esac
 test -s "$output_dir/$output_name.$pyao_arch"
+python3 "$project_root/tools/build_tray.py" --output "$output_dir/pyao-tray"
 if [[ $output_name == pyao-client-r10 ]]; then
   cp "$project_root/tests/r10-export.cfg" "$output_dir/override.cfg"
   python3 - "$output_dir" "$pyao_export_commit" "$pyao_export_clean" "$pyao_arch" <<'PY'

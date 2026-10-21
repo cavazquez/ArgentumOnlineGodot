@@ -56,6 +56,10 @@ func _UpdateInfo(item:Item) -> void:
 	_infoLabel.text = item.name
 	if item.IsWeapon():
 		_SetStat(DAMAGE_ICON, "%d/%d" % [item.minHit, item.maxHit], "Daño")
+	elif item.type == 18 and item.maxDef > 0:
+		_SetStat(DEFENCE_ICON, "%d/%d" % [item.minDef, item.maxDef], "Resistencia mágica")
+	elif item.type == 18 and item.maxHit > 0:
+		_SetStat(DAMAGE_ICON, "%d/%d" % [item.minHit, item.maxHit], "Daño sin arma")
 	elif item.IsArmour():
 		_SetStat(DEFENCE_ICON, "%d/%d" % [item.minDef, item.maxDef], "Defensa")
 
