@@ -42,7 +42,7 @@ jobs:
         run: |
           uv run --project build/server-under-test --locked python - <<'PY'
           import json, os, re, subprocess, zipfile
-          from pathlib import Path, PurePosixPath
+          from pathlib import Path, PurePosixPath, PureWindowsPath
           from tools.channel_repository import read_artifact
           from tools.package_channels import file_inventory, seal_server
           run = os.environ["SOURCE_RUN"]
@@ -63,7 +63,7 @@ jobs:
           assert original["paired_client_commit"] == client_record["commit"] and client_record["server_commit"] == original["commit"]
           candidate = Path("build/repacked-candidate")
           with zipfile.ZipFile(original["path"]) as archive:
-              assert all(not PurePosixPath(i.filename).is_absolute() and ".." not in PurePosixPath(i.filename).parts for i in archive.infolist())
+              assert all(not PurePosixPath(i.filename).is_absolute() and not PureWindowsPath(i.filename).drive and not PureWindowsPath(i.filename).root and "\\" not in i.filename and ".." not in PurePosixPath(i.filename).parts for i in archive.infolist())
               archive.extractall(candidate)
           assert file_inventory(candidate) == original["files"]
           record = seal_server(candidate, root / "server-cli-proof.json", root / "native-verification/two-clients/result.json", Path("build/repacked-distributions"))
