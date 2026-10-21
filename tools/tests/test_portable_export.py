@@ -1,6 +1,7 @@
 """La exportación sólo reintenta el diagnóstico conocido y exige un log final limpio."""
 
 import importlib.util
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -36,3 +37,29 @@ class PortableExportTest(unittest.TestCase):
     def test_unexpected_resource_or_script_error_is_never_retried(self):
         for message in ("ERROR: Resource missing", "SCRIPT ERROR: Invalid script"):
             self.check_export([message], 1, fail=True)
+
+    def candidate(self, output, target):
+        output.mkdir()
+        record = {"version": "1.0.0rc4", "commit": "verified-commit", "dirty": False, "platform": target, "files": {}}
+        manifest = output / "candidate-manifest.json"
+        manifest.write_text(json.dumps(record))
+        proof = {"passed": True, "client_commit": record["commit"], "platform": target, "candidate_manifest_sha256": module.digest(manifest), "native_machine": "x86_64"}
+        proof.update(dict.fromkeys(("rendering", "audio", "input", "login", "preferences", "outside_checkout"), True))
+        evidence = output.parent / (target + "-proof.json")
+        evidence.write_text(json.dumps(proof))
+        return evidence
+
+    def test_web_can_be_sealed_after_browser_checks_without_a_desktop_tray(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "web"
+            evidence = self.candidate(output, "web")
+            self.assertTrue(module.seal(output, evidence).is_file())
+
+    def test_native_packages_require_desktop_acceptance(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            for target in ("linux", "linux-arm64", "windows", "macos"):
+                with self.subTest(platform=target):
+                    output = Path(temporary) / target
+                    evidence = self.candidate(output, target)
+                    with self.assertRaisesRegex(ValueError, "desktop"):
+                        module.seal(output, evidence)
