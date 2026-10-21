@@ -8,6 +8,7 @@ var _incoming := ""
 var _title := ""
 var _poll := 0.0
 var _started := 0
+var _icon_path := ""
 var _minimized_to_tray := false
 var _restore_mode := DisplayServer.WINDOW_MODE_WINDOWED
 
@@ -41,13 +42,13 @@ func _start_bridge() -> void:
 	var executable := base.path_join("pyao-tray")
 	if not FileAccess.file_exists(executable): executable = ProjectSettings.globalize_path("res://build/desktop/pyao-tray")
 	if not FileAccess.file_exists(executable): return
-	var image := ProjectSettings.globalize_path("res://Assets/Branding/pyao-client-128.png")
-	# Packed resources do not have a host filename. The bridge only reads this
-	# private copy; it never reads the profile or the game's credentials.
-	if OS.has_feature("standalone"):
-		image = ProjectSettings.globalize_path("user://tray-icon.png")
-		preload("res://Assets/Branding/pyao-client-128.png").get_image().save_png(image)
-	_bridge = OS.execute_with_pipe(executable, ["client", image, "PyAO Client"], false)
+	# GTK necesita un archivo del sistema, también cuando res:// está dentro
+	# del PCK. Usar la misma ruta en editor y export evita depender de tags.
+	_icon_path = ProjectSettings.globalize_path("user://tray-icon.png")
+	if preload("res://Assets/Branding/pyao-client-128.png").get_image().save_png(_icon_path) != OK:
+		push_warning("No se pudo preparar el icono de bandeja.")
+		return
+	_bridge = OS.execute_with_pipe(executable, ["client", _icon_path, "PyAO Client"], false)
 	_started = Time.get_ticks_msec()
 
 func _process(delta: float) -> void:
