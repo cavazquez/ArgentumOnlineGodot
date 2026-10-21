@@ -8,4 +8,6 @@ Windows/macOS usan [StatusIndicator](https://docs.godotengine.org/en/4.7/classes
 
 El servidor tiene un indicador independiente y una parada gradual; ver [su documentación](https://github.com/cavazquez/pyao-server/blob/main/docs/desktop.md). Cerrar ese indicador conserva el proceso del servidor.
 
+La aceptación del portable ejecuta sus mismos bytes fuera del checkout: primero dos clientes por TLS, después la escena de bandeja con un perfil aislado. Windows/macOS exigen minimizar y restaurar; Linux verifica también los píxeles del PNG extraído del PCK. Si el runner Linux no tiene host de bandeja, acredita expresamente el cierre y la accesibilidad sin host, conservando esa distinción en `native-proof.json`. El sellado del paquete exige este resultado, además del renderizado, audio, controles y reconexión. La restauración con host Linux se verifica aparte en el escritorio real.
+
 `Assets/Branding/windows` prepara Square44x44Logo, Square150x150Logo y StoreLogo a escalas 100–400 para el empaquetado MSIX posterior; no implica publicación ni firma en la tienda. Los tamaños siguen la [guía oficial de iconos de Windows](https://learn.microsoft.com/es-es/windows/apps/design/iconography/app-icon-construction).

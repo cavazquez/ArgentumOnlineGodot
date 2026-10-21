@@ -99,7 +99,7 @@ def seal(output, evidence):
             raise ValueError("El candidato cambió después de construirse: " + name)
     if proof.get("candidate_manifest_sha256") != digest(output / "candidate-manifest.json"):
         raise ValueError("La prueba no referencia este manifiesto exacto")
-    for check in ("rendering", "audio", "input", "login", "preferences", "outside_checkout"):
+    for check in ("rendering", "audio", "input", "login", "preferences", "outside_checkout", "desktop"):
         if proof.get(check) is not True:
             raise ValueError("Falta verificación nativa: " + check)
     suffix = record['platform'] + ("-" + proof["native_machine"] if record['platform'] == "macos" else "")

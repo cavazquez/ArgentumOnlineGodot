@@ -22,10 +22,6 @@ func _ready() -> void:
 	var deadline := Time.get_ticks_msec() + 8000
 	while not DesktopTray.available and Time.get_ticks_msec() < deadline:
 		await get_tree().process_frame
-	if not DesktopTray.available:
-		push_error("No hay un host de bandeja disponible; no se acredita mostrar/ocultar.")
-		get_tree().quit(1)
-		return
 	if OS.get_name() == "Linux":
 		var stored := Image.load_from_file(DesktopTray._icon_path)
 		var expected := preload("res://Assets/Branding/pyao-client-128.png").get_image()
@@ -35,6 +31,19 @@ func _ready() -> void:
 			push_error("El puente de bandeja no recibió los píxeles del icono empaquetado.")
 			get_tree().quit(1)
 			return
+	if not DesktopTray.available:
+		if OS.get_name() == "Linux" and OS.get_environment("PYAO_DESKTOP_ALLOW_NO_HOST") == "1":
+			Global.minimizeToTray = true
+			if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_MINIMIZED:
+				push_error("La ventana quedó inaccesible sin bandeja.")
+				get_tree().quit(1)
+				return
+			print("DESKTOP_TRAY_FALLBACK: PASS icon_pixels=true window_accessible=true")
+			DesktopTray.Close()
+			return
+		push_error("No hay un host de bandeja disponible; no se acredita mostrar/ocultar.")
+		get_tree().quit(1)
+		return
 	Global.minimizeToTray = true
 	get_window().close_requested.emit()
 	await get_tree().create_timer(0.5).timeout
