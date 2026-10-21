@@ -55,3 +55,6 @@ grep -q 'ECONOMY_UI_SMOKE: PASS' "$run_dir/economy.log"
 
 run_checked "$run_dir/equipment.log" "$godot_bin" --headless --path "$project_root" res://tests/equipment_catalog.tscn
 grep -q 'EQUIPMENT_CATALOG: PASS' "$run_dir/equipment.log"
+
+run_checked "$run_dir/skills-popup.log" "$godot_bin" --headless --path "$project_root" --quit-after 600 res://tests/skills_popup_smoke.tscn
+grep -q 'SKILLS_POPUP: PASS' "$run_dir/skills-popup.log"

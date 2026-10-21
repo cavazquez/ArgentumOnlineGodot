@@ -407,6 +407,10 @@ func keyboard_flows(game: GameScreen) -> bool:
 				window = hub._skills_window
 		await host.get_tree().process_frame
 		await host.get_tree().process_frame
+		var visible_deadline := Time.get_ticks_msec() + 8000
+		while not window.visible and Time.get_ticks_msec() < visible_deadline:
+			await host.get_tree().process_frame
+		if not window.visible: return false
 		keyboard_probe[action + "_focused"] = await focus_native_window(window)
 		if not keyboard_probe[action + "_focused"]: return false
 		var tab := InputEventKey.new()
@@ -418,6 +422,7 @@ func keyboard_flows(game: GameScreen) -> bool:
 		if not keyboard_probe[action]: return false
 		window.close_requested.emit()
 		await host.get_tree().process_frame
+		if window.visible: return false
 	var controls := ControlsWindow.new()
 	hub.add_child(controls)
 	controls.popup_centered()

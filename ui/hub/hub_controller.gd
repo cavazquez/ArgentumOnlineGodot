@@ -593,12 +593,17 @@ func _on_btn_skills_pressed() -> void:
 	if _skills_window == null:
 		_skills_window = SkillsWindowScene.instantiate()
 		_skills_window.action_requested.connect(UseSkill)
+		_skills_window.dismissed.connect(_cancel_skills_popup)
 		add_child(_skills_window)
 		_RegisterModal(_skills_window)
 	# Establecer el flag para indicar que estamos esperando las habilidades
 	_waiting_for_skills_popup = true
 	# Solicitar las habilidades al servidor
 	GameProtocol.WriteRequestSkills()
+
+func _cancel_skills_popup() -> void:
+	# Cerrar expresa una decisión incluso si el snapshot todavía está en vuelo.
+	_waiting_for_skills_popup = false
 
 func _on_btn_stadistics_pressed() -> void:
 	# Enviar solicitudes para poblar la ventana de estadísticas
@@ -629,6 +634,7 @@ func _show_skills_window(skills:Array) -> void:
 	if _skills_window == null:
 		_skills_window = SkillsWindowScene.instantiate()
 		_skills_window.action_requested.connect(UseSkill)
+		_skills_window.dismissed.connect(_cancel_skills_popup)
 		add_child(_skills_window)
 		_RegisterModal(_skills_window)
 	_skills_window.set_skills(skills)
