@@ -112,10 +112,12 @@ class Phase50World(R10World):
         # Un NPC móvil puede ocupar la preparación antes de completar el login.
         # El servidor conserva autoridad para elegir una llegada segura cercana.
         self.relocate(store, {1: (2, bx, by + 2), 2: (2, bx + 1, by + 2)}, reset=True, allow_adjustment=True)
-        killed = 0
-        for key in list(store.scan_iter("npc:instance:*")):
+        targets = {key: npc for key in store.scan_iter("npc:instance:*")
+                   if (npc := store.hgetall(key)).get("npc_id") == "500" and npc.get("map_id") == "2"}
+        assert len(targets) == 3
+        for key in targets:
             npc = store.hgetall(key)
-            if npc.get("npc_id") != "500" or npc.get("map_id") != "2": continue
+            if not npc: continue  # Otro clic del grupo móvil ya pudo vencerlo.
             # Preparar cada encuentro con la cuenta desconectada; los NPC
             # conservan su vida, movimiento y catálogo originales.
             from src.services.map.map_resources_service import MapResourcesService
@@ -126,19 +128,23 @@ class Phase50World(R10World):
             at = next((tx+dx,ty+dy) for dx,dy in [(0,1),(1,0),(0,-1),(-1,0)]
                       if (tx+dx,ty+dy) not in terrain["blocked"] | terrain["water"] | occupied)
             self.relocate(store,{1:(2,*at)},allow_adjustment=True)
-            for _ in range(12):
-                if not store.exists(key) or int(store.hget(key, "hp") or 0) <= 0: break
+            def defeated():
                 current = store.hgetall(key)
+                if not current or int(current["hp"]) <= 0: return True
                 self.command(1, "cast", slot=2, actor=int(current["char_index"]), x=int(current["x"]), y=int(current["y"]))
                 time.sleep(1.2)
-            else: raise RuntimeError("No se pudo vencer al NPC por cliente")
-            killed += 1
+                return not store.exists(key) or int(store.hget(key, "hp") or 0) <= 0
+            self.wait(defeated, "vencer al NPC móvil mediante el cliente", 90)
             self.wait(lambda: not store.exists(key), "liquidación de la baja confirmada")
-        assert killed == 3
+        deaths = {npc["instance_id"]: json.loads(store.get("npc:death:" + npc["instance_id"]) or "null")
+                  for npc in targets.values()}
+        assert all(death and death["result"]["settled"] for death in deaths.values())
+        killed = len(deaths)
         (self.output / "quest-kill-observations.json").write_text(json.dumps({
             "journal": store.hgetall(f"quests:{self.ids[1]}"),
             "events": {key: store.hgetall(key) for key in store.scan_iter("quest-event:*")},
             "npcs": {key: store.hgetall(key) for key in store.scan_iter("npc:instance:*")},
+            "confirmed_deaths": deaths,
         }, indent=2) + "\n")
         self.wait(lambda: json.loads(store.hget(f"quests:{self.ids[1]}", "senderos-seguros"))["status"] == "completed", "tres bajas confirmadas")
         self.relocate(store, {1: (1, x, y), 2: (1, x+1, y)})
