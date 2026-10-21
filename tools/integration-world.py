@@ -25,6 +25,8 @@ import time
 import tomllib
 import zipfile
 
+from periodic_captures import collect_native_captures, ensure_fresh_captures, require_native_captures
+
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIO_TIMEOUT_SECONDS = {
     "r10": 900,
@@ -305,6 +307,8 @@ def worker(args):
         raise RuntimeError("El wheel no corresponde a la versión común del par")
     work = Path.cwd()
     output = args.output
+    if args.seconds >= 1800:
+        ensure_fresh_captures(output)
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
     if args.scenario == "world-routes":
         from world_routes_world import WorldRoutesWorld as R10World, acceptance, prepare_fixture
@@ -562,7 +566,6 @@ def worker(args):
 
         shutdown_errors = {}
         periodic_screenshots = []
-        next_screenshot = started + 300
         scenario.deadline = started + args.seconds + SCENARIO_TIMEOUT_SECONDS[args.scenario]
         while any(client.poll() is None for client in clients):
             server_text = (output / "server.log").read_text()
@@ -595,16 +598,14 @@ def worker(args):
                             reconnect_gates[index - 1].write_text("released\n")
             if any(client.poll() not in (None, 0) for client in clients):
                 raise RuntimeError("Falló un cliente Godot; códigos=" + str([client.poll() for client in clients]) + "; revisar logs")
-            if args.seconds >= 1800 and next_screenshot <= time.monotonic() < started + args.seconds - 30:
-                directory = output / "screenshots"
-                directory.mkdir(exist_ok=True)
-                minute = round((next_screenshot - started) / 60)
-                for index in (1, 2):
-                    path = directory / f"minute-{minute:02d}-client-{index}.png"
-                    scenario.command(index, "screenshot", path=str(path))
-                    periodic_screenshots.append({"client": index, "minute": minute, "file": str(path.relative_to(output)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
-                (output / "screenshots.json").write_text(json.dumps(periodic_screenshots, indent=2) + "\n")
-                next_screenshot += 300
+            # `soak` finaliza el bucle de órdenes del controlador. El propio
+            # cliente sigue capturando cada cinco minutos durante la sesión.
+            captures = collect_native_captures(output, periodic_screenshots)
+            if captures != periodic_screenshots:
+                periodic_screenshots = captures
+                pending = output / "screenshots.pending"
+                pending.write_text(json.dumps(captures, indent=2) + "\n")
+                pending.replace(output / "screenshots.json")
             if (
                 server.poll() is not None
                 or time.monotonic() - started
@@ -612,6 +613,12 @@ def worker(args):
             ):
                 raise TimeoutError("Proceso perdido o plazo total agotado")
             time.sleep(1)
+        periodic_screenshots = collect_native_captures(output, periodic_screenshots)
+        if args.seconds >= 1800:
+            require_native_captures(periodic_screenshots, args.seconds)
+            pending = output / "screenshots.pending"
+            pending.write_text(json.dumps(periodic_screenshots, indent=2) + "\n")
+            pending.replace(output / "screenshots.json")
         measured_seconds = []
         reconnect_states = []
         for index in (1, 2):
