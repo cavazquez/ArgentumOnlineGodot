@@ -26,6 +26,11 @@ def rendered_as(view, actor, expected):
             folder, prefix = FOLDERS[key]
             if not layer.get("visible") or layer.get("frame_count", 0) < 1 or layer.get("resource") != f"res://Resources/Character/{folder}/{prefix}_{graphic}.tres":
                 return False
+            if key == "helmet" and graphic == 3:
+                cap = layer.get("position", [])
+                head = layers.get("head", {}).get("position", [])
+                if len(cap) != 2 or len(head) != 2 or cap[1] - head[1] != -23:
+                    return False
     return True
 
 

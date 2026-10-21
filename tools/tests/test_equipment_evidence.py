@@ -30,5 +30,13 @@ class EquipmentEvidenceTests(unittest.TestCase):
         layer["visible"] = False
         self.assertFalse(rendered_as(view, 7, {"weapon": 12}))
 
+    def test_visible_plate_helmet_must_also_clear_the_face(self):
+        cap = {"id": 3, "visible": True, "frame_count": 1,
+               "resource": "res://Resources/Character/Helmets/helmet_3.tres", "position": [0, -20]}
+        view = {"actor_equipment": {"7": {"helmet": cap, "head": {"position": [0, -5]}}}}
+        self.assertFalse(rendered_as(view, 7, {"helmet": 3}))
+        cap["position"] = [0, -28]
+        self.assertTrue(rendered_as(view, 7, {"helmet": 3}))
+
 
 if __name__ == "__main__": unittest.main()

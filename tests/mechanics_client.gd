@@ -127,6 +127,7 @@ func snapshot() -> Dictionary:
 			for layer in ["body", "head", "weapon", "shield", "helmet"]:
 				var sprite: AnimatedSprite2D = actor.renderer.get("_" + layer + "AnimatedSprite")
 				layers[layer] = {"id": actor.renderer.get(layer), "resource": sprite.sprite_frames.resource_path,
+					"position": [sprite.position.x, sprite.position.y],
 					"visible": sprite.is_visible_in_tree(), "animation": String(sprite.animation),
 					"frame": sprite.frame, "frame_count": sprite.sprite_frames.get_frame_count(sprite.animation)}
 			view.actor_equipment[str(actor.instanceId)] = layers
