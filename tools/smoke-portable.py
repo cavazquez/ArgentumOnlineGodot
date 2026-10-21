@@ -44,7 +44,7 @@ def verify_desktop(executable, target, output):
     return {"passed": True, "host_available": host, "accessible_without_host": fallback, "executable_sha256": sha(executable)}
 
 
-def smoke(candidate, server, engine, output, redis_runtime):
+def smoke(candidate, server, engine, output, redis_runtime, server_bundle=None, server_wheel=None):
     record = json.loads((candidate / "candidate-manifest.json").read_text())
     target = record["platform"]
     expected = {"windows": "Windows", "linux": "Linux", "linux-arm64": "Linux", "macos": "Darwin"}.get(target)
@@ -71,7 +71,11 @@ def smoke(candidate, server, engine, output, redis_runtime):
         if target == "macos": shutil.copy2(override, executable.parent.parent / "Resources/override.cfg")
         (executable.parent / "provenance.json").write_text(json.dumps({"commit": record["commit"], "clean_before_export": True, "files": {executable.name: sha(executable), "override.cfg": sha(override)}}))
         proof_dir = output / "two-clients"
-        command = [sys.executable, str(ROOT / "tools/integration-world.py"), "--source", "--scenario", "platform", "--server-project", str(server), "--godot", str(engine), "--client-executable", str(executable), "--output", str(proof_dir), "--seconds", "20"]
+        command = [sys.executable, str(ROOT / "tools/integration-world.py"), "--scenario", "platform", "--server-project", str(server), "--godot", str(engine), "--client-executable", str(executable), "--output", str(proof_dir), "--seconds", "20"]
+        if server_bundle:
+            command += ["--server-bundle", str(server_bundle), "--wheel", str(server_wheel)]
+        else:
+            command += ["--source"]
         if redis_runtime: command += ["--redis-runtime", str(redis_runtime)]
         subprocess.run(command, cwd=runtime, check=True)
         result = json.loads((proof_dir / "result.json").read_text())
@@ -91,5 +95,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ("candidate", "server", "godot", "output"): parser.add_argument("--" + key, type=Path, required=True)
     parser.add_argument("--redis-runtime", type=Path)
+    parser.add_argument("--server-bundle", type=Path)
+    parser.add_argument("--server-wheel", type=Path)
     args = parser.parse_args()
-    smoke(args.candidate.resolve(), args.server.resolve(), args.godot.resolve(), args.output.resolve(), args.redis_runtime.resolve() if args.redis_runtime else None)
+    if bool(args.server_bundle) != bool(args.server_wheel): parser.error("El servidor privado requiere --server-bundle y --server-wheel")
+    smoke(args.candidate.resolve(), args.server.resolve(), args.godot.resolve(), args.output.resolve(), args.redis_runtime.resolve() if args.redis_runtime else None, args.server_bundle.resolve() if args.server_bundle else None, args.server_wheel.resolve() if args.server_wheel else None)

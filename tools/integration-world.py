@@ -405,12 +405,14 @@ def worker(args):
             if args.scenario != "r10"
             else "40",
         )
-        native_platform = args.source and args.scenario == "platform"
+        native_platform = args.scenario == "platform"
         windows_platform = os.name == "nt" and native_platform
         if windows_platform and args.server_debug:
             environment["PYTHONASYNCIODEBUG"] = "1"
         server_log = stack.enter_context((output / "server.log").open("wb"))
         entry = Path(sys.executable).parent / ("pyao-server.exe" if os.name == "nt" else "pyao-server")
+        if args.server_bundle:
+            entry = args.server_bundle / ("pyao-server.exe" if os.name == "nt" else "pyao-server")
         server_entry = [sys.executable, "-m", "src.run_server"] if args.source else [str(entry)]
         if args.server_profile:
             server_entry = [sys.executable, "-m", "tools.profile_runtime", "--output", str(output / "runtime-profile.json"), "--"]
@@ -435,10 +437,11 @@ def worker(args):
             **child_process_options(),
         )
         stack.callback(stop, server)
-        # La fixture fuente valida y recompila los 290 mapas en frío. Ese trabajo
-        # precede al listener y no forma parte de la latencia del login medido.
+        # Fuente y Python privado validan/extractan los 290 mapas en un estado
+        # nuevo. Ese trabajo precede al listener y al presupuesto de login.
         startup_started = time.monotonic()
-        deadline = startup_started + (240 if args.source else 60)
+        startup_budget = 240 if args.source or args.server_bundle else 60
+        deadline = startup_started + startup_budget
         while True:
             if server.poll() is not None:
                 raise RuntimeError("El servidor instalado terminó; revisar server.log")
@@ -453,6 +456,7 @@ def worker(args):
             "source_fixture": args.source,
             "host": "127.0.0.1", "port": endpoint,
             "elapsed_seconds": round(time.monotonic() - startup_started, 3),
+            "startup_budget_seconds": startup_budget,
             "login_budget_changed": False,
             "redis_storage": getattr(redis, "storage_kind", "docker-volume"),
             "client_max_fps": 30 if native_platform else None,
@@ -487,7 +491,7 @@ def worker(args):
                 XDG_CACHE_HOME=str(work / f"client-{index}/cache"),
             )
             executable = args.client_executable
-            if executable and args.source and args.scenario == "platform":
+            if executable and native_platform:
                 from native_client_profile import isolated_copy
                 executable = isolated_copy(executable, work, index, sys.platform)
             command = (
@@ -557,6 +561,9 @@ def worker(args):
         from src.utils.redis_config import RedisKeys
 
         shutdown_errors = {}
+        periodic_screenshots = []
+        next_screenshot = started + 300
+        scenario.deadline = started + args.seconds + SCENARIO_TIMEOUT_SECONDS[args.scenario]
         while any(client.poll() is None for client in clients):
             server_text = (output / "server.log").read_text()
             if (
@@ -588,6 +595,16 @@ def worker(args):
                             reconnect_gates[index - 1].write_text("released\n")
             if any(client.poll() not in (None, 0) for client in clients):
                 raise RuntimeError("Falló un cliente Godot; códigos=" + str([client.poll() for client in clients]) + "; revisar logs")
+            if args.seconds >= 1800 and next_screenshot <= time.monotonic() < started + args.seconds - 30:
+                directory = output / "screenshots"
+                directory.mkdir(exist_ok=True)
+                minute = round((next_screenshot - started) / 60)
+                for index in (1, 2):
+                    path = directory / f"minute-{minute:02d}-client-{index}.png"
+                    scenario.command(index, "screenshot", path=str(path))
+                    periodic_screenshots.append({"client": index, "minute": minute, "file": str(path.relative_to(output)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+                (output / "screenshots.json").write_text(json.dumps(periodic_screenshots, indent=2) + "\n")
+                next_screenshot += 300
             if (
                 server.poll() is not None
                 or time.monotonic() - started
@@ -776,6 +793,7 @@ def worker(args):
             "server_commit": args.server_commit,
             "client_commit": args.client_commit,
             "wheel_sha256": hashlib.sha256(args.wheel.read_bytes()).hexdigest() if args.wheel else None,
+            "server_candidate_sha256": hashlib.sha256((args.server_bundle / "server-candidate.json").read_bytes()).hexdigest() if args.server_bundle else None,
             "redis": "8.10.2",
             "godot": args.godot_version,
             "client_audio_driver_requested": args.client_audio,
@@ -784,6 +802,7 @@ def worker(args):
                 for i in (1, 2)
             ],
             "graceful_sigterm": True,
+            "periodic_screenshots": periodic_screenshots,
         }
         proof["live_tls_sessions_drained"] = 2
         proof["release_version"] = args.release_version
@@ -837,6 +856,7 @@ def main():
     origin = parser.add_mutually_exclusive_group(required=True)
     origin.add_argument("--wheel", type=Path)
     origin.add_argument("--source", action="store_true", help="Prueba el checkout con su entorno uv existente, sin construir paquetes")
+    parser.add_argument("--server-bundle", type=Path, help="Candidato con Python privado instalado; requiere --wheel de la misma construcción")
     parser.add_argument("--godot", type=Path, required=True)
     parser.add_argument(
         "--client-executable",
@@ -878,11 +898,14 @@ def main():
     args = parser.parse_args()
     if args.server_profile and not args.source:
         parser.error("El perfil de latencias requiere --source")
+    if args.server_bundle and args.source:
+        parser.error("El Python privado requiere el wheel instalado, no --source")
     if not 10 <= args.seconds <= 7200:
         parser.error("La duración debe estar entre 10 y 7200 segundos")
     for name in (
         "server_project",
         "wheel",
+        "server_bundle",
         "godot",
         "client_executable",
         "output",
@@ -923,6 +946,10 @@ def main():
     )
     if client_version is None or client_version[1] != args.release_version:
         parser.error("Servidor y cliente deben declarar exactamente la misma versión")
+    bundle_python = None
+    if args.server_bundle:
+        from server_bundle import verify_bundle
+        bundle_python = verify_bundle(args.server_bundle, args.server_commit, args.release_version, args.wheel)
     if args.seconds >= 1800:
         if args.client_executable is None or args.headless:
             parser.error(
@@ -961,7 +988,7 @@ def main():
     environment = {
         k: v for k, v in os.environ.items() if not k.startswith(("PYAO_", "SNAP"))
     }
-    environment.update(PYTHONPATH="", PYTHONNOUSERSITE="1")
+    environment.update(PYTHONPATH="", PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1")
     with tempfile.TemporaryDirectory(prefix="pyao-godot-world-") as temporary:
         work = Path(temporary)
         if args.source:
@@ -969,6 +996,8 @@ def main():
             if not python.is_file():
                 parser.error("El modo fuente necesita el entorno uv .venv del servidor")
             environment["PYTHONPATH"] = str(args.server_project)
+        elif bundle_python:
+            python = bundle_python
         else:
             run(
                 ["uv", "venv", "--python", sys.executable, str(work / "venv")],
@@ -1012,6 +1041,7 @@ def main():
         # Argumentos absolutos para que el proceso instalado trabaje fuera de los checkouts.
         arguments = [
             str(python),
+            "-B",
             str(Path(__file__).resolve()),
             "--worker",
             "--server-project",
@@ -1026,6 +1056,8 @@ def main():
             args.scenario,
         ]
         arguments += ["--source"] if args.source else ["--wheel", str(args.wheel)]
+        if args.server_bundle:
+            arguments += ["--server-bundle", str(args.server_bundle)]
         if args.headless:
             arguments.append("--headless")
         if args.client_audio:

@@ -9,6 +9,15 @@ on:
         description: Exportar Linux y construir Snap explícitamente
         type: boolean
         default: false
+      native_only:
+        description: Validar sólo instaladores nativos, sin construir Snaps ni web
+        type: boolean
+        default: false
+      native_platform:
+        description: Plataforma del diagnóstico native_only; la publicación completa usa all
+        type: choice
+        options: [all, linux, linux-arm64, windows, macos-arm64, macos-amd64]
+        default: all
       server_ref:
         description: Commit exacto del servidor de la misma versión que este cliente
         type: string
@@ -27,12 +36,45 @@ env:
   PYTHONUTF8: "1"
 
 concurrency:
-  group: client-linux-${{ github.ref }}-${{ github.event_name }}
+  group: client-linux-${{ github.ref }}-${{ github.event_name }}-${{ inputs.native_only && inputs.native_platform || 'all' }}
   cancel-in-progress: true
 
 jobs:
+  native-config:
+    if: github.event_name == 'workflow_dispatch' && (inputs.build_packages || inputs.native_only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - name: Seleccionar únicamente runners nativos conocidos
+        id: matrix
+        env:
+          NATIVE_PLATFORM: ${{ inputs.native_platform }}
+          BUILD_ALL_PACKAGES: ${{ inputs.build_packages }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          platforms = {
+              "linux": {"target": "linux", "runner": "ubuntu-24.04"},
+              "linux-arm64": {"target": "linux-arm64", "runner": "ubuntu-24.04-arm"},
+              "windows": {"target": "windows", "runner": "windows-2025"},
+              "macos-arm64": {"target": "macos", "runner": "macos-15"},
+              "macos-amd64": {"target": "macos", "runner": "macos-15-intel"},
+          }
+          selected = os.environ["NATIVE_PLATFORM"] or "all"
+          if os.environ["BUILD_ALL_PACKAGES"] == "true" and selected != "all":
+              raise ValueError("La publicación completa requiere las cinco plataformas")
+          rows = list(platforms.values()) if selected == "all" else [platforms[selected]]
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
+              output.write("value=" + json.dumps({"include": rows}) + "\n")
+          PY
+
   portable-native:
-    if: github.event_name == 'workflow_dispatch' && inputs.build_packages
+    needs: native-config
+    if: github.event_name == 'workflow_dispatch' && (inputs.build_packages || inputs.native_only)
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     defaults:
@@ -40,13 +82,7 @@ jobs:
         shell: bash
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - {target: linux, runner: ubuntu-24.04}
-          - {target: linux-arm64, runner: ubuntu-24.04-arm}
-          - {target: windows, runner: windows-2025}
-          - {target: macos, runner: macos-15}
-          - {target: macos, runner: macos-15-intel}
+      matrix: ${{ fromJSON(needs.native-config.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -60,15 +96,17 @@ jobs:
           enable-cache: false
       - name: Preparar Python fijado
         run: |
+          # El editor no debe importar PNGs dentro del checkout/entorno del servidor.
+          mkdir -p build
+          touch build/.gdignore
           uv python install 3.14
-          uv sync --project build/server-under-test --locked
+          uv sync --project build/server-under-test --locked --group build
       - name: Extraer mapas del servidor para la fixture nativa
         run: uv run --project build/server-under-test --locked python -m tools.compression.decompress_map_data --archive build/server-under-test/archives/map_data.xz --target build/server-under-test/map_data
       - name: Herramientas gráficas y audio Linux
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers pulseaudio pulseaudio-utils
+          sh tools/install-ci-deps.sh gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers pulseaudio pulseaudio-utils
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=pyao_test
       - name: Compilador de Redis en WSL del runner Windows
@@ -92,12 +130,42 @@ jobs:
         run: |
           "$GODOT_BIN" --headless --editor --path . --import
           python tools/export-portable.py export --platform "$TARGET_PLATFORM" --godot "$GODOT_BIN" --output build/portable-candidate
+      - name: Construir servidor privado para los nuevos canales del mismo par
+        run: |
+          git -C build/server-under-test status --short
+          test -z "$(git -C build/server-under-test status --porcelain)"
+          uv build --project build/server-under-test --out-dir "$PWD/build/server-dist"
+          server_wheels=(build/server-dist/*.whl)
+          test "${#server_wheels[@]}" -eq 1
+          tray_arguments=()
+          if [ "$RUNNER_OS" = Linux ]; then
+            uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/build_tray.py --source build/server-under-test/desktop/tray_linux.c --output build/server-tray
+            tray_arguments=(--tray build/server-tray)
+          fi
+          uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/package_channels.py server --wheel "${server_wheels[0]}" --output build/server-candidate "${tray_arguments[@]}"
+          uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/package_channels.py validate-server --candidate build/server-candidate --output build/server-cli-proof.json
       - name: Dos clientes nativos fuera del checkout con servidor del mismo par
         run: |
           prefix=()
           if [ "$RUNNER_OS" = Linux ]; then prefix=(xvfb-run -a -s '-screen 0 2560x1440x24'); fi
-          "${prefix[@]}" uv run --project build/server-under-test --locked python tools/smoke-portable.py --candidate build/portable-candidate --server build/server-under-test --godot "$GODOT_BIN" --redis-runtime "$RUNNER_TEMP/pyao-redis" --output build/native-verification
+          server_wheels=(build/server-dist/*.whl)
+          "${prefix[@]}" uv run --project build/server-under-test --locked --group build python tools/smoke-portable.py --candidate build/portable-candidate --server build/server-under-test --godot "$GODOT_BIN" --redis-runtime "$RUNNER_TEMP/pyao-redis" --output build/native-verification --server-bundle build/server-candidate --server-wheel "${server_wheels[0]}"
           python tools/export-portable.py seal --output build/portable-candidate --evidence build/native-verification/native-proof.json
+          uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/package_channels.py seal-server --candidate build/server-candidate --proof build/server-cli-proof.json --pair-proof build/native-verification/two-clients/result.json --output build/channel-distributions
+      - name: Paquetes Debian e instalación real en Ubuntu y Debian limpios
+        if: runner.os == 'Linux'
+        run: |
+          uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/package_channels.py deb --role server --candidate build/server-candidate --proof build/server-cli-proof.json --output build/debs
+          uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/package_channels.py deb --role client --candidate build/portable-candidate --proof build/native-verification/native-proof.json --output build/debs
+          uv run --project build/server-under-test --locked --group build python -m tools.check_debian --directory build/debs --output build/debian-verification
+      - name: Instalar, actualizar y desinstalar Homebrew o WinGet con los mismos bytes
+        if: runner.os != 'Linux'
+        run: |
+          server_manifests=(build/channel-distributions/pyao-server-*.json)
+          client_manifests=(build/pyao-client-*.json)
+          test "${#server_manifests[@]}" -eq 1
+          test "${#client_manifests[@]}" -eq 1
+          uv run --project build/server-under-test --locked --group build python -m tools.check_native_channels --server "${server_manifests[0]}" --client "${client_manifests[0]}" --output build/channel-verification
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
@@ -109,6 +177,12 @@ jobs:
             build/portable-candidate/export.log
             build/native-verification/
             build/audio-fixture.json
+            build/channel-distributions/
+            build/server-cli-proof.json
+            build/server-dist/*.whl
+            build/debs/
+            build/debian-verification/
+            build/channel-verification/
           retention-days: 7
 
   web-browser:
@@ -160,7 +234,7 @@ jobs:
       - name: Regresiones de herramientas y validadores
         run: python3 -m unittest discover -s tools/tests
       - name: Instalar herramientas gráficas de prueba
-        run: sudo apt-get update && sudo apt-get install -y gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
+        run: sh tools/install-ci-deps.sh gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
       - name: Descargar Godot oficial verificado (sin exportar)
         run: python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
       - name: Comprobar importación, scripts, escenas, protocolo y privacidad
@@ -192,7 +266,7 @@ jobs:
       - name: Comprobar clasificación estricta de logs de exportación
         run: python3 -m unittest discover -s tools/tests
       - name: Instalar OpenGL software y Xvfb
-        run: sudo apt-get update && sudo apt-get install -y gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
+        run: sh tools/install-ci-deps.sh gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers
       - name: Instalar motor y templates del manifiesto con SHA256
         run: python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
       - name: Importar desde checkout limpio y probar escenas y privacidad
@@ -289,8 +363,7 @@ jobs:
         env:
           PYAO_PACKAGE_ARCH: ${{ matrix.arch }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils squashfs-tools
+          sh tools/install-ci-deps.sh gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils squashfs-tools
           sudo snap install mesa-2404
           sudo snap install ./pyao-client_*_"$PYAO_PACKAGE_ARCH".snap --dangerous
           sudo snap connect pyao-client:gpu-2404 mesa-2404:gpu-2404
@@ -343,7 +416,7 @@ jobs:
           enable-cache: false
       - run: uv python install 3.14
       - name: Instalar OpenGL software y Xvfb
-        run: sudo apt-get update && sudo apt-get install -y gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils squashfs-tools
+        run: sh tools/install-ci-deps.sh gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers libxtst6 python3-pil pulseaudio pulseaudio-utils squashfs-tools
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: pyao-client-linux-${{ github.event.pull_request.head.sha || github.sha }}
@@ -433,7 +506,7 @@ jobs:
       - run: uv python install 3.14
       - name: Preparar renderizado e instalar Godot verificado
         run: |
-          sudo apt-get update && sudo apt-get install -y gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers pulseaudio pulseaudio-utils
+          sh tools/install-ci-deps.sh gcc pkg-config libgtk-3-dev libayatana-appindicator3-dev xvfb libgl1-mesa-dri libvulkan1 mesa-vulkan-drivers pulseaudio pulseaudio-utils
           python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:

@@ -43,7 +43,7 @@ class PortableExportTest(unittest.TestCase):
         record = {"version": "1.0.0rc4", "commit": "verified-commit", "dirty": False, "platform": target, "files": {}}
         manifest = output / "candidate-manifest.json"
         manifest.write_text(json.dumps(record))
-        proof = {"passed": True, "client_commit": record["commit"], "platform": target, "candidate_manifest_sha256": module.digest(manifest), "native_machine": "x86_64"}
+        proof = {"passed": True, "client_commit": record["commit"], "server_commit": "b" * 40, "platform": target, "candidate_manifest_sha256": module.digest(manifest), "native_machine": "x86_64"}
         proof.update(dict.fromkeys(("rendering", "audio", "input", "login", "preferences", "outside_checkout"), True))
         evidence = output.parent / (target + "-proof.json")
         evidence.write_text(json.dumps(proof))
@@ -53,7 +53,9 @@ class PortableExportTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "web"
             evidence = self.candidate(output, "web")
-            self.assertTrue(module.seal(output, evidence).is_file())
+            archive = module.seal(output, evidence)
+            self.assertTrue(archive.is_file())
+            self.assertEqual(json.loads(archive.with_suffix(".json").read_text())["server_commit"], "b" * 40)
 
     def test_native_packages_require_desktop_acceptance(self):
         with tempfile.TemporaryDirectory() as temporary:
