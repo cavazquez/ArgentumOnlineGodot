@@ -109,7 +109,9 @@ class Phase50World(R10World):
         self.action(1, "quests", "accept", select="senderos-seguros")
         self.command(1, "close")
         _, bx, by = locations["skills_base"]
-        self.relocate(store, {1: (2, bx, by + 2), 2: (2, bx + 1, by + 2)}, reset=True)
+        # Un NPC móvil puede ocupar la preparación antes de completar el login.
+        # El servidor conserva autoridad para elegir una llegada segura cercana.
+        self.relocate(store, {1: (2, bx, by + 2), 2: (2, bx + 1, by + 2)}, reset=True, allow_adjustment=True)
         killed = 0
         for key in list(store.scan_iter("npc:instance:*")):
             npc = store.hgetall(key)
