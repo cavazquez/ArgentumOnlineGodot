@@ -27,7 +27,7 @@ env:
   PYTHONUTF8: "1"
 
 concurrency:
-  group: client-linux-${{ github.ref }}
+  group: client-linux-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:

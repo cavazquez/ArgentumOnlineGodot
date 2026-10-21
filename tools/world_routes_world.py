@@ -139,7 +139,9 @@ class WorldRoutesWorld(FullWorld):
                 probe = self.command(viewer, "terrain_probe", x=x, y=y)["terrain_probe"]
                 if not probe["blocked"]: raise RuntimeError("El cliente permite atravesar " + kind)
                 at = starts[viewer-1]
-                self.command(viewer, "step", action=DIRECTIONS[x-at[0], y-at[1]])
+                # step exige avanzar; aquí acreditamos precisamente el bloqueo
+                # mediante Input y luego contrastamos las dos posiciones.
+                self.command(viewer, "move", action=DIRECTIONS[x-at[0], y-at[1]], seconds=0.1)
                 self.view(viewer, lambda v: (v["map"], v["x"], v["y"]) == (mid, *at), "colisión conserva posición local")
                 position = store.hgetall(f"player:{self.ids[viewer]}:position")
                 if (int(position["x"]), int(position["y"])) != at: raise RuntimeError("Colisión alteró posición Redis")
