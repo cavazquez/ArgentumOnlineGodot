@@ -83,7 +83,12 @@ def export(target, output, engine, reuse=None):
         shutil.copy2(ROOT / name, output / name)
     (output / "PORTABLE.txt").write_text("PyAO Client " + product + "\nUsar un servidor de la misma versión.\nEste paquete incluye sus recursos y no requiere instalar Godot.\nLinux: python3 install-desktop.py agrega el acceso de menú desde la ubicación final del portable.\nmacOS: firma ad hoc, sin notarización; abrir mediante el menú contextual si Gatekeeper lo solicita.\n")
     files = {str(path.relative_to(output)).replace(os.sep, "/"): digest(path) for path in sorted(output.rglob("*")) if path.is_file()}
-    record = {"version": product, "commit": commit, "dirty": dirty, "platform": target, "godot": version, "files": files, "verified": False}
+    settings = (ROOT / "project.godot").read_text()
+    user_name = re.search(r'^config/name="([^"]+)"$', settings, re.M)[1]
+    custom_name = re.search(r'^config/custom_user_dir_name="([^"]+)"$', settings, re.M)
+    if re.search(r'^config/use_custom_user_dir=true$', settings, re.M):
+        user_name = custom_name[1] if custom_name else user_name
+    record = {"version": product, "commit": commit, "dirty": dirty, "platform": target, "godot": version, "user_data_name": user_name, "files": files, "verified": False}
     (output / "candidate-manifest.json").write_text(json.dumps(record, indent=2) + "\n")
     return record
 
@@ -107,7 +112,7 @@ def seal(output, evidence):
     suffix = record['platform'] + ("-" + proof["native_machine"] if record['platform'] == "macos" else "")
     name = f"pyao-client-{record['version']}-{suffix}"
     archive = Path(shutil.make_archive(str(output.parent / name), "zip", output))
-    manifest = {**record, "verified": True, "evidence_sha256": digest(evidence), "archive": archive.name, "sha256": digest(archive)}
+    manifest = {**record, "verified": True, "evidence_sha256": digest(evidence), "server_commit": proof["server_commit"], "archive": archive.name, "sha256": digest(archive)}
     (archive.parent / (name + ".json")).write_text(json.dumps(manifest, indent=2) + "\n")
     return archive
 

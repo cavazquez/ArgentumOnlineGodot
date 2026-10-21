@@ -61,7 +61,7 @@ jobs:
       - name: Preparar Python fijado
         run: |
           uv python install 3.14
-          uv sync --project build/server-under-test --locked
+          uv sync --project build/server-under-test --locked --group build
       - name: Extraer mapas del servidor para la fixture nativa
         run: uv run --project build/server-under-test --locked python -m tools.compression.decompress_map_data --archive build/server-under-test/archives/map_data.xz --target build/server-under-test/map_data
       - name: Herramientas gráficas y audio Linux
@@ -92,12 +92,40 @@ jobs:
         run: |
           "$GODOT_BIN" --headless --editor --path . --import
           python tools/export-portable.py export --platform "$TARGET_PLATFORM" --godot "$GODOT_BIN" --output build/portable-candidate
+      - name: Construir servidor privado para los nuevos canales del mismo par
+        run: |
+          uv build --project build/server-under-test --out-dir "$PWD/build/server-dist"
+          server_wheels=(build/server-dist/*.whl)
+          test "${#server_wheels[@]}" -eq 1
+          tray_arguments=()
+          if [ "$RUNNER_OS" = Linux ]; then
+            uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/build_tray.py --source build/server-under-test/desktop/tray_linux.c --output build/server-tray
+            tray_arguments=(--tray build/server-tray)
+          fi
+          uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/package_channels.py server --wheel "${server_wheels[0]}" --output build/server-candidate "${tray_arguments[@]}"
+          uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/package_channels.py validate-server --candidate build/server-candidate --output build/server-cli-proof.json
       - name: Dos clientes nativos fuera del checkout con servidor del mismo par
         run: |
           prefix=()
           if [ "$RUNNER_OS" = Linux ]; then prefix=(xvfb-run -a -s '-screen 0 2560x1440x24'); fi
-          "${prefix[@]}" uv run --project build/server-under-test --locked python tools/smoke-portable.py --candidate build/portable-candidate --server build/server-under-test --godot "$GODOT_BIN" --redis-runtime "$RUNNER_TEMP/pyao-redis" --output build/native-verification
+          server_wheels=(build/server-dist/*.whl)
+          "${prefix[@]}" uv run --project build/server-under-test --locked --group build python tools/smoke-portable.py --candidate build/portable-candidate --server build/server-under-test --godot "$GODOT_BIN" --redis-runtime "$RUNNER_TEMP/pyao-redis" --output build/native-verification --server-bundle build/server-candidate --server-wheel "${server_wheels[0]}"
           python tools/export-portable.py seal --output build/portable-candidate --evidence build/native-verification/native-proof.json
+          uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/package_channels.py seal-server --candidate build/server-candidate --proof build/server-cli-proof.json --pair-proof build/native-verification/two-clients/result.json --output build/channel-distributions
+      - name: Paquetes Debian e instalación real en Ubuntu y Debian limpios
+        if: runner.os == 'Linux'
+        run: |
+          uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/package_channels.py deb --role server --candidate build/server-candidate --proof build/server-cli-proof.json --output build/debs
+          uv run --project build/server-under-test --locked --group build python build/server-under-test/tools/package_channels.py deb --role client --candidate build/portable-candidate --proof build/native-verification/native-proof.json --output build/debs
+          uv run --project build/server-under-test --locked --group build python -m tools.check_debian --directory build/debs --output build/debian-verification
+      - name: Instalar, actualizar y desinstalar Homebrew o WinGet con los mismos bytes
+        if: runner.os != 'Linux'
+        run: |
+          server_manifests=(build/channel-distributions/pyao-server-*.json)
+          client_manifests=(build/pyao-client-*.json)
+          test "${#server_manifests[@]}" -eq 1
+          test "${#client_manifests[@]}" -eq 1
+          uv run --project build/server-under-test --locked --group build python -m tools.check_native_channels --server "${server_manifests[0]}" --client "${client_manifests[0]}" --output build/channel-verification
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
@@ -109,6 +137,12 @@ jobs:
             build/portable-candidate/export.log
             build/native-verification/
             build/audio-fixture.json
+            build/channel-distributions/
+            build/server-cli-proof.json
+            build/server-dist/*.whl
+            build/debs/
+            build/debian-verification/
+            build/channel-verification/
           retention-days: 7
 
   web-browser:
