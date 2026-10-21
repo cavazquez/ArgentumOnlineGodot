@@ -20,8 +20,11 @@ SpriteFrames reales, todas sus direcciones y sus texturas. El yelmo 1058 usa la
 capa 3 que indica su NumRopaje; el martillo 401 conserva la animación 28 también
 para personajes pequeños. La red 543 tiene ahora su capa 77, con un SVG original
 de 144×192 y doce frames de 48×48: se lleva al costado del personaje, conservando
-la cara y el torso visibles. El yelmo de placas tiene una cobertura facial
-amplia en su gráfico original. La [auditoría anterior](equipment-visual-audit.json)
+la cara y el torso visibles. El yelmo de placas conserva su gráfico y usa un
+anclaje ocho píxeles más alto para dejar visibles los ojos y la cara. El ajuste
+pertenece a su SpriteFrames y se compone con la posición racial de la cabeza;
+cambiar cuerpo, orientar o reconstruir al actor no lo acumula ni lo elimina.
+La [auditoría anterior](equipment-visual-audit.json)
 se conserva como registro del estado previo a las correcciones de
 [#180](https://github.com/cavazquez/ArgentumOnlineGodot/issues/180).
 

@@ -19,6 +19,7 @@ atlas = ExtResource("1_g63tp")
 region = Rect2(34, 0, 17, 28)
 
 [resource]
+metadata/avatar_offset = Vector2(0, -8)
 animations = [{
 "frames": [{
 "duration": 1.0,

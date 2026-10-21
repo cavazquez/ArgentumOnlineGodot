@@ -176,6 +176,26 @@ func _run() -> void:
 			character.renderer.Stop()
 			_check(character.renderer._headAnimatedSprite.position == expected_head and character.renderer._helmetAnimatedSprite.position == expected_helmet, "Alineación racial incorrecta en una orientación")
 			_check(character.renderer._weaponAnimatedSprite.position == weapon_position and character.renderer._shieldAnimatedSprite.position == shield_position, "Cambiar raza/orientación desplazó arma o escudo")
+	# El yelmo de placas debe dejar libres los ojos y conservar el anclaje racial.
+	for racial in [[1, 3], [5, 301], [4, 401]]:
+		character.renderer.body = racial[0]
+		character.renderer.head = racial[1]
+		character.renderer.helmet = 3
+		for heading in [Enums.Heading.North, Enums.Heading.East, Enums.Heading.South, Enums.Heading.West]:
+			character.renderer.heading = heading
+			character.renderer.Stop()
+			var cap := character.renderer._helmetAnimatedSprite
+			var face := character.renderer._headAnimatedSprite
+			var cap_texture := cap.sprite_frames.get_frame_texture(cap.animation, 0)
+			var face_texture := face.sprite_frames.get_frame_texture(face.animation, 0)
+			var brim := cap.position.y - cap_texture.get_height() / 2.0 + cap_texture.get_image().get_used_rect().end.y
+			var eyes := face.position.y - face_texture.get_height() / 2.0 + 7.0
+			_check(brim <= eyes, "El yelmo de placas tapa los ojos")
+			character.renderer.body = racial[0]
+			character.renderer.head = racial[1]
+			_check(cap.position.y - face.position.y == -23, "El ajuste del yelmo se pierde o acumula al cambiar la apariencia")
+		character.renderer.helmet = 1
+		_check(character.renderer._helmetAnimatedSprite.position.y - character.renderer._headAnimatedSprite.position.y == -15, "El ajuste del yelmo se aplica a otro casco")
 	character.renderer.body = GameAssets.BodyAnimationList.size() + 1
 	character.renderer.head = -1
 	character.renderer.helmet = -1

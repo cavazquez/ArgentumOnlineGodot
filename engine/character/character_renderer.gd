@@ -28,7 +28,8 @@ func _align_head() -> void:
 		var data = GameAssets.BodyAnimationList[_body]
 		offset = Vector2(data.offsetX, data.offsetY)
 	_headAnimatedSprite.position = _head_base + offset
-	_helmetAnimatedSprite.position = _helmet_base + offset
+	var helmet_offset: Vector2 = _helmetAnimatedSprite.sprite_frames.get_meta("avatar_offset", Vector2.ZERO)
+	_helmetAnimatedSprite.position = _helmet_base + offset + helmet_offset
 
 var _body:int
 var _head:int
@@ -94,8 +95,8 @@ func _set_shield(id:int) -> void:
 
 func _set_helmet(id:int) -> void:
 	_helmet = id
-	_align_head()
 	_helmetAnimatedSprite.sprite_frames = _LoadSpriteFrames("res://Resources/Character/Helmets/helmet_%d.tres" % id)
+	_align_head()
 
 func _set_head(id:int) -> void:
 	_head = id
