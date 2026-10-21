@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="ArgentumOnlineGodot"
-config/version="1.0.0rc4"
+config/version="1.0.0rc5"
 run/main_scene="uid://do2mqxkqcbws8"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
