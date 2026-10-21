@@ -1,0 +1,106 @@
+name: Windows ZIP diagnostic
+on:
+  workflow_dispatch:
+    inputs:
+      source_run:
+        description: Ejecución Cliente Linux terminada con el par Windows sellado
+        type: string
+        required: true
+      tooling_ref:
+        description: Commit de las herramientas del servidor para verificar el empaquetado
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  installer-diagnostic:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: cavazquez/pyao-server
+          ref: ${{ inputs.tooling_ref }}
+          path: build/server-under-test
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+        with:
+          version: "0.13.1"
+          enable-cache: false
+      - name: Preparar herramientas
+        run: |
+          uv python install 3.14
+          uv sync --project build/server-under-test --locked --group build
+      - name: Verificar el par original y volver a sellar el mismo contenido con el empaquetador revisado
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run }}
+        run: |
+          uv run --project build/server-under-test --locked python - <<'PY'
+          import json, os, re, subprocess, zipfile
+          from pathlib import Path, PurePosixPath
+          from tools.channel_repository import read_artifact
+          from tools.package_channels import file_inventory, seal_server
+          run = os.environ["SOURCE_RUN"]
+          assert run.isdigit(), "ID de ejecución inválido"
+          repository = "cavazquez/ArgentumOnlineGodot"
+          metadata = json.loads(subprocess.check_output(["gh", "run", "view", run, "-R", repository, "--json", "headSha,status,workflowName"], text=True))
+          assert metadata["status"] == "completed" and metadata["workflowName"] == "Cliente Linux"
+          assert re.fullmatch(r"[0-9a-f]{40}", metadata["headSha"])
+          root = Path("build/reused-installer")
+          subprocess.run(["gh", "run", "download", run, "-R", repository, "--name", "portable-windows-windows-2025-" + metadata["headSha"], "--dir", str(root)], check=True)
+          server, = (root / "channel-distributions").glob("pyao-server-*.json")
+          client, = root.glob("pyao-client-*.json")
+          initial = json.loads(server.read_text())
+          original = read_artifact(server, initial["version"], initial["commit"])
+          client_record = read_artifact(client, initial["version"], metadata["headSha"])
+          native = json.loads((root / "native-verification/native-proof.json").read_text())
+          assert native["passed"] and native["server_commit"] == original["commit"] and native["client_commit"] == client_record["commit"]
+          assert original["paired_client_commit"] == client_record["commit"] and client_record["server_commit"] == original["commit"]
+          candidate = Path("build/repacked-candidate")
+          with zipfile.ZipFile(original["path"]) as archive:
+              assert all(not PurePosixPath(i.filename).is_absolute() and ".." not in PurePosixPath(i.filename).parts for i in archive.infolist())
+              archive.extractall(candidate)
+          assert file_inventory(candidate) == original["files"]
+          record = seal_server(candidate, root / "server-cli-proof.json", root / "native-verification/two-clients/result.json", Path("build/repacked-distributions"))
+          tooling = subprocess.check_output(["git", "-C", "build/server-under-test", "rev-parse", "HEAD"], text=True).strip()
+          Path("build/zip-diagnostic-origin.json").write_text(json.dumps({"source_run": int(run), "server_commit": original["commit"], "client_commit": client_record["commit"], "tooling_commit": tooling, "version": original["version"], "original_sha256": original["sha256"], "repacked_sha256": record["sha256"], "runtime_files_unchanged": True, "publication_eligible": False}, indent=2) + "\n")
+          PY
+      - name: Instalar, ejecutar, actualizar y desinstalar con el escaneo de WinGet activo
+        id: install
+        run: |
+          server_manifests=(build/repacked-distributions/pyao-server-*.json)
+          client_manifests=(build/reused-installer/pyao-client-*.json)
+          test "${#server_manifests[@]}" -eq 1
+          test "${#client_manifests[@]}" -eq 1
+          uv run --project build/server-under-test --locked python -m tools.check_native_channels --server "${server_manifests[0]}" --client "${client_manifests[0]}" --output build/channel-diagnostic
+      - name: Preparar únicamente el resultado técnico permitido
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+        run: |
+          uv run --project build/server-under-test --locked python - <<'PY'
+          import json, os
+          from pathlib import Path
+          output = Path("build/zip-diagnostic-result.json")
+          output.parent.mkdir(exist_ok=True)
+          result = {"installation_outcome": os.environ["INSTALL_OUTCOME"], "publication_eligible": False}
+          proof = Path("build/channel-diagnostic/native-channel-proof.json")
+          if proof.exists():
+              value = json.loads(proof.read_text())
+              allowed = ("passed", "channel", "platform", "version", "sources", "installed", "upgraded", "removed", "configuration_preserved", "preferences_preserved", "server_sha256", "client_sha256")
+              result.update({key: value[key] for key in allowed if key in value})
+          output.write_text(json.dumps(result, indent=2) + "\n")
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: windows-zip-diagnostic-${{ github.run_id }}
+          path: |
+            build/zip-diagnostic-origin.json
+            build/zip-diagnostic-result.json
+          retention-days: 7
