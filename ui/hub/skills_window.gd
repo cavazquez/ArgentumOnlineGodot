@@ -163,6 +163,11 @@ func _process(_delta: float) -> void:
 		GameProtocol.WriteRequestSkills()
 
 func set_skills(skills:Array):
+	# Las respuestas de red pueden reconstruir una fila mientras se usa Tab.
+	var focused := gui_get_focus_owner()
+	var focus_slot := Vector2i(-1, -1)
+	if focused != null and focused.get_parent().get_parent() == skills_container:
+		focus_slot = Vector2i(focused.get_parent().get_index(), focused.get_index())
 	# Limpiar arrays
 	skill_values.clear()
 	skill_percentages.clear()
@@ -202,6 +207,20 @@ func set_skills(skills:Array):
 	# Actualizar el estado de los botones
 	update_buttons_state()
 	update_free_skills()
+	if focus_slot.x >= 0:
+		_restore_skill_focus.call_deferred(focus_slot)
+
+func _restore_skill_focus(slot: Vector2i) -> void:
+	if not visible:
+		return
+	var target: Control = cancel_button
+	if slot.x < skills_container.get_child_count():
+		var row := skills_container.get_child(slot.x)
+		if slot.y < row.get_child_count():
+			var button := row.get_child(slot.y) as Button
+			if button != null and button.is_visible_in_tree() and not button.disabled:
+				target = button
+	target.grab_focus()
 
 # Nueva función para crear la interfaz de skills
 func _create_skills_interface():

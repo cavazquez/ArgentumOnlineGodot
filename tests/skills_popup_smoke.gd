@@ -25,8 +25,36 @@ func _run() -> void:
 	hub._skills_window.cancel_button.pressed.emit()
 	hub._show_skills_window(skills)
 	assert(not hub._skills_window.visible)
+	# Una actualización de red no debe borrar el control que usa el teclado.
+	var previous_capabilities := ClientInterface.capabilities.enabled
+	var previous_points := Global.skillPoints
+	ClientInterface.capabilities.enabled |= ClientCapabilities.SKILL_ALLOCATION
+	Global.skillPoints = 5
+	var window = hub._skills_window
+	window.operation_id = "focus-regression"
+	window.set_skills(skills)
+	window.popup_centered()
+	await get_tree().process_frame
+	var plus: Button = window.skills_container.get_child(0).get_child(3)
+	plus.grab_focus()
+	assert(window.gui_get_focus_owner() == plus)
+	window.set_skills(skills)
+	await get_tree().process_frame
+	plus = window.skills_container.get_child(0).get_child(3)
+	assert(window.gui_get_focus_owner() == plus, "Actualizar habilidades perdió el foco del teclado")
+	# Si el botón deja de estar disponible, Cancelar sigue siendo accesible.
+	skills[0] = 100
+	window.set_skills(skills)
+	await get_tree().process_frame
+	assert(window.gui_get_focus_owner() == window.cancel_button)
+	window.hide()
+	window.set_skills(skills)
+	await get_tree().process_frame
+	assert(not window.visible)
+	ClientInterface.capabilities.enabled = previous_capabilities
+	Global.skillPoints = previous_points
 	game.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	print("SKILLS_POPUP: PASS late_response_does_not_reopen=true reopen_on_request=true")
+	print("SKILLS_POPUP: PASS late_response_does_not_reopen=true reopen_on_request=true focus_preserved=true focus_fallback=true")
 	get_tree().quit()
