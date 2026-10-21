@@ -489,7 +489,7 @@ def worker(args):
                 XDG_CACHE_HOME=str(work / f"client-{index}/cache"),
             )
             executable = args.client_executable
-            if executable and args.source and args.scenario == "platform":
+            if executable and native_platform:
                 from native_client_profile import isolated_copy
                 executable = isolated_copy(executable, work, index, sys.platform)
             command = (
