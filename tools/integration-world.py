@@ -437,10 +437,11 @@ def worker(args):
             **child_process_options(),
         )
         stack.callback(stop, server)
-        # La fixture fuente valida y recompila los 290 mapas en frío. Ese trabajo
-        # precede al listener y no forma parte de la latencia del login medido.
+        # Fuente y Python privado validan/extractan los 290 mapas en un estado
+        # nuevo. Ese trabajo precede al listener y al presupuesto de login.
         startup_started = time.monotonic()
-        deadline = startup_started + (240 if args.source else 60)
+        startup_budget = 240 if args.source or args.server_bundle else 60
+        deadline = startup_started + startup_budget
         while True:
             if server.poll() is not None:
                 raise RuntimeError("El servidor instalado terminó; revisar server.log")
@@ -455,6 +456,7 @@ def worker(args):
             "source_fixture": args.source,
             "host": "127.0.0.1", "port": endpoint,
             "elapsed_seconds": round(time.monotonic() - startup_started, 3),
+            "startup_budget_seconds": startup_budget,
             "login_budget_changed": False,
             "redis_storage": getattr(redis, "storage_kind", "docker-volume"),
             "client_max_fps": 30 if native_platform else None,
