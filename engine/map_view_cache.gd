@@ -50,7 +50,8 @@ func keep(map_id: int, view: Node2D) -> void:
 	while not _order.is_empty() and (_views.size() >= MAX_VIEWS or _bytes + cost > MAX_BYTES):
 		_evict(_order.front())
 	if cost > MAX_BYTES:
-		view.queue_free()
+		# Nunca entró al árbol. No delegar su propiedad a la cola de otro frame.
+		view.free()
 		return
 	add_child(view)
 	view.hide()
@@ -74,7 +75,9 @@ func _evict(id: int) -> void:
 	_bytes -= int(_costs.get(id, 0))
 	_costs.erase(id)
 	remove_child(view)
-	view.queue_free()
+	# Las vistas inactivas no ejecutan callbacks ni contienen actores. Al
+	# expulsarlas, el caché termina su propiedad en este mismo frame.
+	view.free()
 
 func _process(_delta: float) -> void:
 	if _queue.is_empty() or _views.size() >= MAX_VIEWS or _bytes >= MAX_BYTES: return
@@ -95,3 +98,9 @@ func snapshot() -> Dictionary:
 func _exit_tree() -> void:
 	_generation += 1
 	_queue.clear()
+	# Los hijos siguen siendo propiedad de este Node hasta su destrucción.
+	# No separar mapas durante el cierre ni conservar referencias a sus nodos.
+	_views.clear()
+	_order.clear()
+	_costs.clear()
+	_bytes = 0

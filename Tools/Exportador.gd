@@ -42,6 +42,10 @@ func _AddTileSetAtlasSource(tiles:PackedInt32Array, tileSet:TileSet) -> void:
 			continue
 		
 		var texture = GameAssets.GetTexture(grhData.fileId)
+		# Los gráficos más pequeños se conservan como Sprite2D. Un atlas sin
+		# ninguna celda completa genera una textura de padding de ancho cero.
+		if texture == null or texture.get_width() < 32 or texture.get_height() < 32:
+			continue
 		var tileSetAtlasSource = TileSetAtlasSource.new()
 		tileSetAtlasSource.texture_region_size = Vector2(32, 32)
 		tileSetAtlasSource.texture = texture
@@ -68,6 +72,11 @@ func _AddTileMapLayer(tiles:PackedInt32Array, tileSet:TileSet) -> TileMapLayer:
 		
 			var grhData = GameAssets.GrhDataList[tile]
 			if !tileSet.has_source(grhData.fileId):
+				# Algunos detalles de las capas 1/2 miden menos de una celda.
+				# Dibujarlos como sprites conserva el gráfico sin un atlas vacío.
+				if grhData.fileId > 0:
+					var sprite := _CreateSprite(grhData, x, y)
+					tileMapLayer.add_child(sprite)
 				continue
 			tileMapLayer.set_cell(Vector2i(x, y), grhData.fileId, Vector2i(grhData.region.position) / 32)
 	return tileMapLayer	
@@ -134,6 +143,8 @@ func _ExportMap(fileId:int) -> void:
 	layer1.owner = mainNode
 	layer2.owner = mainNode
 	layer3.owner = mainNode
+	for layer in [layer1, layer2]:
+		for sprite in layer.get_children(): sprite.owner = mainNode
 	
 	for object in mapData.layer3:
 		if GameAssets.GrhDataList[object.grhId].frameCount > 1:

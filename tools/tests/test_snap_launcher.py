@@ -43,14 +43,14 @@ class SnapLauncherTests(unittest.TestCase):
                 result, snap = self.launch(arch, "/existing/gpu-libraries")
                 self.assertEqual(result.returncode, 0, result.stderr)
                 value = json.loads(result.stdout)
-                self.assertEqual(value["libraries"], f"{snap}/usr/lib/{triplet}/pulseaudio:/existing/gpu-libraries")
+                self.assertEqual(value["libraries"], f"{snap}/usr/lib/{triplet}/pulseaudio:/existing/gpu-libraries:{snap}/usr/lib/{triplet}:{snap}/usr/lib")
                 self.assertEqual(value["args"], ["--rendering-method", "gl_compatibility", "--display-driver", "x11", "--audio-driver", "PulseAudio", "argument with spaces"])
                 self.assertEqual(value["cwd"], snap)
 
     def test_empty_library_path_has_no_empty_search_entry(self):
         result, snap = self.launch("arm64")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)["libraries"], f"{snap}/usr/lib/aarch64-linux-gnu/pulseaudio")
+        self.assertEqual(json.loads(result.stdout)["libraries"], f"{snap}/usr/lib/aarch64-linux-gnu/pulseaudio:{snap}/usr/lib/aarch64-linux-gnu:{snap}/usr/lib")
 
     def test_unsupported_architecture_fails_before_starting_game(self):
         result, _ = self.launch("riscv64")

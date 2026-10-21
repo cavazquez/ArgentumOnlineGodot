@@ -22,6 +22,8 @@ var _dispatcher := AOMessageDispatcher.new()
 var _visuals: CombatVisuals
 var _presentation: WorldPresentation
 var _map_ready := false
+var _next_walk_at := 0
+var _retired := false
 
 var _input:Dictionary[String, int] = {
 	"ui_left" = Enums.Heading.West,
@@ -56,22 +58,21 @@ func _ready() -> void:
 
 # Función para escalar el cursor a un tamaño más pequeño
 func _scale_cursor(texture: Texture2D, scale_factor: float) -> Texture2D:
-	# Obtener la imagen del cursor
-	var image = texture.get_image()
-	
-	# Calcular el nuevo tamaño
-	var original_size = image.get_size()
-	var new_size = original_size * scale_factor
-	
-	# Redimensionar la imagen
-	image.resize(int(new_size.x), int(new_size.y), Image.INTERPOLATE_BILINEAR)
-	
-	# Crear una nueva textura con la imagen redimensionada
-	var new_texture = ImageTexture.create_from_image(image)
-	
-	return new_texture
+	if texture == null or texture.get_width() < 1 or texture.get_height() < 1 or not is_finite(scale_factor) or scale_factor <= 0.0:
+		return null
+	var source := texture.get_image()
+	if source == null or source.is_empty():
+		return null
+	# El recurso puede estar compartido entre pantallas/logins. Escalar una copia
+	# evita reducir otra vez la imagen original hasta convertirla en 0 × 0.
+	var image := source.duplicate() as Image
+	var new_size := Vector2i(maxi(1, roundi(source.get_width() * scale_factor)), maxi(1, roundi(source.get_height() * scale_factor)))
+	image.resize(new_size.x, new_size.y, Image.INTERPOLATE_BILINEAR)
+	return ImageTexture.create_from_image(image)
 	 
 func _OnDisconnected() -> void:
+	if _retired: return
+	Retire()
 	if _presentation != null: _presentation.reset()
 	_gameContext.pingTime = 0
 	Global.pingStatus = "Desconectado"
@@ -79,8 +80,29 @@ func _OnDisconnected() -> void:
 	networkMessages.clear()
 	var screen = load("uid://cd452cndcck7v").instantiate() 
 	ScreenController.SwitchScreen(screen)
+
+func Retire() -> void:
+	if _retired: return
+	_retired = true
+	set_process(false)
+	set_process_input(false)
+	set_process_unhandled_input(false)
+	networkMessages.clear()
+	for subscription in [[ClientInterface.disconnected, _OnDisconnected],
+		[ClientInterface.dataReceived, _OnDataReceived],
+		[ClientInterface.serialization_failed, _OnSerializationFailed],
+		[Global.ping_requested, _OnPingTimerTimeout]]:
+		if subscription[0].is_connected(subscription[1]): subscription[0].disconnect(subscription[1])
+	Input.set_custom_mouse_cursor(null, Input.CURSOR_ARROW)
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	_scaled_crosshair_cursor = null
+	_crosshair_cursor = null
+
+func _exit_tree() -> void:
+	Retire()
 	
 func _OnDataReceived(data:PackedByteArray) -> void: 
+	if _retired: return
 	networkMessages.push_back(data)
 
 func _process(_delta: float) -> void:
@@ -102,6 +124,7 @@ func _UpdateCameraPosition() -> void:
 		_camera.position = character.position
 
 func _CheckKeys() -> void:
+	if not _map_ready or _retired: return
 	if _gameInput.IsWorldInputBlocked():
 		return
 	if _gameContext.traveling || _gameContext.mirandoForo ||\
@@ -114,6 +137,7 @@ func _CheckKeys() -> void:
 			return
 
 func _MovePlayer(heading:int) -> void:
+	if Time.get_ticks_msec() < _next_walk_at: return
 	if heading == Enums.Heading.None:
 		return
 
@@ -126,6 +150,7 @@ func _MovePlayer(heading:int) -> void:
 		#TODO 
 		#No se porque esto esta asi. Lo unico que logra es que el personaje pegue un salto cuando camina
 		#Obligando al usuario a presionar la tecla L(PosUpdate)
+		_next_walk_at = Time.get_ticks_msec() + int(ceil(Consts.TileSize / Character.Speed * 1000.0))
 		GameProtocol.WriteWalk(heading)
 		# WALK cancela meditación en el servidor. El actor debe predecir también
 		# ese primer paso: el broadcast de movimiento sólo llega a los demás.
@@ -182,7 +207,7 @@ func _CanMoveTo(x:int, y:int) -> bool:
 
 #region Network
 func _ProccessMessages() -> void: 
-	while !networkMessages.is_empty():
+	while not _retired and !networkMessages.is_empty():
 		var data = networkMessages.pop_front()
 		_HandleIncomingData(data) 
 

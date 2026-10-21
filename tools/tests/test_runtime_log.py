@@ -23,6 +23,17 @@ class RuntimeLogTest(unittest.TestCase):
     def test_clean(self):
         self.assertTrue(classify_runtime_log(ENGINE)["passed"])
 
+    def test_resource_leak_warnings_are_rejected_even_after_pass(self):
+        for warning in (
+            'WARNING: 3 RIDs of type "CanvasItem" were leaked.',
+            'WARNING: 4 ObjectDB instances were leaked at exit (run with --verbose...)',
+            'WARNING: Resources still in use at exit (run with --verbose...)',
+        ):
+            with self.subTest(warning=warning):
+                result = classify_runtime_log(ENGINE + "INTEGRATION_WORLD: PASS\n" + warning)
+                self.assertFalse(result["passed"])
+                self.assertIn(warning, result["unexpected_errors"])
+
     def test_known_pair_is_preserved(self):
         result = classify_runtime_log(ENGINE + pair() + pair("73"))
         self.assertTrue(result["passed"])

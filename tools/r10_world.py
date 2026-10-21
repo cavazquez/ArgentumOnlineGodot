@@ -179,7 +179,7 @@ class R10World:
         return self.view(index, lambda v: text.lower() in v["console"].lower(), text)
 
     def relocate(
-        self, store, positions, *, reset=False, stats=None, allow_adjustment=False
+        self, store, positions, *, reset=False, stats=None, accounts=None, allow_adjustment=False
     ):
         actual = {}
         for index in positions:
@@ -190,6 +190,8 @@ class R10World:
             )
         for index, (map_id, x, y) in positions.items():
             uid = self.ids[index]
+            if accounts and index in accounts:
+                store.hset(f"account:{self.names[index-1]}:data", mapping=accounts[index])
             store.hset(
                 f"player:{uid}:position",
                 mapping={"map": map_id, "x": x, "y": y, "heading": 1},

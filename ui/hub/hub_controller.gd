@@ -91,10 +91,10 @@ var _stats_window
 var _world_windows: Dictionary = {}
 var _world_buttons: Array[Button] = []
 
-var _user_weapon_slot:int
-var _user_shield_slot:int
-var _user_helmet_slot:int
-var _user_armor_slot:int
+var _user_weapon_slot:int = -1
+var _user_shield_slot:int = -1
+var _user_helmet_slot:int = -1
+var _user_armor_slot:int = -1
 
 func _ready() -> void:
 	minimap.tooltip_text = "Clic derecho: mapa mundial"
@@ -255,19 +255,19 @@ func update_equipment_label(slot:int, item_stack:ItemStack) -> void:
 		match slot:
 			_user_weapon_slot:
 				%LblWeapon.text = "0/0"
-				_user_weapon_slot = 0
+				_user_weapon_slot = -1
 			
 			_user_shield_slot:
 				%LblShield.text = "0/0"
-				_user_shield_slot = 0
+				_user_shield_slot = -1
 			
 			_user_armor_slot:
 				%LblArmor.text = "0/0"
-				_user_armor_slot = 0
+				_user_armor_slot = -1
 			
 			_user_helmet_slot:
 				%LblHelmet.text = "0/0"
-				_user_helmet_slot = 0
+				_user_helmet_slot = -1
 	
 func _CameraTransformVector(vec:Vector2) -> Vector2:
 	return _camera.get_canvas_transform().affine_inverse() * vec
@@ -552,11 +552,11 @@ func _on_main_viewport_container_gui_input(event: InputEvent) -> void:
 
 
 func _on_btn_quit_pressed() -> void:
-	get_tree().quit()
+	DesktopTray.Close()
  
 
 func _on_btn_minimize_pressed() -> void:
-	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MINIMIZED)
+	DesktopTray.Minimize()
 
 
 func _on_btn_drop_gold_pressed() -> void:

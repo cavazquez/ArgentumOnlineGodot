@@ -1,0 +1,56 @@
+{
+  "graphics": [
+    5592,
+    5593,
+    5599,
+    5600,
+    8684,
+    8685,
+    9193,
+    9194,
+    9195,
+    9196,
+    9197,
+    9198,
+    9199,
+    9200,
+    9201,
+    9202,
+    9203,
+    9204
+  ],
+  "sources": {
+    "map_data/objects_001-050.json": "be414c3c29c3b6652276cd234ce06bce937892bda4d980d05d2c4967a4ecf74b",
+    "map_data/objects_051-100.json": "0cdc720b34316c8160e009166ce7d344bf478cc205d65272ceef08a9325a2d11",
+    "map_data/objects_101-150.json": "543033a7632f606c44e996da2cfbf6d6a548b069e355bd908d66a872b874adc7",
+    "map_data/objects_151-200.json": "748dfdd40e2066094bb9ab3d67f15103570b0ff12d263e7c27c7f3776529a42c",
+    "map_data/objects_201-250.json": "15e3d16a3ae85bdffb3bd53645fbfd5227b891a90b719221729b59d5d5e9bd86",
+    "map_data/objects_251-290.json": "4d3f172ef0504fe6c372b43f267c234373375f210e465259df6f9f1b908abb0a",
+    "data/world/map_doors.toml": "fd3d485ed296bdb33462fc6def7f8cecbb1500c8a607af6a173aa19f8b87e521",
+    "data/items/world_objects/doors.toml": "686cb0365ab607c30d1582eb1b63965e741aa01cdb09bbf3786fe30cccc8965c"
+  },
+  "maps": {
+    "1": [
+      [
+        48,
+        65
+      ],
+      [
+        49,
+        65
+      ]
+    ],
+    "111": [
+      [
+        97,
+        82
+      ]
+    ],
+    "207": [
+      [
+        47,
+        49
+      ]
+    ]
+  }
+}

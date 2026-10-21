@@ -208,4 +208,6 @@ func _ready() -> void:
 	if not await wait_for(AudioManager.IsDrained, "liberación del mixer de audio al cerrar", 2.0):
 		return
 	print("INTEGRATION_WORLD: PASS seconds=", (Time.get_ticks_msec() - started) / 1000)
+	if OS.get_environment("PYAO_TEST_VERBOSE") == "1":
+		Node.print_orphan_nodes()
 	get_tree().quit(0)

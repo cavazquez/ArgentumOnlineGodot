@@ -14,7 +14,7 @@ func _ready() -> void:
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(box)
 	var legend := Label.new()
-	legend.text = "Rueda: zoom · botón central: desplazar · flecha: una dirección · línea punteada: teleport · punto blanco: visitado"
+	legend.text = "Rueda: zoom · botón central: desplazar · flecha: una dirección · punteada: teleport o borde plegado (naranja) · punto blanco: visitado"
 	legend.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(legend)
 	_canvas = WorldMapCanvas.new()
@@ -43,4 +43,5 @@ func _select(id: int) -> void:
 	for edge in _canvas.topology.get("edges", []):
 		if int(edge.from) == id: outgoing.append("%d (%s)" % [edge.to, edge.kind])
 		if int(edge.to) == id: incoming.append(str(edge.from))
-	_description.text = "%s · #%d\nSalidas: %s\nEntradas: %s" % [row.get("name", "Sin miniatura") + (" · visitado" if Global.character_local.visited.has(id) else " · no visitado"), id, ", ".join(outgoing), ", ".join(incoming)]
+	var access := " · reservado (acceso administrativo)" if row.get("role", "playable") == "reserved" else ""
+	_description.text = "%s · #%d\nSalidas: %s\nEntradas: %s" % [row.get("name", "Sin miniatura") + access + (" · visitado" if Global.character_local.visited.has(id) else " · no visitado"), id, ", ".join(outgoing), ", ".join(incoming)]

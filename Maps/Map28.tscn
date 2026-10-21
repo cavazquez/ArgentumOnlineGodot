@@ -1,4 +1,4 @@
-[gd_scene load_steps=122 format=4]
+[gd_scene load_steps=121 format=4]
 
 [ext_resource type="Texture2D" path="res://Assets/Gfx/12025.png" id="1_v1g4n"]
 [ext_resource type="Texture2D" path="res://Assets/Gfx/12026.png" id="2_m0ttv"]
@@ -577,9 +577,6 @@ texture_region_size = Vector2i(32, 32)
 0:1/0 = 0
 1:1/0 = 0
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_sjjjd"]
-texture = ExtResource("18_la3rd")
-texture_region_size = Vector2i(32, 32)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mmccl"]
 texture = ExtResource("19_83uol")
@@ -796,7 +793,6 @@ sources/8092 = SubResource("TileSetAtlasSource_3d15e")
 sources/8087 = SubResource("TileSetAtlasSource_fd4wv")
 sources/8102 = SubResource("TileSetAtlasSource_s0ak2")
 sources/8082 = SubResource("TileSetAtlasSource_mmccl")
-sources/8081 = SubResource("TileSetAtlasSource_sjjjd")
 sources/9002 = SubResource("TileSetAtlasSource_aaojx")
 sources/8045 = SubResource("TileSetAtlasSource_eaxjx")
 sources/8038 = SubResource("TileSetAtlasSource_hnpoo")

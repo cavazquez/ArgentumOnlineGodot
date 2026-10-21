@@ -92,18 +92,21 @@ def main():
                     process.wait()
     log = (output / "render.log").read_text()
     errors = len(re.findall(r"(?:^|\n)\s*(?:ERROR:|SCRIPT ERROR:)", log))
+    marker = re.search(r"MAP_CACHE_STRESS: PASS cycles=(\d+) switches=(\d+)", log)
     passed = (
         process.returncode == 0
         and not timed_out
         and errors == 0
-        and f"MAP_CACHE_STRESS: PASS cycles={args.cycles}" in log
+        and marker is not None
+        and int(marker[1]) == args.cycles
+        and int(marker[2]) > 0
     )
     result = {
         "passed": passed,
         "native_export": True,
         "renderer": "gl_compatibility",
         "cycles": args.cycles,
-        "map_switches": args.cycles * 4,
+        "map_switches": int(marker[2]) if marker else 0,
         "render_errors": errors,
         "timed_out": timed_out,
         "exit_code": process.returncode,

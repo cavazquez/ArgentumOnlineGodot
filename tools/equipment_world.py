@@ -4,7 +4,8 @@ from r10_world import R10World, prepare_fixture
 
 SAMPLES = ((30, "armor"), (15, "weapon"), (563, "weapon"), (561, "weapon"),
            (562, "weapon"), (564, "weapon"), (128, "shield"), (132, "helmet"),
-           (2, "weapon"), (31, "armor"), (659, "weapon"))
+           (2, "weapon"), (31, "armor"), (659, "weapon"),
+           (1058, "helmet"), (401, "weapon"), (543, "weapon"))
 FOLDERS = {"body": ("Bodies", "body"), "weapon": ("Weapons", "weapon"),
            "shield": ("Shields", "shield"), "helmet": ("Helmets", "helmet")}
 
@@ -42,7 +43,7 @@ class EquipmentWorld(R10World):
             self.ids = {i: int(store.hget(f"account:{self.names[i-1]}:data", "user_id")) for i in (1, 2)}
             self.data["items"] = {str(slot): [item, 1] for slot, (item, _kind) in enumerate(SAMPLES, 1)}
             x, y = locations["base"]
-            self.relocate(store, {1: (1, x, y), 2: (1, x+1, y)}, reset=True)
+            self.relocate(store, {1: (1, x, y), 2: (1, x+1, y)}, reset=True, accounts={2: {"char_race": 4, "char_body": 4, "char_head": 3}})
             expected = {}
             bases = {}
             for actor in (1, 2):
@@ -54,9 +55,9 @@ class EquipmentWorld(R10World):
                     item = ITEMS_CATALOG[item_id]
                     self.command(actor, "equip", slot=slot)
                     self.wait(lambda: store.hget(f"player:{self.ids[actor]}:equipment", kind) == str(slot), "equipo confirmado en Redis")
-                    visual["body" if kind == "armor" else kind] = item.body_animation if kind == "armor" else item.animation
+                    visual["body" if kind == "armor" else kind] = item.body_animation if kind == "armor" else (item.dwarf_animation or item.animation) if kind == "weapon" and actor == 2 else item.animation
                     self.see(actor, visual)
-                    if kind in ("armor", "helmet", "shield") or item_id in (15, 563):
+                    if kind in ("armor", "helmet", "shield") or item_id in (15, 563, 401, 543):
                         for viewer in (1, 2): self.command(viewer, "capture", label=f"equip-{actor}-{item_id}")
                 origin = (x+actor-1, y)
                 actions = ("ui_down", "ui_left", "ui_up", "ui_right") if actor == 1 else ("ui_right", "ui_down", "ui_left", "ui_up")

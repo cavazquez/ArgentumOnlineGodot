@@ -5,6 +5,7 @@ var _web_acceptance_started := false
 
 func SwitchScreen(screen:Node) -> void:
 	if currentScreen:
+		if currentScreen.has_method("Retire"): currentScreen.Retire()
 		Utils.DismissAlerts(currentScreen)
 		currentScreen.queue_free()
 		

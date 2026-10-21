@@ -27,6 +27,7 @@ Global="*res://engine/autoload/global.gd"
 InputBindings="*res://engine/autoload/input_bindings.gd"
 SavedCredentials="*res://engine/autoload/saved_credentials.gd"
 ConnectionPreferences="*res://engine/autoload/connection_preferences.gd"
+DesktopTray="*res://engine/autoload/desktop_tray.gd"
 
 [display]
 
