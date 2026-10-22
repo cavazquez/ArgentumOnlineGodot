@@ -12,10 +12,10 @@
 
 <p align="center">
   <a href="https://snapcraft.io/pyao-client"><img src="https://img.shields.io/snapcraft/v/pyao-client/latest/edge?arch=amd64&amp;label=snap%20edge&amp;logo=snapcraft" alt="Versión de pyao-client en Snap latest/edge para amd64"></a>
-  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/issues/183"><img src="https://img.shields.io/badge/homebrew-pendiente-lightgrey?logo=homebrew" alt="Homebrew pendiente: issue 183"></a>
-  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/issues/184"><img src="https://img.shields.io/badge/apt-pendiente-lightgrey?logo=debian" alt="APT pendiente: issue 184"></a>
+  <a href="https://github.com/cavazquez/homebrew-pyao#macos-homebrew"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcavazquez%2Fhomebrew-pyao%2Fmain%2Fchannel-manifest.json&amp;query=%24.version&amp;label=homebrew&amp;logo=homebrew&amp;color=FBB040" alt="Versión publicada mediante Homebrew para macOS Intel y Apple Silicon"></a>
+  <a href="https://github.com/cavazquez/homebrew-pyao#debian-y-ubuntu-apt-firmado"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcavazquez%2Fhomebrew-pyao%2Fmain%2Fchannel-manifest.json&amp;query=%24.version&amp;label=apt&amp;logo=debian&amp;color=007ec6" alt="Versión publicada en APT firmado para amd64 y arm64"></a>
   <a href="https://github.com/cavazquez/ArgentumOnlineGodot/issues/160"><img src="https://img.shields.io/badge/Microsoft%20Store-pendiente-lightgrey" alt="Microsoft Store pendiente: issue 160"></a>
-  <a href="https://github.com/cavazquez/ArgentumOnlineGodot/issues/185"><img src="https://img.shields.io/badge/winget-pendiente-lightgrey" alt="WinGet pendiente: issue 185"></a>
+  <a href="https://github.com/microsoft/winget-pkgs/pull/458434"><img src="https://img.shields.io/badge/winget-en%20revisi%C3%B3n-lightgrey" alt="Propuesta WinGet en revisión: Cavazquez.PyAOClient"></a>
 </p>
 
 <p align="center">
@@ -24,7 +24,9 @@
   <a href="https://github.com/cavazquez/ArgentumOnlineGodot/releases">Releases</a>
 </p>
 
-Los canales marcados como pendientes enlazan sus issues de implementación.
+Homebrew y APT enlazan sus instrucciones de instalación verificadas. WinGet enlaza su propuesta en revisión; Microsoft Store sigue pendiente.
+
+Instalación y actualización: [Homebrew, APT firmado y estado de WinGet](https://github.com/cavazquez/homebrew-pyao#readme).
 
 Cliente Godot de ProyectoAO, basado en el [port de brian-christopher](https://github.com/brian-christopher/ArgentumOnlineGodot) del cliente Argentum Online 0.13.3 liberado por Shak.
 
@@ -38,9 +40,9 @@ ver [CI y releases](docs/CI_RELEASES.md).
 
 El servidor objetivo es [cavazquez/pyao-server](https://github.com/cavazquez/pyao-server). El [issue #123 del servidor](https://github.com/cavazquez/pyao-server/issues/123) contiene el alcance compartido, el orden de implementación y las pruebas para aprobar ambos proyectos juntos. Su documento versionado es `docs/development/ALCANCE_1_0.md` en el repositorio del servidor.
 
-La primera distribución incluye Linux amd64 y Snap `pyao-client` en `latest/edge`. Conserva login/alta directos, ciudades, clases, mapas, recursos e inventario de 30 slots propios de pyao. Los ports de Hide Zone se adaptan a ese contrato; el login y el dataset de AO Libre no sustituyen los de ProyectoAO.
+La candidata actual incluye Linux, Windows, macOS, web y Snap `pyao-client` en `latest/edge` para AMD64 y ARM64. Conserva login/alta directos, ciudades, clases, mapas, recursos e inventario de 30 slots propios de pyao. Los ports de Hide Zone se adaptan a ese contrato; el login y el dataset de AO Libre no sustituyen los de ProyectoAO.
 
-El cierre se prueba con dos clientes Godot reales contra servidor y Redis aislados: cuentas, mapa, chat, inventario, economía, combate, magia, funciones sociales y reconexión. La distribución inicial no exige web, Windows, macOS, ARM64, quests ni facciones.
+El cierre se prueba con dos clientes Godot reales contra servidor y Redis aislados: cuentas, mapa, chat, inventario, economía, combate, magia, funciones sociales y reconexión. La campaña actual también valida los paquetes nativos de las cinco plataformas, web, ARM64, quests y facciones. Las botas visibles y Microsoft Store siguen pendientes.
 
 ## Ejecutar el proyecto en desarrollo
 
