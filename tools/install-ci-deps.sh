@@ -29,4 +29,4 @@ run_apt() {
 }
 
 run_apt update 120s update
-run_apt install 300s install --no-install-recommends -y "$@"
+run_apt install 600s install --no-install-recommends -y "$@"

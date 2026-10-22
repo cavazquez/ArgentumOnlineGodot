@@ -69,7 +69,7 @@ if mode == "failed-install" and kind == "install": sys.exit(100)
         bounds = self.bounds.read_text().splitlines()
         self.assertEqual(3, len(bounds))
         self.assertIn("120s", bounds[0])
-        self.assertIn("300s", bounds[-1])
+        self.assertIn("600s", bounds[-1])
 
     def test_repeated_timeout_stops_before_installing_and_preserves_exit_status(self):
         result = self.run_helper("timeout-update")
