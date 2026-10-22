@@ -99,7 +99,7 @@ class R10World:
         self.save()
         raise TimeoutError(f"R10: {label}")
 
-    def command(self, index, op, **values):
+    def command(self, index, op, *, response_timeout=40, **values):
         self.sequences[index] += 1
         sequence = self.sequences[index]
         root = self.work / f"control-{index}"
@@ -108,7 +108,21 @@ class R10World:
         pending.write_text(json.dumps({"op": op, **values}))
         pending.replace(path)
         response = root / f"{sequence:04d}.response.json"
-        self.wait(response.exists, f"Godot {index}, {op}", 40)
+        started = time.monotonic()
+        try:
+            self.wait(response.exists, f"Godot {index}, {op}", response_timeout)
+        except TimeoutError:
+            (self.output / f"r10-command-timeout-{index}.json").write_text(
+                json.dumps({
+                    "client": index,
+                    "operation": op,
+                    "sequence": sequence,
+                    "response_timeout_seconds": response_timeout,
+                    "elapsed_seconds": round(time.monotonic() - started, 3),
+                    "response_received": response.exists(),
+                }, indent=2) + "\n"
+            )
+            raise
         value = json.loads(response.read_text())
         (self.output / f"r10-last-view-{index}.json").write_text(
             json.dumps(value, indent=2) + "\n"

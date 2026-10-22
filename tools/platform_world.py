@@ -21,7 +21,10 @@ class PlatformWorld(R10World):
                 # nativo. El otro conserva su sesión y su loop de red activos.
                 self.command(3 - index, "native_window", action="minimize")
                 self.command(index, "native_window", action="restore")
-            view = self.command(index, "platform_probe")
+            # Esta operación abre ventanas y prueba teclado, preferencias y audio.
+            # El renderer software del runner macOS Intel puede trabajar a 1 FPS.
+            # Su plazo es independiente del login y de los demás comandos (40 s).
+            view = self.command(index, "platform_probe", response_timeout=90)
             probe = view.get("platform_probe", {})
             if not all(probe.get(key) is True for key in ("rendering", "audio", "input", "preferences")):
                 raise RuntimeError("Portable incompleto: " + json.dumps(probe))
