@@ -55,6 +55,9 @@ func snapshot() -> Dictionary:
 		"panel": "", "characters": screen._gameWorld.get_child_count(),
 		"capabilities": ClientInterface.capabilities.enabled, "trading": context.trading,
 		"using_skill": context.usingSkill, "world_characters": {}, "character_effects": {}, "character_names": {},
+		"statuses": {"paralyzed": context.userParalizado, "dumb": context.userEstupido,
+			"blind": context.userCiego, "meditating": context.userMeditar},
+		"status_text": hub._status_label.text,
 		"audio_driver": AudioServer.get_driver_name(),
 		"modals": hub._VisibleModals().map(func(w): return w.name)}
 	for visible_character in screen._gameWorld.GetMapContainer()._characterCollection:

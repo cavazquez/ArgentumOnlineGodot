@@ -117,7 +117,6 @@ func snapshot() -> Dictionary:
 	view.gear_labels = {"weapon": hub.get_node("%LblWeapon").text,
 		"shield": hub.get_node("%LblShield").text, "armor": hub.get_node("%LblArmor").text,
 		"helmet": hub.get_node("%LblHelmet").text}
-	view.statuses = {"paralyzed": context.userParalizado, "dumb": context.userEstupido, "blind": context.userCiego, "meditating": context.userMeditar}
 	view.actor_visibility = {}
 	view.actor_equipment = {}
 	for actor in ScreenController.currentScreen._gameWorld.GetMapContainer()._characterCollection:
@@ -132,7 +131,6 @@ func snapshot() -> Dictionary:
 					"frame": sprite.frame, "frame_count": sprite.sprite_frames.get_frame_count(sprite.animation)}
 			view.actor_equipment[str(actor.instanceId)] = layers
 	view.sailing = context.userNavegando
-	view.status_text = hub._status_label.text
 	view.ping_status = Global.pingStatus
 	view.visual_nodes = ScreenController.currentScreen._visuals.get_child_count()
 	view.map_cache = ScreenController.currentScreen._gameWorld.GetMapContainer()._cache.snapshot()
