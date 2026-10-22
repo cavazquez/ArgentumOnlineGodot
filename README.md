@@ -36,6 +36,9 @@ Los PR ejecutan comprobaciones de herramientas, Godot, protocolo y TLS sin expor
 el juego. Las compilaciones y la publicación requieren una ejecución manual;
 ver [CI y releases](docs/CI_RELEASES.md).
 
+La [auditoría cruzada del protocolo](https://github.com/cavazquez/pyao-server/blob/main/docs/audits/protocol-583/README.md)
+registra los mensajes, sus consumidores, las pruebas y los faltantes de ambos proyectos.
+
 ## Servidor y alcance de la 1.0
 
 El servidor objetivo es [cavazquez/pyao-server](https://github.com/cavazquez/pyao-server). El [issue #123 del servidor](https://github.com/cavazquez/pyao-server/issues/123) contiene el alcance compartido, el orden de implementación y las pruebas para aprobar ambos proyectos juntos. Su documento versionado es `docs/development/ALCANCE_1_0.md` en el repositorio del servidor.

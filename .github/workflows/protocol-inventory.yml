@@ -1,0 +1,43 @@
+name: Inventario cruzado del protocolo
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  protocol-inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Leer la revisión fijada de la herramienta y el inventario
+        id: peer
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          record = json.loads(Path("protocol/audit-peer.json").read_text())
+          assert record["repository"] == "cavazquez/pyao-server"
+          assert re.fullmatch(r"[0-9a-f]{40}", record["commit"])
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("commit=" + record["commit"] + "\n")
+          PY
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cavazquez/pyao-server
+          ref: ${{ steps.peer.outputs.commit }}
+          path: build/protocol-server
+          persist-credentials: false
+          sparse-checkout: |
+            src
+            tools/analysis
+            docs/audits/protocol-583
+      - name: Verificar los mensajes del cliente contra el inventario revisado
+        run: python3 build/protocol-server/tools/analysis/protocol_inventory.py --client . --check
