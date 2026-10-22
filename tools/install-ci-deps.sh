@@ -4,6 +4,32 @@ set -eu
 test "${GITHUB_ACTIONS:-}" = true
 test -f /etc/apt/sources.list.d/ubuntu.sources
 
+pyao_build=false
+if [ "${1:-}" = --build ]; then
+  pyao_build=true
+  shift
+fi
+
+# Conservar paquetes ya presentes evita actualizar el stack gráfico del runner
+# sólo por ejecutar un binario. Al compilar, APT resuelve el stack completo para
+# mantener coherentes las cabeceras, bibliotecas y drivers del editor.
+pyao_remaining=0
+if [ "$pyao_build" = false ]; then pyao_remaining=$#; fi
+while [ "$pyao_remaining" -gt 0 ]; do
+  pyao_package=$1
+  shift
+  pyao_status=$(dpkg-query --show --showformat='${db:Status-Status} ${Version}' -- "$pyao_package" 2>/dev/null || true)
+  case "$pyao_status" in
+    installed\ *) printf 'APT keep %s: %s\n' "$pyao_package" "$pyao_status" ;;
+    *) set -- "$@" "$pyao_package" ;;
+  esac
+  pyao_remaining=$((pyao_remaining - 1))
+done
+if [ "$#" -eq 0 ]; then
+  printf 'APT: all requested dependencies are already installed\n'
+  exit 0
+fi
+
 run_apt() {
   pyao_apt_stage=$1
   pyao_apt_limit=$2
