@@ -19,6 +19,16 @@ reconexión, interacción comercial, transición sin NPC del mapa anterior y una
 criatura hostil visible en dos clientes. Guarda las capturas `npc-world`,
 `npc-hostile`, `npc-map-change` y `npc-reconnected`.
 
+También comprueba que ambos clientes conservan la identidad completa de los NPC,
+pero sólo muestran etiquetas para los habitantes amistosos y guardias de ciudades.
+Criaturas, animales neutrales, mascotas e invocaciones no tienen nombre visible;
+reactivar la preferencia de nombres o reconectar no debe revelarlo. El chat de
+combate y hechizos conserva el nombre del objetivo.
+
+El escenario `visual-sync` comprueba que meditar mantiene su animación en ambos
+clientes sin agregar texto de meditación al indicador sobre el mapa. El chat del
+personaje informa el inicio y las cantidades de maná realmente recuperadas.
+
 La posición se compara dentro del rango de actualización del servidor. Los
 actores fuera de rango conservan la última posición recibida; su identidad y
 apariencia siguen comprobándose. También se rechaza un actor que aparece cerca

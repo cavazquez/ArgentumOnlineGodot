@@ -111,6 +111,45 @@ func _run() -> void:
 	var world := GameWorld.new()
 	world._mapContainer = map
 	add_child(world)
+	# La identidad viaja completa, pero sólo los habitantes amistosos tienen etiqueta.
+	var fixtures: Array = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/fixtures.json"))
+	var original_show_names := Global.showNames
+	Global.showNames = true
+	for fixture in fixtures:
+		if not String(fixture.name).begins_with("character_"): continue
+		var name_reader := StreamPeerBuffer.new()
+		name_reader.data_array = String(fixture.hex).hex_decode().slice(1)
+		var name_packet := CharacterCreate.new(name_reader)
+		var actor := world.CreateCharacter(name_packet)
+		_check(actor.GetCharacterName() == fixture.values.name, "Ocultar la etiqueta borra el nombre del NPC")
+		_check(actor._nameLabel.visible == bool(fixture.values.show_name), "La visibilidad del nombre no respeta el servidor")
+		actor.SetCharacterInvisible(true)
+		_check(not actor._nameLabel.visible, "Un actor invisible conserva la etiqueta")
+		actor.SetCharacterInvisible(false)
+		Global.showNames = false
+		actor._apply_preferences()
+		_check(not actor._nameLabel.visible, "Desactivar nombres conserva una etiqueta")
+		Global.showNames = true
+		actor._apply_preferences()
+		actor.SetCharacterName(name_packet.name)
+		_check(actor._nameLabel.visible == name_packet.showName, "Preferencias o renombrar revelan un NPC oculto")
+		world.DeleteCharacter(name_packet.charIndex)
+	Global.showNames = original_show_names
+	# Meditar informa por chat; el indicador conserva los otros estados.
+	var status_hub := HubController.new()
+	status_hub._gameContext = GameContext.new()
+	status_hub._gameContext.player_stats.hp = 100
+	status_hub._gameContext.userMeditar = true
+	status_hub._status_label = Label.new()
+	status_hub._fps_label = Label.new()
+	status_hub._update_status()
+	_check(status_hub._status_label.text.is_empty(), "Meditar deja texto sobre el mapa")
+	status_hub._gameContext.userParalizado = true
+	status_hub._update_status()
+	_check(status_hub._status_label.text == "Paralizado", "Ocultar meditación borra otros estados")
+	status_hub._status_label.free()
+	status_hub._fps_label.free()
+	status_hub.free()
 	var movement_camera := Camera2D.new()
 	add_child(movement_camera)
 	movement_camera.make_current()

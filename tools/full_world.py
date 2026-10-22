@@ -344,7 +344,9 @@ class FullWorld(SkillsWorld):
             self.command(i, "chat", text="/meditar")
             self.view(
                 i,
-                lambda v: "Meditando" in v.get("status_text", ""),
+                lambda v: v.get("statuses", {}).get("meditating")
+                and "Meditando" not in v.get("status_text", "")
+                and "Comienzas a meditar" in v.get("console", ""),
                 "meditación activada en la interfaz",
             )
             self.wait(

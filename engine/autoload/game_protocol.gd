@@ -292,7 +292,8 @@ static func WriteTalk(text:String) -> void:
 		return
 	if not _validate_text_fields([text]):
 		return
-	_log_outgoing_packet("Talk", "text: " + text)
+	# Los comandos administrativos pueden contener credenciales; nunca registrar argumentos.
+	_log_outgoing_packet("Talk", "command" if text.strip_edges().begins_with("/") else "chat")
 	_writer.put_u8(Enums.ClientPacketID.Talk) 
 	Utils.PutUnicodeString(_writer, text)
 
@@ -426,9 +427,7 @@ static func write_invisible() -> void:
 	_writer.put_u8(Enums.EGMCommands.INVISIBLE)
 
 static func change_description(description:String) -> void:
-	_log_outgoing_packet("ChangeDescription", "description: " + description)
-	_writer.put_u8(Enums.ClientPacketID.ChangeDescription)
-	Utils.PutUnicodeString(_writer, description)
+	WriteTalk("/DESC " + description)
 
 # Envía la alineación seleccionada para el nuevo gremio al servidor
 # @param alignment_type: Tipo de alineación del gremio (ver Enums.AlignmentType)
@@ -760,17 +759,7 @@ static func WriteChangePassword(current_password: String, new_password: String, 
 
 # ===== COMANDOS GM =====
 static func WriteTeleportChar(username:String, map:int, x:int, y:int) -> void:
-	if not _can_write(Enums.ClientPacketID.GMCommands):
-		return
-	if not _validate_text_fields([username]):
-		return
-	_log_outgoing_packet("TeleportChar", "username: " + username + ", map: " + str(map) + ", x: " + str(x) + ", y: " + str(y))
-	_writer.put_u8(Enums.ClientPacketID.GMCommands)
-	_writer.put_u8(Enums.EGMCommands.WARP_CHAR)
-	Utils.PutUnicodeString(_writer, username)
-	_writer.put_16(map)
-	_writer.put_u8(x)
-	_writer.put_u8(y)
+	WriteWarpChar(username, map, x, y)
 
 
 static func WriteWarpMeToTarget() -> void:

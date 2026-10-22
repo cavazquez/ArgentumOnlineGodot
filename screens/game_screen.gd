@@ -894,6 +894,8 @@ func _ApplyWorldState(value: Dictionary) -> void:
 			prefix += String(chat.sender) + (" grita: " if String(chat.context).ends_with(":yell") else ": ")
 		var font := FontData.new(Color.WHITE)
 		if int(chat.font) >= 0 and int(chat.font) < GameAssets.FontDataList.size(): font = GameAssets.FontDataList[int(chat.font)]
+		if chat.has("color"):
+			font = FontData.new(Color8(int(chat.color[0]), int(chat.color[1]), int(chat.color[2])))
 		_gameInput.ShowConsoleMessage(prefix + String(chat.text), font)
 	if value.kind == "tax":
 		Global.character_local.open_profile(ClientInterface.local_character_key(Global.username))

@@ -71,10 +71,11 @@ class R10World:
     def check_processes(self):
         if time.monotonic() > self.deadline:
             raise TimeoutError("R10: plazo global de escenarios agotado")
-        if self.server.poll() is not None or any(
-            c.poll() is not None for c in self.clients
-        ):
-            raise RuntimeError("R10 perdió un proceso real; revisar los logs")
+        processes = [("server", self.server)]
+        processes.extend((f"client-{i}", process) for i, process in enumerate(self.clients, 1))
+        exited = {name: process.returncode for name, process in processes if process.poll() is not None}
+        if exited:
+            raise RuntimeError(f"R10 perdió un proceso real; códigos de salida: {exited}; revisar los logs")
         if (
             "Traceback (most recent call last)"
             in (self.output / "server.log").read_text()
@@ -622,6 +623,10 @@ class R10World:
 
     def meditation(self, store, x, y, mana):
         self.command(1, "chat", text="/meditar")
+        self.console(1, "Comienzas a meditar")
+        self.view(1, lambda v: v.get("statuses", {}).get("meditating")
+                  and "Meditando" not in v.get("status_text", ""),
+                  "meditación activa sin texto sobre el mapa")
         for index in (1, 2):
             view = self.meditation_effect(index, True)
             frame = view["character_effects"][str(self.ids[1])]["frame"]
@@ -642,6 +647,7 @@ class R10World:
             timeout=180,
         )
         self.view(1, lambda v: v["mana"] > mana, "maná de meditación en UI")
+        self.console(1, "puntos de maná")
         self.command(1, "chat", text="/meditar")
         self.console(1, "Dejas de meditar")
         for index in (1, 2): self.meditation_effect(index, False)

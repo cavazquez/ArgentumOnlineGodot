@@ -83,6 +83,16 @@ class NPCWorld(R10World):
                         for row in self.current(store, map_id)}
             actual = {key: value for key, value in view.get("world_characters", {}).items() if int(key) >= 10001}
             differences = representation_differences(expected, actual, (view["x"], view["y"]), self.update_range)
+            for row in self.current(store, map_id):
+                key = row["char_index"]
+                label = view.get("actor_visibility", {}).get(key, {})
+                visible = (row.get("role", "inhabitant") in {"inhabitant", "guard"}
+                           and row.get("is_hostile", "False") == "False"
+                           and row.get("is_tamed", "False") == "False"
+                           and row.get("summoned_by_user_id", "0") == "0")
+                if label.get("name") != row["name"] or label.get("name_visible") != visible:
+                    differences.append({"char_index": key, "name": row["name"],
+                                        "expected_name_visible": visible, "actual_label": label})
             (self.output / f"npc-difference-{index}.json").write_text(json.dumps({
                 "map_id": map_id, "expected_count": len(expected), "actual_count": len(actual),
                 "update_range": self.update_range, "differences": differences,

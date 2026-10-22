@@ -54,7 +54,7 @@ const StatsWindowScene = preload("res://ui/hub/stats_window.tscn")
 @export var _consoleRichTextLabel:RichTextLabel
 @export var _consoleInputLineEdit:LineEdit
 @export var _camera:Camera2D
-@export var _console_max_lines:int = 10
+@export_range(20, 1000, 10) var _console_max_lines:int = 200
 @export var _console_blocked:bool = false
 
 @onready var minimap: Minimap = $Minimap
@@ -867,6 +867,9 @@ func _apply_preferences() -> void:
 
 func _process(_delta: float) -> void:
 	_responsive.layout()
+	_update_status()
+
+func _update_status() -> void:
 	if _gameContext == null or _status_label == null: return
 	var states := PackedStringArray()
 	var dead := _gameContext.player_stats.hp <= 0
@@ -874,7 +877,6 @@ func _process(_delta: float) -> void:
 	if _gameContext.userParalizado: states.append("Paralizado")
 	if _gameContext.userCiego: states.append("Ciego")
 	if _gameContext.userEstupido: states.append("Confundido")
-	if _gameContext.userMeditar: states.append("Meditando")
 	if _gameContext.userDescansar: states.append("Descansando")
 	if _gameContext.userNavegando: states.append("Navegando")
 	_status_label.text = " · ".join(states)

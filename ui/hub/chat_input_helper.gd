@@ -2,7 +2,7 @@ extends RefCounted
 class_name ChatInputHelper
 
 const MAX_HISTORY := 50
-const SENSITIVE := ["/password", "/passwd", "/pass", "/login", "/clave", "/cambiarclave", "/contrasena", "/contraseña"]
+const SENSITIVE := ["/password", "/passwd", "/pass", "/apass", "/login", "/clave", "/cambiarclave", "/contrasena", "/contraseña"]
 var history := PackedStringArray()
 var _cursor := 0
 var _draft := ""
@@ -30,7 +30,7 @@ func install(line: LineEdit) -> void:
 	ClientInterface.disconnected.connect(clear)
 	ClientInterface.world_state.changed.connect(_state_changed)
 	var saved: Dictionary = ClientInterface.world_state.states.get("commands", {})
-	_commands = saved.get("commands", []).duplicate(true)
+	_commands = ChatCommandCatalog.completion(saved.names) if saved.has("names") else saved.get("commands", []).duplicate(true)
 
 func dispose() -> void:
 	clear()
@@ -48,7 +48,8 @@ func clear() -> void:
 
 func record(text: String) -> void:
 	var value := text.strip_edges()
-	var first := value.split(" ", false, 1)[0].to_lower() if not value.is_empty() else ""
+	var token := RegEx.create_from_string("^\\S+").search(value)
+	var first := token.get_string().to_lower() if token != null else ""
 	if not value.is_empty() and value.length() <= 512 and not first in SENSITIVE and not _line.secret:
 		if history.is_empty() or history[-1] != value: history.append(value)
 		if history.size() > MAX_HISTORY: history.remove_at(0)
@@ -68,7 +69,7 @@ func _focus_exited() -> void:
 func _state_changed(kind: String, data: Dictionary, _revision: String) -> void:
 	if kind == "reset": clear()
 	elif kind == "commands":
-		_commands = data.get("commands", []).duplicate(true)
+		_commands = ChatCommandCatalog.completion(data.names) if data.has("names") else data.get("commands", []).duplicate(true)
 		if is_instance_valid(_line) and _line.has_focus(): _changed(_line.text)
 
 func dismiss_completion() -> bool:

@@ -7,6 +7,7 @@ var waiting := false
 var _freeze: TextureRect
 var _rain: ColorRect
 var _fog: ColorRect
+var _night: ColorRect
 var _audio: AudioStreamPlayer
 var _phase := ""
 var _weather: Dictionary = {}
@@ -20,6 +21,12 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clip_contents = true
+	_night = ColorRect.new()
+	_night.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_night.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_night.color = Color(0.03, 0.05, 0.13, 0.32)
+	_night.hide()
+	add_child(_night)
 	_rain = _overlay(preload("res://shaders/world_rain.gdshader"))
 	_fog = _overlay(preload("res://shaders/world_fog.gdshader"))
 	_freeze = TextureRect.new()
@@ -98,6 +105,7 @@ func _preferences() -> void:
 	_update_weather()
 
 func _update_weather(immediate: bool = false) -> void:
+	_night.visible = _weather.get("outdoor", false) and _weather.get("night", false)
 	var target := 0.0
 	if _weather.get("outdoor", false) and _weather.get("raining", false) and Global.effectsMode > 0:
 		target = float(_weather.get("intensity", 0)) / 100.0 * Global.rainIntensity

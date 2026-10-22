@@ -25,7 +25,7 @@ on:
       test_gameplay:
         description: Ejecutar regresiones nativas sin construir Snaps ni otros portables
         type: choice
-        options: [none, visual-sync, equipment, accessories, npc-loot, world-routes, lifetime-stats, structure-profile, all]
+        options: [none, classic-chat, visual-sync, equipment, accessories, npc-loot, world-routes, lifetime-stats, structure-profile, all]
         default: none
 
 permissions:
@@ -489,7 +489,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: ${{ fromJSON(inputs.test_gameplay == 'visual-sync' && '["visual-sync"]' || inputs.test_gameplay == 'npc-loot' && '["npc-loot"]' || inputs.test_gameplay == 'world-routes' && '["world-routes"]' || inputs.test_gameplay == 'equipment' && '["equipment"]' || inputs.test_gameplay == 'accessories' && '["accessories"]' || inputs.test_gameplay == 'lifetime-stats' && '["lifetime-stats"]' || inputs.test_gameplay == 'structure-profile' && '["structure-profile"]' || '["skills","spells","navigation","duel","potions","expansion","npc-policy","economy","npcs","lifetime-stats","structure-profile","visual-sync","equipment","accessories","npc-loot","world-routes"]') }}
+        scenario: ${{ fromJSON(inputs.test_gameplay == 'classic-chat' && '["classic-chat"]' || inputs.test_gameplay == 'visual-sync' && '["visual-sync"]' || inputs.test_gameplay == 'npc-loot' && '["npc-loot"]' || inputs.test_gameplay == 'world-routes' && '["world-routes"]' || inputs.test_gameplay == 'equipment' && '["equipment"]' || inputs.test_gameplay == 'accessories' && '["accessories"]' || inputs.test_gameplay == 'lifetime-stats' && '["lifetime-stats"]' || inputs.test_gameplay == 'structure-profile' && '["structure-profile"]' || '["classic-chat","skills","spells","navigation","duel","potions","expansion","npc-policy","economy","npcs","lifetime-stats","structure-profile","visual-sync","equipment","accessories","npc-loot","world-routes"]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

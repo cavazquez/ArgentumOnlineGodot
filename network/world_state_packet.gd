@@ -51,8 +51,16 @@ static func _payload(kind: String, value: Dictionary) -> bool:
 				if not _number(value.get(field), MAX_SAFE_INTEGER): return false
 			return value.get("enabled") is bool and value.get("scope") == "wallet_and_bank" and _text(value.get("receipt"), 120)
 		"weather":
-			return _number(value.get("map"), 32767) and value.get("raining") is bool and value.get("outdoor") is bool and _number(value.get("intensity"), 100)
+			return _number(value.get("map"), 32767) and value.get("raining") is bool and value.get("outdoor") is bool and _number(value.get("intensity"), 100) and value.get("night", false) is bool
 		"commands":
+			if value.has("names"):
+				if not value.names is Array or value.names.size() > 256: return false
+				var seen: Dictionary = {}
+				for name in value.names:
+					if not _text(name, 30) or seen.has(name): return false
+					if not ChatCommandCatalog.definitions.has(name) and not name in ChatCommandCatalog.MODERN: return false
+					seen[name] = true
+				return true
 			if not value.get("commands") is Array or value.commands.size() > 25: return false
 			for command in value.commands:
 				if not command is Dictionary or not _text(command.get("text"), 30) or not _text(command.get("syntax"), 120): return false
@@ -76,6 +84,10 @@ static func _payload(kind: String, value: Dictionary) -> bool:
 						if not _number(item.get(field)): return false
 			return true
 		"chat":
+			if value.has("color"):
+				if not value.color is Array or value.color.size() != 3: return false
+				for component in value.color:
+					if not _number(component, 255): return false
 			return value.get("channel") in ["system", "public", "whisper", "party", "clan"] and _number(value.get("sender_id")) and _text(value.get("sender"), 20) and _text(value.get("text"), 512) and _text(value.get("context"), 80) and _number(value.get("font"), 255) and _number(value.get("recipient", 0)) and _text(value.get("recipient_name", ""), 20)
 	return false
 
