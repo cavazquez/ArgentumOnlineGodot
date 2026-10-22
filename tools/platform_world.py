@@ -1,7 +1,9 @@
 """Prueba nativa corta del portable: los escenarios completos se ejecutan aparte."""
 
 import json
+import platform
 import sys
+import time
 
 from r10_world import R10World, prepare_fixture
 
@@ -13,8 +15,38 @@ def acceptance(steps, seconds, *, graphical, exported):
 
 
 class PlatformWorld(R10World):
+    def wait_for_ready(self):
+        # Son dos arranques fríos, altas y primeros frames; no el login del producto.
+        budget = 180 if sys.platform == "darwin" and platform.machine() == "x86_64" else 90
+        started = time.monotonic()
+        ready_seconds = {}
+        passed = False
+
+        def both_ready():
+            for index in (1, 2):
+                if index not in ready_seconds and "INTEGRATION_WORLD: READY" in (self.output / f"godot-{index}.log").read_text():
+                    ready_seconds[index] = round(time.monotonic() - started, 3)
+            return len(ready_seconds) == 2
+
+        try:
+            self.wait(both_ready, "dos clientes nativos", budget)
+            passed = True
+        finally:
+            proof = {
+                "passed": passed,
+                "platform": sys.platform,
+                "architecture": platform.machine(),
+                "startup_budget_seconds": budget,
+                "elapsed_seconds": round(time.monotonic() - started, 3),
+                "ready_seconds": ready_seconds,
+                "login_budget_changed": False,
+            }
+            pending = self.output / "platform-readiness.pending"
+            pending.write_text(json.dumps(proof, indent=2) + "\n")
+            pending.replace(self.output / "platform-readiness.json")
+
     def run(self, locations):
-        self.wait(lambda: all("INTEGRATION_WORLD: READY" in (self.output / f"godot-{i}.log").read_text() for i in (1, 2)), "dos clientes nativos", 90)
+        self.wait_for_ready()
         for index in (1, 2):
             if sys.platform == "win32":
                 # Como al alternar con Alt-Tab: sólo un cliente posee el foco
