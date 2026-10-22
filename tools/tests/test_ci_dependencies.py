@@ -25,6 +25,12 @@ class CIDependenciesTests(unittest.TestCase):
         self.write("sudo", '#!/bin/sh\nexec "$@"\n')
         self.write("sleep", "#!/bin/sh\nexit 0\n")
         self.write("timeout", '#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$PYAO_TEST_BOUNDS"\nshift 3\nexec "$@"\n')
+        self.write("dpkg-query", f"#!{sys.executable}\n" + '''
+import json, os, sys
+status = json.loads(os.environ["PYAO_TEST_INSTALLED"]).get(sys.argv[-1])
+if status is None: sys.exit(1)
+print(status, end="")
+''')
         self.write("apt-get", f"#!{sys.executable}\n" + '''
 import json, os, sys
 from pathlib import Path
@@ -46,12 +52,14 @@ if mode == "failed-install" and kind == "install": sys.exit(100)
         path.write_text(source)
         path.chmod(0o755)
 
-    def run_helper(self, mode, *, actions="true"):
+    def run_helper(self, mode, *, actions="true", installed=None, build=False):
         environment = dict(os.environ, GITHUB_ACTIONS=actions,
                            PATH=str(self.bin) + os.pathsep + os.environ["PATH"],
                            PYAO_TEST_CALLS=str(self.calls), PYAO_TEST_BOUNDS=str(self.bounds),
-                           PYAO_TEST_APT_MODE=mode)
-        return subprocess.run(["sh", str(SCRIPT), "xvfb", "pulseaudio"],
+                           PYAO_TEST_APT_MODE=mode,
+                           PYAO_TEST_INSTALLED=json.dumps(installed or {}))
+        arguments = ["sh", str(SCRIPT)] + (["--build"] if build else [])
+        return subprocess.run([*arguments, "xvfb", "pulseaudio"],
                               env=environment, capture_output=True, text=True, timeout=5)
 
     def test_recovers_transient_update_and_keeps_signed_sources_and_explicit_packages(self):
@@ -89,6 +97,44 @@ if mode == "failed-install" and kind == "install": sys.exit(100)
         result = self.run_helper("ok", actions="false")
         self.assertNotEqual(0, result.returncode)
         self.assertFalse(self.calls.exists())
+
+    def test_satisfied_runtime_dependencies_do_not_run_apt_or_touch_its_indexes(self):
+        result = self.run_helper("ok", installed={
+            "xvfb": "installed 2:21.1.12-1", "pulseaudio": "installed 1:16.1",
+        })
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertFalse(self.calls.exists())
+        self.assertFalse(self.bounds.exists())
+        self.assertIn("xvfb", result.stdout)
+        self.assertIn("2:21.1.12-1", result.stdout)
+
+    def test_only_missing_packages_are_passed_to_the_signed_installer(self):
+        result = self.run_helper("ok", installed={"xvfb": "installed 2:21.1.12-1"})
+        self.assertEqual(0, result.returncode, result.stderr)
+        calls = json.loads(self.calls.read_text())
+        self.assertEqual(["update", "install"], [call["kind"] for call in calls])
+        installation = calls[-1]["args"]
+        self.assertNotIn("xvfb", installation)
+        self.assertEqual("pulseaudio", installation[-1])
+        self.assertIn("Dir::Etc::sourceparts=-", installation)
+
+    def test_unconfigured_or_removed_packages_are_not_mistaken_for_installed(self):
+        result = self.run_helper("ok", installed={
+            "xvfb": "config-files 2:21.1.12-1", "pulseaudio": "half-configured 1:16.1",
+        })
+        self.assertEqual(0, result.returncode, result.stderr)
+        installation = json.loads(self.calls.read_text())[-1]["args"]
+        self.assertEqual(["xvfb", "pulseaudio"], installation[-2:])
+
+    def test_builds_keep_complete_dependency_resolution_for_headers_and_graphics(self):
+        result = self.run_helper("ok", build=True, installed={
+            "xvfb": "installed 2:21.1.12-1", "pulseaudio": "installed 1:16.1",
+        })
+        self.assertEqual(0, result.returncode, result.stderr)
+        calls = json.loads(self.calls.read_text())
+        self.assertEqual(["update", "install"], [call["kind"] for call in calls])
+        self.assertEqual(["xvfb", "pulseaudio"], calls[-1]["args"][-2:])
+        self.assertNotIn("--build", calls[-1]["args"])
 
 
 if __name__ == "__main__":
