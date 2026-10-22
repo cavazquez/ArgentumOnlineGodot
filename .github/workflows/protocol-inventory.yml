@@ -43,6 +43,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             src
+            tests
             tools/analysis
             docs/audits/protocol-583
       - name: Verificar los mensajes del cliente contra el inventario revisado
