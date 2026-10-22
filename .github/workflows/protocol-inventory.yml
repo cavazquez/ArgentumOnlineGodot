@@ -17,6 +17,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: '0.13.1'
+          enable-cache: false
+      - name: Preparar el intérprete que entiende la sintaxis del servidor
+        run: uv python install 3.14
       - name: Leer la revisión fijada de la herramienta y el inventario
         id: peer
         run: |
@@ -40,4 +46,4 @@ jobs:
             tools/analysis
             docs/audits/protocol-583
       - name: Verificar los mensajes del cliente contra el inventario revisado
-        run: python3 build/protocol-server/tools/analysis/protocol_inventory.py --client . --check
+        run: uv run --no-project --python 3.14 python build/protocol-server/tools/analysis/protocol_inventory.py --client . --check
