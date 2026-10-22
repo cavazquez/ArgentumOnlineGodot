@@ -66,9 +66,30 @@ static func process(newText: String, hub_controller:HubController, game_context:
 	
 	if text.begins_with("/"):
 		if text.length() == 1:
-			return false
+			hub_controller.ShowConsoleMessage("Comando desconocido. Usa /AYUDA.")
+			return true
 			
-		var command_name = text.substr(1).split(" ")[0].to_lower()
+		var command_match := RegEx.create_from_string("^/(\\S+)").search(text)
+		if command_match == null:
+			hub_controller.ShowConsoleMessage("Comando desconocido. Usa /AYUDA.")
+			return true
+		var command_name := command_match.get_string(1).to_lower()
+		var canonical := "/" + command_name.to_upper()
+		var definition: Dictionary = ChatCommandCatalog.definitions.get(canonical, {})
+		if canonical == "/PING":
+			if game_context.pingTime == 0:
+				game_context.pingTime = maxi(1, Time.get_ticks_msec())
+				Global.pingStatus = "Midiendo…"
+				GameProtocol.WritePing()
+			else:
+				hub_controller.ShowConsoleMessage("Ya hay una medición de latencia pendiente.")
+			return true
+		if canonical == "/FUNDARCLAN":
+			hub_controller.show_guild_foundation_window()
+			return true
+		if definition.get("transport") == "text" or canonical in ChatCommandCatalog.MODERN:
+			GameProtocol.WriteTalk(text)
+			return true
 		var args = ChatCommandArgs.new()
 		args.parameters = text.substr(1).split(" ")
 		args.parameters.remove_at(0)
@@ -78,6 +99,8 @@ static func process(newText: String, hub_controller:HubController, game_context:
 		if command_handler.has(command_name): 
 			command_handler[command_name].call(args)
 			return true
+		hub_controller.ShowConsoleMessage("Comando desconocido. Usa /AYUDA para consultar los comandos.")
+		return true
 	return false
 	
 		

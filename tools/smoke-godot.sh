@@ -39,6 +39,16 @@ CHECK_LOG
 run_checked "$run_dir/protocol.log" "$godot_bin" --headless --path "$project_root" --quit-after 300 res://tests/protocol_smoke.tscn
 grep -q 'PROTOCOL_SMOKE: PASS' "$run_dir/protocol.log"
 
+run_checked "$run_dir/chat-commands.log" "$godot_bin" --headless --path "$project_root" --quit-after 600 res://tests/chat_commands.tscn
+grep -q 'CHAT_COMMANDS: PASS' "$run_dir/chat-commands.log"
+python3 - "$run_dir/chat-commands.log" <<'CHECK_CHAT_LOG'
+import pathlib
+import sys
+
+if "never-log-secret" in pathlib.Path(sys.argv[1]).read_text():
+    raise SystemExit("Los argumentos sensibles de un comando llegaron al log del cliente")
+CHECK_CHAT_LOG
+
 run_checked "$run_dir/r10-compile.log" "$godot_bin" --headless --path "$project_root" res://tests/r10_compile_smoke.tscn
 grep -q 'R10_COMPILE_SMOKE: PASS' "$run_dir/r10-compile.log"
 

@@ -117,11 +117,11 @@ func snapshot() -> Dictionary:
 	view.gear_labels = {"weapon": hub.get_node("%LblWeapon").text,
 		"shield": hub.get_node("%LblShield").text, "armor": hub.get_node("%LblArmor").text,
 		"helmet": hub.get_node("%LblHelmet").text}
-	view.statuses = {"paralyzed": context.userParalizado, "dumb": context.userEstupido, "blind": context.userCiego}
+	view.statuses = {"paralyzed": context.userParalizado, "dumb": context.userEstupido, "blind": context.userCiego, "meditating": context.userMeditar}
 	view.actor_visibility = {}
 	view.actor_equipment = {}
 	for actor in ScreenController.currentScreen._gameWorld.GetMapContainer()._characterCollection:
-		view.actor_visibility[str(actor.instanceId)] = {"renderer_visible": actor.renderer.visible, "visible_in_tree": actor.renderer.is_visible_in_tree(), "name_visible": actor._nameLabel.visible, "internal_invisible": actor.GetCharacterInvisible()}
+		view.actor_visibility[str(actor.instanceId)] = {"renderer_visible": actor.renderer.visible, "visible_in_tree": actor.renderer.is_visible_in_tree(), "name_visible": actor._nameLabel.visible, "name": actor.GetCharacterName(), "internal_invisible": actor.GetCharacterInvisible()}
 		if actor.instanceId < 10000:
 			var layers := {}
 			for layer in ["body", "head", "weapon", "shield", "helmet"]:

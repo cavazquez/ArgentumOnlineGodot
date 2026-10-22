@@ -19,6 +19,10 @@ const OUTLINE_SHADER = preload("res://shaders/outline.gdshader")
 var _pasoDerecho:bool
 var _targetPosition:Vector2
 var _charInvisible:bool
+var showName:bool = true:
+	set(value):
+		showName = value
+		_update_name_visibility()
 var _isPlayer:bool = false
 
 var instanceId:int:
@@ -88,7 +92,7 @@ func SetCharacterInvisible(v:bool) -> void:
 	if _spawn_fade != null: _spawn_fade.kill()
 	renderer.modulate.a = 1.0
 	renderer.visible = not v
-	_nameLabel.visible = not v and Global.showNames
+	_update_name_visibility()
 
 func FadeIn() -> void:
 	if _spawn_fade != null: _spawn_fade.kill()
@@ -118,6 +122,11 @@ func GetBoundaries() -> Rect2:
 		
 func SetCharacterName(text:String) -> void:
 	_nameLabel.text = text
+	_update_name_visibility()
+
+func _update_name_visibility() -> void:
+	if is_instance_valid(_nameLabel):
+		_nameLabel.visible = showName and not _charInvisible and Global.showNames and not _nameLabel.text.is_empty()
 	
 func SetCharacterNameColor(color:Color) -> void:
 	_nameLabel.self_modulate = color
@@ -195,5 +204,5 @@ func _on_dialog_font_size_changed(value: int) -> void:
 
 func _apply_preferences() -> void:
 	if _dialog_revealing and not Global.animateDialogs: _reveal_dialog()
-	_nameLabel.visible = not _charInvisible and Global.showNames
+	_update_name_visibility()
 	_nameLabel.add_theme_font_size_override("font_size", Global.nameFontSize)

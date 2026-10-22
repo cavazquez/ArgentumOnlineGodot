@@ -16,6 +16,7 @@ func CreateCharacter(data:CharacterCreate) -> Character:
 	var character = CharacterScene.instantiate() as Character
 	character.instanceId = data.charIndex
 	character.gridPosition = Vector2i(data.x, data.y)
+	character.showName = data.showName
 	_mapContainer.AddCharacter(character)
 	
 	character.SetCharacterName(data.name)

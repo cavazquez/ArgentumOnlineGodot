@@ -19,6 +19,7 @@ var fxLoops:int
 
 var nickColor:int
 var privileges:int
+var showName:bool = true
 
 func _init(reader:StreamPeerBuffer = null) -> void:
 	if reader: Deserialize(reader)
@@ -38,3 +39,4 @@ func Deserialize(reader:StreamPeerBuffer) -> void:
 	name = Utils.GetUnicodeString(reader)
 	nickColor = reader.get_u8()
 	privileges = reader.get_u8()
+	showName = reader.get_u8() == 1
