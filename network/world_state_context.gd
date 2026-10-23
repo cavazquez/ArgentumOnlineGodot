@@ -6,6 +6,7 @@ var epoch := ""
 var sequence := 0
 var states: Dictionary = {}
 var revisions: Dictionary = {}
+var response_ids: Dictionary = {}
 var item_states: Dictionary = {}
 var _trades: Dictionary = {}
 var _active_trade := ""
@@ -17,6 +18,7 @@ func clear() -> void:
 	states.clear()
 	item_states.clear()
 	revisions.clear()
+	response_ids.clear()
 	_trades.clear()
 	_active_trade = ""
 	_trade_revision = -1
@@ -42,6 +44,7 @@ func accept(value: Dictionary) -> bool:
 			item_states[payload.scope][int(row[0])] = row[1].duplicate(true)
 	states[value.kind] = payload
 	revisions[value.kind] = value.revision
+	response_ids[value.kind] = value.id
 	changed.emit(value.kind, payload.duplicate(true), value.revision)
 	return true
 

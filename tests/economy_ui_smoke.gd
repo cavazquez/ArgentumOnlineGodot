@@ -90,6 +90,31 @@ func _run() -> void:
 	social._selected_member = 2
 	social._refresh_buttons()
 	check(not social._member_actions.kick.disabled, "El líder no puede administrar")
+	GameProtocol.Clear()
+	social.request_state()
+	check(social.pending() and social._member_actions.kick.disabled, "La caché habilita acciones antes de recibir la consulta actual")
+	social._receive("tax", {"wallet": 300}, "other")
+	check(social.pending(), "Una respuesta ajena termina la consulta de grupo")
+	social._receive("party", party, "r1")
+	check(social.pending(), "Una respuesta de otra consulta libera datos guardados")
+	social._read_deadline = Time.get_ticks_msec() - 1
+	social._process(0)
+	check(social.pending() and social._member_actions.kick.disabled, "El timeout habilita acciones con estado viejo")
+	GameProtocol.Clear()
+	social.mutate("party.kick", {"username": "Bob"})
+	check(GameProtocol.Flush().is_empty(), "Se ejecuta una mutación durante la lectura pendiente")
+	ClientInterface.world_state.response_ids["party"] = social._read_id
+	social._receive("party", party, "r1")
+	check(not social.pending(), "La respuesta fresca no libera la ventana")
+	social._selected_member = 2
+	social._refresh_buttons()
+	check(not social._member_actions.kick.disabled, "La respuesta fresca no restaura las acciones permitidas")
+	social._pending = {"id": "confirmed"}
+	social._receive("result", {"id": "confirmed", "applied": true, "message": "Confirmado"}, "")
+	check(social.pending() and social._member_actions.kick.disabled, "El resultado habilita acciones antes del estado confirmado")
+	ClientInterface.world_state.response_ids["party"] = ""
+	social._receive("party", party, "r1")
+	check(not social.pending(), "El estado posterior a la mutación deja la ventana bloqueada")
 	social.confirm_action("party.kick", {"username": "Bob"}, "Expulsar")
 	party.permissions = ["leave"]
 	party.leader = 2
@@ -100,6 +125,15 @@ func _run() -> void:
 	social.mutate("party.invite", {"username": "名字"})
 	check(not social.pending() and GameProtocol.Flush().is_empty(), "Un texto rechazado localmente deja una operación bloqueada")
 	social.queue_free()
+	var finder := ExpansionWindow.new("finder")
+	add_child(finder)
+	ClientInterface.capabilities.enabled |= ClientCapabilities.EXPANSION
+	finder._receive("finder", {"rows": [], "requests": [], "leader": true}, "r1")
+	finder.request_state()
+	check(finder.pending(), "El buscador no espera su lectura fresca")
+	finder._receive("reset", {}, "")
+	check(not finder.pending() and finder.state.is_empty(), "Desconectar conserva una lectura pendiente")
+	finder.queue_free()
 	var line := LineEdit.new()
 	add_child(line)
 	var helper := ChatInputHelper.new()

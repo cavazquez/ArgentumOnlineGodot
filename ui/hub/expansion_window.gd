@@ -106,8 +106,7 @@ func request_state() -> void:
 	if topic == "finder": params = _filters()
 	elif topic == "quests": params.npc = _npc
 	elif topic == "faction": params = {}
-	if not GameProtocol.WriteWorldAction(topic + ".read", params):
-		status.text = "No se pudo consultar el estado."
+	request_topic_state(params)
 
 func _filters() -> Dictionary:
 	var activities := ["", "caza", "recoleccion", "misiones", "social"]
