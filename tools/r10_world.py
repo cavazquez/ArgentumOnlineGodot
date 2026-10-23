@@ -296,9 +296,11 @@ class R10World:
             far = next(
                 (
                     (x, y)
-                    for x in range(nx - 6, nx + 7)
-                    for y in range(ny - 6, ny + 7)
-                    if 5 <= abs(x - nx) + abs(y - ny) <= 6 and available(x, y)
+                    for x in range(nx - 14, nx + 15)
+                    for y in range(ny - 14, ny + 15)
+                    # Agro de ocho tiles más tres de ajuste de llegada. La
+                    # distancia sigue dentro de los 30 de experiencia de grupo.
+                    if 12 <= abs(x - nx) + abs(y - ny) <= 14 and available(x, y)
                 ),
                 None,
             )
@@ -946,6 +948,9 @@ class R10World:
                 "fantasma visible",
             )
             if method == "spell":
+                # El acompañante esperó fuera del agro durante el ataque. Para
+                # resucitar debe estar de nuevo dentro del alcance del cliente.
+                self.relocate(store, {1: (1, x + 1, y)}, allow_adjustment=True)
                 self.command(1, "cast", slot=4, x=x, y=y)
             else:
                 priest = next(
