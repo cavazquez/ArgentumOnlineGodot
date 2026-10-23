@@ -386,6 +386,12 @@ class FullWorld(SkillsWorld):
             stats={"class_id": 5, "gold": 0},
         )
         self.command(2, "equip", slot=1)
+        inventory = f"player:{self.ids[2]}:inventory"
+        equipment = f"player:{self.ids[2]}:equipment"
+        self.wait(lambda: store.hget(equipment, "weapon") == "1", "equipo protegido confirmado")
+        protected = store.hget(inventory, "slot_1")
+        if self.items(store, 2).get(1) != (15, 1):
+            raise RuntimeError("Falta el equipo individual preparado para la prueba de robo")
         before = sum(self.count(store, i, 58) for i in (1, 2))
         for _ in range(35):
             self.attempt(store, 2, x + 1, y)
@@ -395,7 +401,7 @@ class FullWorld(SkillsWorld):
             raise RuntimeError("El ladrón no robó un objeto permitido")
         if sum(self.count(store, i, 58) for i in (1, 2)) != before:
             raise RuntimeError("Robo no conservó los objetos")
-        if store.hget(f"player:{self.ids[2]}:inventory", "slot_1") != "15:1":
+        if store.hget(inventory, "slot_1") != protected or store.hget(equipment, "weapon") != "1":
             raise RuntimeError("Se robó equipo protegido")
         self.both_screens("thief-item-theft")
         self.passed("full-thief", protected_equipment=True, objects_conserved=True)
