@@ -19,4 +19,9 @@ def inventory_cell(slot, hidden_slots=()):
     if slot in hidden:
         raise ValueError("Equipped items are absent from the backpack")
     visible_index = slot - 1 - sum(value < slot for value in hidden)
-    return (616 + 32 * (visible_index % 5), 180 + 32 * (visible_index // 5))
+    # The authored grid has a 160px minimum and GROW_DIRECTION_BOTH.
+    # Hiding five/six equipment cells removes its sixth 32px row, so
+    # its top moves down 16px while the panel's center stays fixed.
+    height = max(160, ((30 - len(hidden) + 4) // 5) * 32)
+    top_shift = (192 - height) // 2
+    return (616 + 32 * (visible_index % 5), 180 + top_shift + 32 * (visible_index // 5))
