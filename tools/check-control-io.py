@@ -12,8 +12,8 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-# Windows measured a 10.16 s engine boot before executing the probe script.
-# This budget covers engine startup; read_request still allows only 1000 ms.
+# Separate engine startup from the reader's unchanged 1000 ms I/O budget.
+# Child logs go directly to files so waiting for its signal never blocks stdout.
 ENGINE_STARTUP_SECONDS = 30
 
 
@@ -76,21 +76,24 @@ def run(godot, output):
                        "--mode", mode, "--request", str(request), "--result", str(result), "--observed", str(observed), "--timeout-ms", str(timeout)]
             return request, result, observed, command
 
+        def launch(name, command):
+            # Drain output while waiting for the child signal, also on Windows.
+            with (output / (name + ".log")).open("wb") as log:
+                return subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
+
         def finish(name, process, result):
             try:
-                stdout, stderr = process.communicate(timeout=ENGINE_STARTUP_SECONDS + 2)
+                process.wait(timeout=ENGINE_STARTUP_SECONDS + 2)
             except subprocess.TimeoutExpired:
                 process.kill()
-                stdout, stderr = process.communicate()
-                (output / (name + ".log")).write_bytes(stdout + stderr)
+                process.wait()
                 (output / (name + "-timeout.json")).write_text(json.dumps({
                     "phase": "process-timeout", "process_returncode": process.returncode,
                     "case_started_unix": case_started[name], "observed_unix": time.time(),
                     "files": file_snapshot(),
                 }, indent=2) + "\n", encoding="utf-8")
                 raise
-            log = stdout + stderr
-            (output / (name + ".log")).write_bytes(log)
+            log = (output / (name + ".log")).read_bytes()
             assert process.returncode == 0 and b"ERROR:" not in log, name
             value = json.loads(result.read_text(encoding="utf-8"))
             value["process_seconds"] = round(time.time() - case_started[name], 3)
@@ -114,11 +117,11 @@ def run(godot, output):
 
         body = json.dumps({"op": "snapshot", "text": "lectura ñ"}, ensure_ascii=False).encode("utf-8")
         request, result, _, command = start("healthy", body)
-        value = finish("healthy", subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE), result)
+        value = finish("healthy", launch("healthy", command), result)
         assert value["ok"] and value["attempts"] == 1 and value["operation"] == "snapshot" and value["byte_count"] == len(body)
 
         request, result, observed, command = start("legacy-locked", body, mode="legacy")
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = launch("legacy-locked", command)
         try:
             wait_observed("legacy-locked", process, observed, result)
             # Lock after the old reader checked existence, before it opens the file.
@@ -128,30 +131,31 @@ def run(godot, output):
         finally:
             if process.poll() is None:
                 process.kill()
-                process.communicate()
+                process.wait()
         assert value["file_exists"] and value["byte_count"] == 0 and value["io_error"] != 0
 
         request, result, observed, command = start("transient-lock", body)
         with locked(request):
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = launch("transient-lock", command)
             wait_observed("transient-lock", process, observed, result)
         value = finish("transient-lock", process, result)
         assert value["ok"] and value["attempts"] > 1 and value["io_errors"] and value["byte_count"] == len(body)
 
         request, result, _, command = start("permanent-lock", body, timeout=200)
         with locked(request):
-            value = finish("permanent-lock", subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE), result)
+            value = finish("permanent-lock", launch("permanent-lock", command), result)
         assert not value["ok"] and value["kind"] == "open" and value["io_error"] != 0 and value["elapsed_ms"] >= 200
 
         for name, payload, kind in (("empty", b"", "empty"), ("truncated", b'{"op":', "json"),
                                     ("array", b"[]", "shape"), ("null", b"null", "shape"),
                                     ("missing-op", b"{}", "shape"), ("invalid-op", b'{"op":42}', "shape")):
             _, result, _, command = start(name, payload)
-            value = finish(name, subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE), result)
+            value = finish(name, launch(name, command), result)
             assert not value["ok"] and value["kind"] == kind and value["attempts"] == 1 and value["io_error"] == 0
     proof = {"passed": True, "platform": sys.platform, "native_windows_lock": os.name == "nt", "cases": records,
              "production_data_used": False, "login_budget_changed": False,
-             "engine_startup_budget_seconds": ENGINE_STARTUP_SECONDS, "read_budget_ms": 1000}
+             "engine_startup_budget_seconds": ENGINE_STARTUP_SECONDS, "read_budget_ms": 1000,
+             "output_transport": "regular-file"}
     (output / "result.json").write_text(json.dumps(proof, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"passed": True, "cases": len(records), "platform": sys.platform}))
 
