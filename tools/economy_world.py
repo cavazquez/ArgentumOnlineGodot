@@ -23,7 +23,7 @@ class EconomyWorld(R10World):
     def open(self, index, topic):
         self.command(index, "close")
         self.command(index, "world_open", topic=topic)
-        return self.view(index, lambda v: v.get("world_window") == topic and bool(v.get("world_window_state")), "ventana " + topic)
+        return self.view(index, lambda v: v.get("world_window") == topic and bool(v.get("world_window_state")) and not v.get("world_pending", True), "ventana " + topic)
 
     def changed(self, index, condition, label):
         return self.view(index, lambda v: not v.get("world_pending", True) and condition(v.get("world_window_state", {})), label)
@@ -45,6 +45,7 @@ class EconomyWorld(R10World):
         assert "kick" not in state["world_window_state"]["permissions"]
         self.command(1, "capture", label="party")
         for index in (1, 2):
+            self.open(index, "party")
             self.command(index, "world_action", topic="party", action="leave")
             self.changed(index, lambda s: s.get("party_id") == 0, "salir de grupo confirmado")
         for index in (1, 2):

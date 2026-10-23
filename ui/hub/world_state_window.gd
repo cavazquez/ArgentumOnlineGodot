@@ -8,6 +8,9 @@ var body: VBoxContainer
 var status: Label
 var _pending: Dictionary = {}
 var _deadline := 0
+var _reading := false
+var _read_deadline := 0
+var _read_id := ""
 var _retry: Button
 var _refresh: Button
 var _confirmation: ConfirmationDialog
@@ -86,11 +89,22 @@ func _visibility() -> void:
 
 func request_state() -> void:
 	var params := {"page": int(state.get("page", 0))} if topic == "clan" else {}
-	if not GameProtocol.WriteWorldAction(topic + ".read", params):
+	request_topic_state(params)
+
+func request_topic_state(params: Dictionary) -> void:
+	# La caché sirve para dibujar; las acciones esperan la siguiente respuesta.
+	_reading = true
+	_read_deadline = 0
+	_read_id = GameProtocol.NewSkillActionId()
+	if GameProtocol.WriteWorldAction(topic + ".read", params, "", _read_id):
+		_read_deadline = Time.get_ticks_msec() + 5000
+		status.text = "Actualizando información…"
+	else:
 		status.text = "Esta función requiere el servidor actualizado."
+	_render()
 
 func pending() -> bool:
-	return not _pending.is_empty()
+	return _reading or not _pending.is_empty()
 
 func mutate(action: String, params: Dictionary = {}) -> void:
 	if pending() or revision.is_empty() or ClientInterface.world_state.epoch.is_empty(): return
@@ -132,6 +146,9 @@ func _resend() -> void:
 func _receive(kind: String, data: Dictionary, value: String) -> void:
 	if kind == "reset":
 		_pending.clear()
+		_reading = false
+		_read_deadline = 0
+		_read_id = ""
 		state.clear()
 		revision = ""
 		_confirmation.hide()
@@ -145,16 +162,29 @@ func _receive(kind: String, data: Dictionary, value: String) -> void:
 		else:
 			_pending.clear()
 			_retry.hide()
+			# El resultado precede al estado confirmado por el servidor.
+			_reading = true
+			_read_id = ""
+			_read_deadline = Time.get_ticks_msec() + 5000
 		_deadline = 0
 		_render()
 	elif kind == topic:
+		var was_reading: bool = _reading and ClientInterface.world_state.response_ids.get(topic, "") == _read_id
+		var awaited_query := not _read_id.is_empty()
+		if was_reading:
+			_reading = false
+			_read_deadline = 0
+			_read_id = ""
 		if revision != value: _confirmation.hide()
 		state = data.duplicate(true)
 		revision = value
-		if _pending.is_empty() and status.text == "Esperando estado del servidor…": status.text = "Estado confirmado."
+		if _pending.is_empty() and ((was_reading and awaited_query) or status.text == "Esperando estado del servidor…"): status.text = "Estado confirmado."
 		_render()
 
 func _process(_delta: float) -> void:
+	if _read_deadline > 0 and Time.get_ticks_msec() >= _read_deadline:
+		_read_deadline = 0
+		status.text = "La consulta sigue pendiente. Usá Actualizar estado para volver a consultar."
 	if _deadline > 0 and Time.get_ticks_msec() >= _deadline:
 		_deadline = 0
 		_retry.show()

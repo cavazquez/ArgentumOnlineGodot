@@ -37,6 +37,14 @@ def representation_differences(expected, actual, player, update_range):
     return result
 
 
+def name_visible(row):
+    """Sólo habitantes, guardias y loteros amistosos conservan nombre visible."""
+    return (row.get("role", "inhabitant") in {"inhabitant", "guard", "lottery"}
+            and row.get("is_hostile", "False") == "False"
+            and row.get("is_tamed", "False") == "False"
+            and row.get("summoned_by_user_id", "0") == "0")
+
+
 def prepare_fixture(work, output):
     from src.core.server_initializer import ServerInitializer
     from src.game.map_manager import MapManager
@@ -86,10 +94,7 @@ class NPCWorld(R10World):
             for row in self.current(store, map_id):
                 key = row["char_index"]
                 label = view.get("actor_visibility", {}).get(key, {})
-                visible = (row.get("role", "inhabitant") in {"inhabitant", "guard"}
-                           and row.get("is_hostile", "False") == "False"
-                           and row.get("is_tamed", "False") == "False"
-                           and row.get("summoned_by_user_id", "0") == "0")
+                visible = name_visible(row)
                 if label.get("name") != row["name"] or label.get("name_visible") != visible:
                     differences.append({"char_index": key, "name": row["name"],
                                         "expected_name_visible": visible, "actual_label": label})

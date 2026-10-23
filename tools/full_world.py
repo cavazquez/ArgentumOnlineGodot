@@ -482,7 +482,8 @@ class FullWorld(SkillsWorld):
         self.wait(lambda: self.stats(store, 2)["min_hp"] <= 0, "muerte causada por PvP")
         dead = self.view(
             2,
-            lambda v: v["hp"] <= 0 and "Muerto" in v.get("status_text", ""),
+            lambda v: v["hp"] <= 0 and "Muerto" in v.get("status_text", "")
+            and v["appearance"] == [500, 500],
             "muerte PvP en la víctima",
         )
         self.view(

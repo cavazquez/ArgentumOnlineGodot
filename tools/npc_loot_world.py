@@ -149,7 +149,14 @@ class NPCLootWorld(FullWorld):
                 drops.append({"id": 12, "quantity": item["quantity"], "picker": picker})
                 continue
             inv = store.hgetall(f"player:{self.ids[picker]}:inventory")
-            slot = int(next(k.removeprefix("slot_") for k, row in inv.items() if row == f"{item['item_id']}:{item['quantity']}"))
+            from src.utils.inventory_slot import InventorySlot
+            matches = [(int(k.removeprefix("slot_")), parsed) for k, row in inv.items()
+                       if (parsed := InventorySlot.parse(row)) and parsed.item_id == item["item_id"]
+                       and set(item.get("instance_ids", [])) <= set(parsed.instance_ids)]
+            assert len(matches) == 1, {"drop": item, "inventory": inv}
+            slot, collected = matches[0]
+            assert collected.quantity >= item["quantity"]
+            assert set(item.get("instance_ids", [])) <= set(collected.instance_ids)
             raw = catalog.get_item_data(item["item_id"])
             view = self.view(picker, lambda v: v["items"].get(str(slot), [0])[0] == item["item_id"], "objeto recogido en inventario")
             details = view["item_details"][str(slot)]

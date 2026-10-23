@@ -19,6 +19,13 @@ from PIL import ImageGrab
 from runtime_log import classify_runtime_log
 
 
+def login_visible(screenshot):
+    """Comprueba las tres etiquetas del formulario antes de escribir o pulsar."""
+    regions = ((330, 178, 480, 199), (345, 240, 455, 260), (305, 432, 395, 458))
+    return all(sum(count for count, value in screenshot.crop(box).convert("L").getcolors(100000)
+                   if value > 130) > 40 for box in regions)
+
+
 class Input:
     def __init__(self):
         self.x = ctypes.CDLL("libX11.so.6")
@@ -117,24 +124,31 @@ def main():
     with (output / "snap-client.log").open("wb") as log:
         process = subprocess.Popen(command, env=environment, stdout=log, stderr=subprocess.STDOUT, cwd=output)
         try:
-            time.sleep(5)
-            if process.poll() is not None:
-                raise RuntimeError("El cliente instalado no abrió; revisar snap-client.log")
+            startup_started = time.monotonic()
+            while True:
+                screenshot = ImageGrab.grab(xdisplay=os.environ["DISPLAY"])
+                if login_visible(screenshot):
+                    break
+                if process.poll() is not None or time.monotonic() - startup_started > 60:
+                    screenshot.save(output / "snap-startup-failure.png")
+                    raise RuntimeError("El formulario del cliente instalado no abrió; revisar snap-client.log")
+                time.sleep(.2)
+            startup_seconds = time.monotonic() - startup_started
             controls = Input()
             ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).save(output / "snap-login.png")
-            controls.click(400, 256)
+            controls.click(400, 218)
             controls.key("Control_L", True)
             controls.tap("a")
             controls.key("Control_L", False)
             controls.text(os.environ["PYAO_TEST_USERNAME"])
-            controls.click(365, 317)
+            controls.click(365, 280)
             controls.key("Control_L", True)
             controls.tap("a")
             controls.key("Control_L", False)
             controls.text(os.environ["PYAO_TEST_PASSWORD"])
-            controls.click(268, 362)
+            controls.click(268, 396)
             login_started = time.monotonic()
-            controls.click(344, 411)
+            controls.click(344, 444)
             deadline = time.monotonic() + 40
             while True:
                 screenshot = ImageGrab.grab(xdisplay=os.environ["DISPLAY"])
@@ -183,6 +197,7 @@ def main():
             if not diagnostics["passed"] or os.environ["PYAO_TEST_PASSWORD"] in text:
                 raise RuntimeError("El cliente registró un error o una credencial efímera")
             (output / "snap-ui.json").write_text(json.dumps({"passed": True,
+                "startup_to_login_seconds": round(startup_seconds, 3),
                 "login_to_world_seconds": round(login_seconds, 3),
                 "installed": args.executable is None, "tls": True, "audio_driver": audio,
                 "map_rendered": True, "minimap_rendered": True, "console_rendered": True,

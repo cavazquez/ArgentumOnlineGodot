@@ -9,6 +9,12 @@ import npc_world
 
 
 class NPCEvidenceTests(unittest.TestCase):
+    def test_friendly_lottery_name_and_hostile_pet_names(self):
+        self.assertTrue(npc_world.name_visible({"role": "lottery"}))
+        self.assertFalse(npc_world.name_visible({"role": "animal"}))
+        for field, value in (("is_hostile", "True"), ("is_tamed", "True"), ("summoned_by_user_id", "1")):
+            self.assertFalse(npc_world.name_visible({"role": "lottery", field: value}))
+
     def test_far_positions_use_the_last_update_but_visible_drift_is_rejected(self):
         expected = {"10001": [10, 10, 13, 0], "10002": [51, 50, 13, 0]}
         actual = {"10001": [11, 10, 13, 0], "10002": [51, 50, 13, 0]}
