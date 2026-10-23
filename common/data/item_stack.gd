@@ -1,6 +1,7 @@
 extends RefCounted
 class_name ItemStack
 
+var instance_state: Dictionary = {}
 var equipped:bool
 var quantity:int
 var item:Item

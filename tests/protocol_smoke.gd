@@ -73,6 +73,9 @@ func _ready() -> void:
 	_verify_ui()
 	_verify_screen_handoff()
 	_verify_receive_reconnection()
+	AudioManager.StopAll()
+	await get_tree().process_frame
+	await get_tree().create_timer(0.15).timeout
 	print("PROTOCOL_SMOKE: ", "FAIL" if failed else "PASS")
 	get_tree().quit(1 if failed else 0)
 
@@ -377,6 +380,24 @@ func _verify_ui() -> void:
 	inventory_click.pressed = false
 	cell._gui_input(inventory_click)
 	check(GameProtocol.Flush() == PackedByteArray([30, 30]), "Un clic completo perdió el uso habitual")
+	var tool := Item.new()
+	tool.index = 561
+	tool.type = 2
+	tool.name = "Hacha de Leñador"
+	game._gameContext.playerInventory.SetSlot(3, ItemStack.new(1, true, tool))
+	hub._inventoryContainer.ClearSelection()
+	game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_U].elapsed_time = -1000
+	hub._use_object()
+	check(GameProtocol.Flush() == PackedByteArray([30, 4]), "U no usa la herramienta equipada fuera de la mochila")
+	game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_U].elapsed_time = -1000
+	hub.equipment_panel.show_choices("weapon")
+	hub.equipment_panel.use_buttons[3].pressed.emit()
+	check(GameProtocol.Flush() == PackedByteArray([30, 4]) and not hub._inventoryContainer.GetInventorySlot(3).visible, "Usar desde EQUIPO cambió el slot o duplicó la herramienta")
+	game._gameContext.trading = true
+	game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_U].elapsed_time = -1000
+	hub._RequestEquipmentUse(3)
+	check(GameProtocol.IsEmpty(), "El equipo permite usar objetos durante un intercambio")
+	game._gameContext.trading = false
 	var gold_reader := StreamPeerBuffer.new()
 	gold_reader.put_32(9930)
 	gold_reader.seek(0)

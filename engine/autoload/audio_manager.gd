@@ -4,6 +4,25 @@ var _playbacks: Array[WeakRef] = []
 var _active := {}
 var _music: AudioStreamPlayer
 var _track := 0
+var _shutdown := false
+var _pending_track := 0
+var _web_unlocked := false
+const INTRO_TRACK := 1
+
+func Shutdown() -> void:
+	_shutdown = true
+	StopAll()
+
+func PlayIntroduction() -> void:
+	PlayMusic(INTRO_TRACK)
+
+func BeginGame() -> void:
+	PlayMusic(0)
+
+func _input(event: InputEvent) -> void:
+	if OS.has_feature("web") and not _web_unlocked and ((event is InputEventMouseButton and event.pressed) or (event is InputEventKey and event.pressed)):
+		_web_unlocked = true
+		PlayMusic(_pending_track)
 
 func TrackPlayback(playback: AudioStreamPlayback) -> void:
 	if playback != null: _playbacks.append(weakref(playback))
@@ -24,6 +43,7 @@ func StopAll() -> void:
 	_active.clear()
 	_music = null
 	_track = 0
+	_pending_track = 0
 	for child in get_children():
 		if child is AudioStreamPlayer:
 			child.stop()
@@ -62,6 +82,9 @@ func PlayAudio(waveId:int, prevent_overlap: bool = false) -> void:
 		_playbacks.append(weakref(playback))
 
 func PlayMusic(track: int) -> void:
+	if _shutdown: return
+	_pending_track = track
+	if OS.has_feature("web") and not _web_unlocked: return
 	if track == _track and is_instance_valid(_music) and _music.playing: return
 	if is_instance_valid(_music):
 		_music.stop()

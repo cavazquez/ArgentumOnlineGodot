@@ -26,13 +26,20 @@ func _ready() -> void:
 			if ok:
 				print("%s loaded" % package)
 			else:
-				print("%s could not be loaded" % package)
-		else:
-			print("%s not found" % package)
+				progressBar.hide()
+				push_error("Paquete adicional inválido: " + str(packages[package]))
+				Utils.ShowAlertDialog("Recursos del juego", "No se pudo abrir el paquete adicional " + str(packages[package]) + ". Repará la instalación.", self)
+				return
 		progressBar.value += 1
 	
 	# Emitir señal cuando todo esté listo
 	resources_loaded.emit()
+	if not GameAssets.loaded:
+		var ok: bool = await GameAssets.assets_ready
+		if not ok:
+			progressBar.hide()
+			Utils.ShowAlertDialog("Recursos del juego", "La instalación está incompleta. No se pudo cargar: " + ", ".join(GameAssets.load_errors), self)
+			return
 
 	await get_tree().create_timer(0.25).timeout
 	progressBar.hide()

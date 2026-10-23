@@ -7,7 +7,7 @@ description: |
   Cliente de ProyectoAO con el protocolo y los recursos propios del proyecto.
   Permite crear personajes, explorar, comerciar y jugar con un servidor PyAO compatible.
   El paquete contiene el cliente y sus recursos. Se necesita una conexión a un servidor.
-license: MIT
+license: MIT AND GPL-2.0-only
 grade: devel
 confinement: strict
 platforms:
@@ -46,6 +46,8 @@ parts:
       install -Dm644 snap/gui/pyao-client.desktop "$CRAFT_PART_INSTALL/share/applications/pyao-client.desktop"
       install -Dm644 icon.svg "$CRAFT_PART_INSTALL/meta/gui/pyao-client.svg"
       install -Dm644 LICENSE "$CRAFT_PART_INSTALL/share/doc/pyao-client/LICENSE"
+      install -Dm644 Assets/Equipment/Boots/LICENSE.txt "$CRAFT_PART_INSTALL/share/doc/pyao-client/Boots-LICENSE.txt"
+      install -Dm644 Assets/Equipment/Boots/upstream/COPYING "$CRAFT_PART_INSTALL/share/doc/pyao-client/Boots-GPL-2.0.txt"
       install -Dm644 README.md "$CRAFT_PART_INSTALL/share/doc/pyao-client/README.md"
       source_sha=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["commit"])' "$CRAFT_PROJECT_DIR/snap/pyao-source.json")
       printf '%s\n' "$source_sha" > "$CRAFT_PART_INSTALL/share/doc/pyao-client/source-commit"

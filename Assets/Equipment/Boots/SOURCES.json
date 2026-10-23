@@ -1,0 +1,19 @@
+{
+  "repository": "https://github.com/themanaworld/tmwa-client-data",
+  "commit": "3ab88eb52cb995be3d85c96810fe1826bc429ede",
+  "license": "GPL-2.0-only",
+  "sha256": {
+    "COPYING": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+    "assassin-boots.png": "b385a8dee8a7fe1ccae33e8c78db42664a0849b9569b51d5fd54deba2412fab3",
+    "assassin-boots.xml": "3fa5d1dba7a10c09ab4185487ed7f8eb833828f3ecbfe79cdcdd455ca8db8808",
+    "base.xml": "482142f9d773953e93702b6cbdb4168d2a521620c66c4df466d83e49720cd72d",
+    "bromenalboots.png": "cee480c1b270b0f52022b369b1d7a50232075a22a1eb7e7220276adf122a27c0",
+    "bromenalboots.xml": "4bd575c413bcf05aed34b47c2fde9bdd6ce76ea5b4a82cffbf43aea54a90862f",
+    "furboots.png": "640bff432d3c43e42a91bdc3a9f219446c713970c57203a04895583e624e5416",
+    "furboots.xml": "a032650ca6c80278bca9f548f58fe0e3c710ce6cd25731a1294b0625fe3a70aa",
+    "license-upstream.md": "096b3dc00972bf8017e9b09b5b93cf004936ccd66672a3672ec8be018da37b64",
+    "neutral.xml": "e57767ee62f54a8ef62402ceae72ff15786185bc8f15693b123e3401e6bdae80",
+    "warlordboots.png": "0cc8a5e824c20f248997c43af5802dc997d612dd5fc97d57b576e48fd49230af",
+    "warlordboots.xml": "5685b689299554f1633515200ee2a81de3e771c086059cac24ce65bb7496486f"
+  }
+}

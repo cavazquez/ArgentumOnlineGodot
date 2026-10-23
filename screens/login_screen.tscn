@@ -15,10 +15,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -153.0
-offset_top = -118.0
-offset_right = 153.0
-offset_bottom = 118.0
+offset_left = -210.0
+offset_top = -175.0
+offset_right = 210.0
+offset_bottom = 205.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -28,10 +28,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -151.0
-offset_top = -260.0
-offset_right = 152.0
-offset_bottom = -125.0
+offset_left = -210.0
+offset_top = -235.0
+offset_right = 210.0
+offset_bottom = -180.0
 grow_horizontal = 2
 grow_vertical = 2
 metadata/_edit_group_ = true
@@ -63,19 +63,22 @@ max_value = 65535.0
 value = 7666.0
 rounded = true
 
-[node name="UseTLS" type="CheckBox" parent="CanvasLayer/PanelContainer/MarginContainer/ConnectionOptions"]
+[node name="SecurityOptions" type="VBoxContainer" parent="CanvasLayer"]
+unique_name_in_owner = true
+
+[node name="UseTLS" type="CheckBox" parent="CanvasLayer/SecurityOptions"]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
 text = "TLS: verificar certificado y servidor"
 tooltip_text = "Desmarcar sólo para conectar explícitamente por TCP de desarrollo"
 
-[node name="CaPath" type="LineEdit" parent="CanvasLayer/PanelContainer/MarginContainer/ConnectionOptions"]
+[node name="CaPath" type="LineEdit" parent="CanvasLayer/SecurityOptions"]
 unique_name_in_owner = true
 layout_mode = 2
 placeholder_text = "CA propia (opcional): /ruta/ca.crt"
 
-[node name="CancelConnection" type="Button" parent="CanvasLayer/PanelContainer/MarginContainer/ConnectionOptions"]
+[node name="CancelConnection" type="Button" parent="CanvasLayer/SecurityOptions"]
 unique_name_in_owner = true
 layout_mode = 2
 visible = false

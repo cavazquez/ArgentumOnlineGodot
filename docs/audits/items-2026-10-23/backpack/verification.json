@@ -1,0 +1,32 @@
+{
+  "client_runtime_commit": "667c5445c6cd22c85ff9468986e538a6a0323943",
+  "server_commit": "d933f701f811a517a0b8512cee46f7b22725eafd",
+  "godot_smoke": {
+    "passed": true,
+    "equipment_backpack_exclusive": true,
+    "typed_slots": 6,
+    "keyboard_focus": true,
+    "tool_use_from_equipment_and_U": true,
+    "rejected_stale_choices": true
+  },
+  "client_tools": {
+    "passed": 156,
+    "subtests_passed": 72
+  },
+  "tls_smoke": [
+    "valid",
+    "untrusted",
+    "hostname",
+    "expired",
+    "stall",
+    "cancel",
+    "immediate",
+    "tcp",
+    "ui",
+    "burst"
+  ],
+  "server_protocol_contract": "passed",
+  "cross_protocol_inventory": "passed; existing historical evidence diagnostic retained",
+  "native_scenarios_passed": 14,
+  "store_publication": false
+}

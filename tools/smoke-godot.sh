@@ -77,3 +77,6 @@ grep -q 'EQUIPMENT_CATALOG: PASS' "$run_dir/equipment.log"
 
 run_checked "$run_dir/skills-popup.log" "$godot_bin" --headless --path "$project_root" --quit-after 600 res://tests/skills_popup_smoke.tscn
 grep -q 'SKILLS_POPUP: PASS' "$run_dir/skills-popup.log"
+
+run_checked "$run_dir/item-polish.log" "$godot_bin" --headless --path "$project_root" --max-fps 60 --quit-after 600 res://tests/item_polish_smoke.tscn
+grep -q "ITEM_POLISH: failures=0" "$run_dir/item-polish.log"

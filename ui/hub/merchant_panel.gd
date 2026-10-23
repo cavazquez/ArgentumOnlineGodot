@@ -22,6 +22,8 @@ var _review_quantity := false
 var _missions: Button
 
 func _ready() -> void:
+	ClientInterface.world_state.changed.connect(func(kind: String, data: Dictionary, _revision: String):
+		if kind == "items" and data.scope in ["merchant", "inventory"]: _Refresh())
 	theme = Theme.new()
 	theme.default_font_size = Global.dialogFontSize
 	Global.dialog_font_size_changed.connect(func(value: int): theme.default_font_size = value)
@@ -88,6 +90,7 @@ func _AddInventory(parent: Container, label_text: String) -> InventoryContainer:
 	return grid
 
 func SetMerchantInventory(inventory: Inventory) -> void:
+	inventory.scope = "merchant"
 	if _merchantInventory != null and _merchantInventory.slotChanged.is_connected(_InventoryChanged):
 		_merchantInventory.slotChanged.disconnect(_InventoryChanged)
 	_merchantInventory = inventory
@@ -172,6 +175,7 @@ func _Refresh() -> void:
 			_quick.add_child(button)
 	_actionButton.disabled = not _ValidSelection()
 	_actionButton.tooltip_text = "Desequipá el objeto antes de venderlo." if _source == "sell" and stack != null and stack.equipped else ""
+	_infoLabel.tooltip_text = ItemCondition.describe(stack.instance_state) if stack != null else ""
 	_infoLabel.text = "%s · Total: %d oro" % [stack.item.name, _Quote()] if stack != null and stack.item != null and stack.item.index > 0 else "Seleccioná un objeto del mercader o de tu inventario."
 
 func _Submit() -> void:

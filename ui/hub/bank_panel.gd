@@ -49,13 +49,14 @@ func _ready() -> void:
 	GameProtocol.WriteWorldAction("bank.read", {})
 	GameProtocol.WriteWorldAction("subscribe", {"topic": "bank", "enabled": true})
 	_bankInventoryContainer.slotPressed.connect(func(index:int):
-		_UpdateInfo(_bankInventory.GetSlot(index).item if _bankInventory != null else null))
+		_UpdateStackInfo(_bankInventory.GetSlot(index) if _bankInventory != null else null))
 		
 	_playerInventoryContainer.slotPressed.connect(func(index:int):
-		_UpdateInfo(_playerInventory.GetSlot(index).item if _playerInventory != null else null))
+		_UpdateStackInfo(_playerInventory.GetSlot(index) if _playerInventory != null else null))
 
 
 func SetBankInventory(inventory:Inventory) -> void:
+	inventory.scope = "bank"
 	_bankInventoryContainer.SetInventory(inventory)
 	_bankInventory = inventory
 	
@@ -68,6 +69,14 @@ func SetPlayerInventory(inventory:Inventory) -> void:
 func SetBankGold(gold:int) -> void:
 	_lbl_gold.text = str(gold)
   
+
+func _UpdateStackInfo(stack: ItemStack) -> void:
+	_UpdateInfo(stack.item if stack != null else null)
+	_infoLabel.tooltip_text = ItemCondition.describe(stack.instance_state) if stack != null else ""
+	if stack != null and not stack.instance_state.is_empty():
+		var stats: Dictionary = stack.instance_state.effective
+		var pair := ["MinHit", "MaxHit"] if stack.item.IsWeapon() else ["MinDef", "MaxDef"]
+		if stats.has(pair[0]) and stats.has(pair[1]): _statLabel.text = "%d/%d" % [stats[pair[0]], stats[pair[1]]]
 
 func _UpdateInfo(item:Item) -> void:
 	_statRow.hide()
@@ -157,7 +166,11 @@ func _SetBusy() -> void:
 
 func _OnWorldState(kind: String, data: Dictionary, revision: String) -> void:
 	if _closing: return
-	if kind == "bank":
+	if kind == "items":
+		var container := _bankInventoryContainer if data.scope == "bank" else _playerInventoryContainer
+		var selected := container.GetSelectedSlot()
+		if selected >= 0: _UpdateStackInfo(container.GetInventory().GetSlot(selected))
+	elif kind == "bank":
 		_bank_state = data.duplicate(true)
 		_revision = revision
 		if not data.access: _status.text = "Acercate al banquero y volvé a abrir el banco."

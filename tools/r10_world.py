@@ -176,11 +176,12 @@ class R10World:
         }
 
     def items(self, store, index):
-        return {
-            int(k.removeprefix("slot_")): tuple(map(int, v.split(":")[:2]))
-            for k, v in store.hgetall(f"player:{self.ids[index]}:inventory").items()
-            if k.startswith("slot_") and v
-        }
+        from src.utils.inventory_slot import InventorySlot
+        result = {}
+        for key, raw in store.hgetall(f"player:{self.ids[index]}:inventory").items():
+            if key.startswith("slot_") and (slot := InventorySlot.parse(raw)):
+                result[int(key.removeprefix("slot_"))] = (slot.item_id, slot.quantity)
+        return result
 
     def count(self, store, index, item):
         return sum(q for i, q in self.items(store, index).values() if i == item)
@@ -238,6 +239,17 @@ class R10World:
                     f"player:{uid}:skills",
                     mapping={"points": 3, "progress_version": 1, "xp_per_level": 100},
                 )
+            if reset:
+                import asyncio
+                from redis.asyncio import Redis
+                from src.utils.resource_transaction import Decision, Resource, transact
+                from src.utils.gold_atomic import operation_id
+                async def adopt_fixture():
+                    options = store.connection_pool.connection_kwargs
+                    async with Redis(**{k: options[k] for k in ("host", "port", "password", "decode_responses")}) as client:
+                        key = f"player:{uid}:inventory"
+                        await transact(client, (Resource(key, "hash"),), operation_id(), {"fixture_seed": uid}, lambda snapshot: Decision({"applied": True}, {key: snapshot[key]}))
+                asyncio.run(adopt_fixture())
             if stats and index in stats:
                 store.hset(f"player:{uid}:user_stats", mapping=stats[index])
             self.command(index, "login")

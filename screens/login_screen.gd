@@ -11,6 +11,8 @@ enum State {
 var _state:State
 
 func _ready() -> void:
+	%SecurityOptions.reparent(_loginPanel.get_node("%SecuritySlot"), false)
+	_StartIntroduction.call_deferred()
 	DisplayServer.window_set_title("PyAO Client " + str(ProjectSettings.get_setting("application/config/version", "unknown")))
 	ClientInterface.connected.connect(_OnConnected)
 	ClientInterface.disconnected.connect(_OnDisconnected)
@@ -43,6 +45,7 @@ func _OnDisconnected() -> void:
 	_SetEndpointControls(true)
 	_state = State.None
 	_loginPanel.EnableAuthControls()
+	_StartIntroduction.call_deferred()
 	
 func _OnConnectionFailed(message: String) -> void:
 	_OnDisconnected()
@@ -118,3 +121,10 @@ func _DetachNetwork() -> void:
 	for pair in [[ClientInterface.connected, _OnConnected], [ClientInterface.disconnected, _OnDisconnected], [ClientInterface.dataReceived, _OnDataReceived], [ClientInterface.connection_failed, _OnConnectionFailed]]:
 		if pair[0].is_connected(pair[1]):
 			pair[0].disconnect(pair[1])
+
+func _StartIntroduction() -> void:
+	if is_inside_tree() and not is_queued_for_deletion(): AudioManager.PlayIntroduction()
+
+func _exit_tree() -> void:
+	if not is_instance_valid(ScreenController.currentScreen) or ScreenController.currentScreen == self:
+		AudioManager.PlayMusic(0)

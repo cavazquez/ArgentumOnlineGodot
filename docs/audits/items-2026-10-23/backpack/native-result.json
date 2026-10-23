@@ -1,0 +1,228 @@
+{
+  "clients": 2,
+  "seconds": 99.7,
+  "started_at": "2026-10-23T05:17:30.944887+00:00",
+  "completed_at": "2026-10-23T05:19:56.128839+00:00",
+  "long_acceptance": false,
+  "tls": true,
+  "installed_wheel": true,
+  "source_checkout": false,
+  "server_commit": "d933f701f811a517a0b8512cee46f7b22725eafd",
+  "client_commit": "667c5445c6cd22c85ff9468986e538a6a0323943",
+  "wheel_sha256": "0bfbf1229f54ccdc15d0398f8245abcd51b0be4a6514c1bf39872304f24be6fa",
+  "server_candidate_sha256": null,
+  "redis": "8.10.2",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "client_audio_driver_requested": "PulseAudio",
+  "client_audio_drivers": [
+    "PulseAudio",
+    "PulseAudio"
+  ],
+  "graceful_sigterm": true,
+  "periodic_screenshots": [],
+  "live_tls_sessions_drained": 2,
+  "release_version": "1.0.0rc6",
+  "installed_snap_ui": false,
+  "snap_install_source": null,
+  "godot_measured_seconds": [
+    17.0,
+    16.0
+  ],
+  "reconnect_states": [
+    {
+      "capabilities": 1983,
+      "exact_inventory_and_spell_order": true,
+      "hunger_after": [
+        100.0,
+        100.0
+      ],
+      "hunger_before": [
+        100.0,
+        100.0
+      ],
+      "inventory": {
+        "0": [
+          2,
+          1,
+          false
+        ],
+        "1": [
+          2,
+          1,
+          false
+        ],
+        "2": [
+          1055,
+          1,
+          true
+        ],
+        "3": [
+          561,
+          1,
+          false
+        ],
+        "4": [
+          562,
+          1,
+          false
+        ],
+        "5": [
+          563,
+          1,
+          true
+        ],
+        "6": [
+          58,
+          5,
+          false
+        ],
+        "7": [
+          192,
+          3,
+          false
+        ],
+        "8": [
+          139,
+          2,
+          false
+        ]
+      },
+      "spells": [
+        3,
+        2,
+        33,
+        11,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "capabilities": 1983,
+      "exact_inventory_and_spell_order": true,
+      "hunger_after": [
+        100.0,
+        100.0
+      ],
+      "hunger_before": [
+        100.0,
+        100.0
+      ],
+      "inventory": {
+        "0": [
+          2,
+          1,
+          false
+        ],
+        "1": [
+          2,
+          1,
+          false
+        ],
+        "2": [
+          1055,
+          1,
+          false
+        ],
+        "3": [
+          561,
+          1,
+          false
+        ],
+        "4": [
+          562,
+          1,
+          false
+        ],
+        "5": [
+          563,
+          1,
+          false
+        ]
+      },
+      "spells": [
+        3,
+        2,
+        33,
+        11,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "native_export": true,
+  "export_sha256": "b3369a7614a596e975ed516fe9c5f27cdcd675fe8764290a82ed527b7f567f8f",
+  "export_entrypoint_sha256": "1ccd2832c1263665d37f1c4e16374ad50e698e8ca0ea3d8cf4f3597d5e67247d",
+  "export_provenance": {
+    "commit": "667c5445c6cd22c85ff9468986e538a6a0323943",
+    "clean_before_export": true,
+    "files": {
+      "pyao-client-r10.x86_64": "b3369a7614a596e975ed516fe9c5f27cdcd675fe8764290a82ed527b7f567f8f",
+      "override.cfg": "1ccd2832c1263665d37f1c4e16374ad50e698e8ca0ea3d8cf4f3597d5e67247d"
+    }
+  },
+  "acceptance": {
+    "test_execution_passed": true,
+    "missing": [],
+    "r10_gameplay_passed": false
+  },
+  "scenario": "durable-items",
+  "regression_passed": true
+}

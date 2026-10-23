@@ -11,6 +11,38 @@ const DefaultSpriteFramePath = "uid://750ochum2vjs"
 @export var _weaponAnimatedSprite:AnimatedSprite2D
 @export var _shieldAnimatedSprite:AnimatedSprite2D
 
+@onready var _bootsAnimatedSprite: AnimatedSprite2D = $Boots
+var _boots := 0
+var boots: int:
+	get: return _boots
+	set(value):
+		_boots = value
+		if not is_node_ready(): return
+		_update_boots()
+
+func _ready() -> void:
+	_bodyAnimatedSprite.frame_changed.connect(_sync_boots)
+	_update_boots()
+
+func _update_boots() -> void:
+	_bootsAnimatedSprite.visible = _boots > 0 and _boots < BootFrames.STYLES.size() and _body != 84 and _body != 500
+	if not _bootsAnimatedSprite.visible: return
+	_bootsAnimatedSprite.sprite_frames = BootFrames.frames(_boots)
+	_bootsAnimatedSprite.modulate = BootFrames.COLORS[_boots]
+	_sync_boots()
+
+func _sync_boots() -> void:
+	if not is_node_ready() or not _bootsAnimatedSprite.visible: return
+	var key: String = _bodyAnimatedSprite.animation
+	if not _bootsAnimatedSprite.sprite_frames.has_animation(key): return
+	var texture := _bodyAnimatedSprite.sprite_frames.get_frame_texture(key, 0)
+	if texture == null: return
+	var ratio := 0.65 if texture.get_height() < 30 else 0.8
+	_bootsAnimatedSprite.scale = Vector2(ratio, ratio)
+	_bootsAnimatedSprite.position = Vector2(0, texture.get_height() / 2.0 - 27 * ratio)
+	_bootsAnimatedSprite.animation = key
+	_bootsAnimatedSprite.frame = _bodyAnimatedSprite.frame % _bootsAnimatedSprite.sprite_frames.get_frame_count(key)
+
 var _head_base := Vector2.ZERO
 var _helmet_base := Vector2.ZERO
 var _alignment_ready := false
@@ -79,6 +111,7 @@ func Play() -> void:
 	_weaponAnimatedSprite.play("walk_" + key)
 	_headAnimatedSprite.play("idle_" + key)
 	_helmetAnimatedSprite.play("idle_" + key)
+	_sync_boots()
 	
 func Stop() -> void:
 	var key = (Enums.Heading.keys()[heading]).to_lower()  
@@ -87,6 +120,7 @@ func Stop() -> void:
 	_weaponAnimatedSprite.play("idle_" + key)
 	_headAnimatedSprite.play("idle_" + key)
 	_helmetAnimatedSprite.play("idle_" + key)
+	_sync_boots()
 
 func _set_weapon(id:int) -> void:
 	_weapon = id 
@@ -108,6 +142,7 @@ func _set_head(id:int) -> void:
 
 func _set_body(id:int) -> void:
 	_body = id
+	if is_node_ready(): _update_boots()
 	_bodyAnimatedSprite.sprite_frames = _LoadSpriteFrames("res://Resources/Character/Bodies/body_%d.tres" % id)
 	_align_head()
 	

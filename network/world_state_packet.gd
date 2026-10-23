@@ -2,7 +2,7 @@ extends RefCounted
 class_name WorldStatePacket
 
 const MAX_SAFE_INTEGER := 9007199254740991
-const KINDS := ["tax", "party", "clan", "pets", "weather", "commands", "trade", "result", "chat", "finder", "diplomacy", "depot", "faction", "quests", "lottery", "lottery_open", "bank"]
+const KINDS := ["tax", "party", "clan", "pets", "weather", "commands", "trade", "result", "chat", "finder", "diplomacy", "depot", "faction", "quests", "lottery", "lottery_open", "bank", "items"]
 var valid := false
 var data: Dictionary = {}
 
@@ -42,6 +42,24 @@ static func _permissions(value: Variant) -> bool:
 
 static func _payload(kind: String, value: Dictionary) -> bool:
 	match kind:
+		"items":
+			if not value.get("scope") in ["inventory", "bank", "trade_mine", "trade_other", "merchant"] or not _number(value.get("page"), 10) or not _number(value.get("clock"), MAX_SAFE_INTEGER): return false
+			if not value.get("rows") is Array or value.rows.size() > 5: return false
+			var seen := {}
+			for row in value.rows:
+				if not row is Array or row.size() != 2 or not TradeSnapshot.integer(row[0], 1, 40) or seen.has(row[0]) or not row[1] is Dictionary: return false
+				seen[row[0]] = true
+				var state: Dictionary = row[1]
+				if state.is_empty(): continue
+				if not TradeSnapshot.is_session_id(state.get("id", "")) or not state.get("broken") is bool: return false
+				for field in ["item", "version", "created", "expires", "uses", "max_uses"]:
+					if not _number(state.get(field), MAX_SAFE_INTEGER): return false
+				for field in ["condition", "factor"]:
+					if not _number(state.get(field), 10000): return false
+				if not state.get("base") is Dictionary or not state.get("effective") is Dictionary or state.base.size() > 7 or state.base.keys() != state.effective.keys(): return false
+				for field in state.base:
+					if not field in ItemCondition.STAT_NAMES or not _number(state.base[field]) or not _number(state.effective[field]) or state.effective[field] > state.base[field]: return false
+			return true
 		"bank":
 			if not value.get("access") is bool or not _text(value.get("banker"), 36) or not TradeSnapshot.integer(value.get("capacity"), 1, 40): return false
 			if not value.get("slots") is Array or value.slots.size() > int(value.capacity): return false

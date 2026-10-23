@@ -59,6 +59,7 @@ const StatsWindowScene = preload("res://ui/hub/stats_window.tscn")
 
 @onready var minimap: Minimap = $Minimap
 @onready var spell_list_panel: SpellListPanel = $"Inventory-Spell/SpellListPanel" 
+@onready var equipment_panel: EquipmentPanel = $"Inventory-Spell/EquipmentPanel"
 
 @onready var experience_stat_bar: StatBar = $StatBars/ExperienceStatBar
 @onready var stamina_stat_bar: StatBar = $StatBars/StaminaStatBar
@@ -104,6 +105,10 @@ func _ready() -> void:
 			minimap.accept_event())
 	_chat_helper = ChatInputHelper.new()
 	_chat_helper.install(_consoleInputLineEdit)
+	_style_equipment_tabs()
+	$"Inventory-Spell/ShowEquipment".tooltip_text = "Equipo por pieza. Arrastrá una pieza sobre esta pestaña para abrir las ranuras."
+	$"Inventory-Spell/ShowEquipment".mouse_entered.connect(func():
+		if get_viewport().gui_is_dragging(): ShowInventoryView("equipment"))
 	_install_world_buttons()
 	_responsive.install(self)
 	get_window().min_size = Vector2i(800, 600)
@@ -142,9 +147,52 @@ func Init(gameContext:GameContext) -> void:
 	spell_list_panel.target_requested.connect(BeginSpellTarget)
 	ClientInterface.disconnected.connect(_restore_default_cursor)
 	_inventoryContainer.allow_reorder = true
+	_inventoryContainer.hide_equipped = true
 	_inventoryContainer.SetInventory(_gameContext.playerInventory)
+	equipment_panel.setup(_gameContext.playerInventory)
+	equipment_panel.equip_requested.connect(_RequestEquipment)
+	equipment_panel.use_requested.connect(_RequestEquipmentUse)
 	_inventoryContainer.slotActivated.connect(func(_v):
 		_use_object(true))
+
+func ShowInventoryView(view_name: String) -> void:
+	if view_name != "equipment": equipment_panel.close_choices()
+	$"Inventory-Spell/InventoryPanel".visible = view_name == "inventory"
+	spell_list_panel.visible = view_name == "spells"
+	equipment_panel.visible = view_name == "equipment"
+	for entry in [["ShowInventory", "inventory"], ["ShowEquipment", "equipment"], ["ShowSpells", "spells"]]:
+		get_node("Inventory-Spell/" + entry[0]).set_pressed_no_signal(view_name == entry[1])
+
+func _style_equipment_tabs() -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color("17110b")
+	normal.set_content_margin_all(2)
+	normal.set_border_width_all(1)
+	normal.border_color = Color("4c3522")
+	var selected := normal.duplicate() as StyleBoxFlat
+	selected.bg_color = Color("3d2915")
+	selected.border_color = Color("a07939")
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color("2b2015")
+	for button_name in ["ShowEquipment", "ShowInventory", "ShowSpells"]:
+		var button := get_node("Inventory-Spell/" + button_name) as Button
+		button.add_theme_stylebox_override("normal", normal)
+		button.add_theme_stylebox_override("pressed", selected)
+		button.add_theme_stylebox_override("hover_pressed", selected)
+		button.add_theme_stylebox_override("hover", hover)
+		button.add_theme_color_override("font_color", Color("e7bc72"))
+		button.add_theme_color_override("font_pressed_color", Color("ffe1a0"))
+
+func _RequestEquipment(index: int) -> void:
+	if _gameContext == null or _gameContext.trading or _gameContext.pause: return
+	var stack := _gameContext.playerInventory.GetSlot(index)
+	if stack == null or stack.item == null: return
+	if not stack.equipped and not _gameContext.player_stats.is_alive(): return
+	GameProtocol.WriteEquipItem(index + 1)
+
+func _RequestEquipmentUse(index: int) -> void:
+	var stack := _gameContext.playerInventory.GetSlot(index)
+	if stack != null and stack.quantity > 0 and stack.equipped: _use_object(false, index)
 
 func ShowConsoleMessage(message:String, fontData:FontData = FontData.new(Color.WHITE)) -> void:
 	for part in message.split("\n"):
@@ -237,19 +285,19 @@ func update_equipment_label(slot:int, item_stack:ItemStack) -> void:
 	if item_stack.equipped:
 		match item_stack.item.type:
 			Enums.eOBJType.eOBJType_otWeapon:
-				%LblWeapon.text = "%d/%d" % [item_stack.item.minHit, item_stack.item.maxHit]
+				%LblWeapon.text = "%d/%d" % [int(item_stack.instance_state.get("effective", {}).get("MinHit", item_stack.item.minHit)), int(item_stack.instance_state.get("effective", {}).get("MaxHit", item_stack.item.maxHit))]
 				_user_weapon_slot = slot
 			
 			Enums.eOBJType.eOBJType_otESCUDO:
-				%LblShield.text = "%d/%d" % [item_stack.item.minDef, item_stack.item.maxDef]
+				%LblShield.text = "%d/%d" % [int(item_stack.instance_state.get("effective", {}).get("MinDef", item_stack.item.minDef)), int(item_stack.instance_state.get("effective", {}).get("MaxDef", item_stack.item.maxDef))]
 				_user_shield_slot = slot
 			
 			Enums.eOBJType.eOBJType_otArmadura:
-				%LblArmor.text = "%d/%d" % [item_stack.item.minDef, item_stack.item.maxDef]
+				%LblArmor.text = "%d/%d" % [int(item_stack.instance_state.get("effective", {}).get("MinDef", item_stack.item.minDef)), int(item_stack.instance_state.get("effective", {}).get("MaxDef", item_stack.item.maxDef))]
 				_user_armor_slot = slot
 			
 			Enums.eOBJType.eOBJType_otCASCO:
-				%LblHelmet.text = "%d/%d" % [item_stack.item.minDef, item_stack.item.maxDef]
+				%LblHelmet.text = "%d/%d" % [int(item_stack.instance_state.get("effective", {}).get("MinDef", item_stack.item.minDef)), int(item_stack.instance_state.get("effective", {}).get("MaxDef", item_stack.item.maxDef))]
 				_user_helmet_slot = slot 
 	else:
 		match slot:
@@ -411,7 +459,7 @@ func _equip_object() -> void:
 
 	GameProtocol.WriteEquipItem(slot + 1)
 
-func _use_object(double_click = false) -> void:
+func _use_object(double_click = false, equipment_slot: int = -1) -> void:
 	if double_click:
 		if !_gameContext.tick_intervals.request_use_item_with_double_click():
 			return
@@ -419,7 +467,8 @@ func _use_object(double_click = false) -> void:
 		if !_gameContext.tick_intervals.request_use_item_with_u():
 			return
 	 
-	var slot = _inventoryContainer.GetSelectedSlot() 
+	var slot = equipment_slot if equipment_slot >= 0 else _inventoryContainer.GetSelectedSlot()
+	if slot == -1 and not double_click: slot = equipment_panel.slots.get("weapon", -1)
 	if slot == -1 || _gameContext.trading || _gameContext.pause: return
 	
 	GameProtocol.WriteUseItem(slot + 1)
@@ -719,9 +768,12 @@ func IsWorldInputBlocked() -> bool:
 	if _gameContext == null:
 		return true
 	var focus := get_viewport().gui_get_focus_owner()
-	return InputBindings.capturing or _gameContext.trading or _consoleInputLineEdit.visible or focus != null or (is_instance_valid(_currentPanel) and _currentPanel.visible) or not _VisibleModals().is_empty()
+	return InputBindings.capturing or _gameContext.trading or _consoleInputLineEdit.visible or focus != null or equipment_panel.choices.visible or (is_instance_valid(_currentPanel) and _currentPanel.visible) or not _VisibleModals().is_empty()
 
 func RouteEscape() -> void:
+	if equipment_panel.choices.visible:
+		equipment_panel.close_choices()
+		return
 	if _chat_helper != null and _chat_helper.dismiss_completion(): return
 	if InputBindings.capturing: return
 	if _gameContext.usingSkill != 0:
@@ -882,7 +934,6 @@ func _update_status() -> void:
 	if _gameContext.userCiego: states.append("Ciego")
 	if _gameContext.userEstupido: states.append("Confundido")
 	if _gameContext.userDescansar: states.append("Descansando")
-	if _gameContext.userNavegando: states.append("Navegando")
 	_status_label.text = " · ".join(states)
 	if _previous_dead != dead:
 		_restore_default_cursor()

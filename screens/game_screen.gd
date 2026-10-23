@@ -1,6 +1,8 @@
 extends Node
 class_name GameScreen
 
+var _items_refresh_pending := false
+
 # Importar comandos de red
 const ShowGuildAlignCommand = preload("res://network/commands/ShowGuildAlign.gd")
 const ShowGuildFundationFormCommand = preload("res://network/commands/ShowGuildFundationForm.gd")
@@ -33,6 +35,7 @@ var _input:Dictionary[String, int] = {
 }
  
 func _ready() -> void:
+	AudioManager.BeginGame()
 	Global.pingStatus = "Sin medición"
 	Global.ping_requested.connect(_OnPingTimerTimeout)
 	_dispatcher.message_decoded.connect(_OnDecodedMessage)
@@ -393,6 +396,7 @@ func _HandleChangeBankSlot(p:ChangeBankSlot) -> void:
 	
 	var itemStack = ItemStack.new(p.amount, false, item)
 	_gameContext.bankInventory.SetSlot(p.slot -1, itemStack)
+	_QueueItemRefresh()
 
 
 func _HandleCommerceInit() -> void:
@@ -471,6 +475,7 @@ func _HandleCharacterChange(p:CharacterChange) -> void:
 		character.renderer.body = p.body
 		character.renderer.head = p.head
 		character.renderer.helmet = p.helmet
+		character.renderer.boots = p.boots
 		character.renderer.weapon = p.weapon
 		character.renderer.shield = p.shield
 	character.renderer.heading = p.heading
@@ -729,6 +734,16 @@ func _HandleChangeSpellSlot(p:ChangeSpellSlot) -> void:
 	_gameInput.spell_list_panel.set_slot_text(p.slot - 1, p.name, p.spellId) 
 
 
+func _QueueItemRefresh() -> void:
+	if _items_refresh_pending or _retired or not ClientInterface.capabilities.has_feature(ClientCapabilities.WORLD_STATE): return
+	_items_refresh_pending = true
+	_RefreshItemConditions.call_deferred()
+
+func _RefreshItemConditions() -> void:
+	await get_tree().create_timer(0.15).timeout
+	_items_refresh_pending = false
+	if not _retired: GameProtocol.WriteWorldAction("items.read", {})
+
 func _HandleChangeInventorySlot(p:ChangeInventorySlot) -> void:
 	if p.slot < 1 or p.slot > _gameContext.playerInventory.GetSize():
 		return
@@ -747,6 +762,7 @@ func _HandleChangeInventorySlot(p:ChangeInventorySlot) -> void:
 	
 	var itemStack = ItemStack.new(p.amount, p.equipped, item)
 	_gameContext.playerInventory.SetProtocolSlot(p.slot, itemStack)
+	_QueueItemRefresh()
 	_gameInput.update_equipment_label(p.slot - 1, itemStack)
 
 func _HandleMultiMessage(p:MultiMessage) -> void:
@@ -885,6 +901,13 @@ func _HandleVisualEvent(event: AOVisualEvent) -> void:
 func _ApplyWorldState(value: Dictionary) -> void:
 	if not ClientInterface.world_state.accept(value):
 		return
+	if value.kind == "items" and value.data.scope == "inventory":
+		for row in value.data.rows:
+			var index := int(row[0]) - 1
+			var stack := _gameContext.playerInventory.GetSlot(index)
+			if stack == null: continue
+			stack.instance_state = row[1].duplicate(true) if not row[1].is_empty() and stack.item != null and int(row[1].item) == stack.item.index else {}
+			_gameInput.update_equipment_label(index, stack)
 	if value.kind == "chat":
 		var chat: Dictionary = value.data
 		var prefix: String = {"system": "", "public": "", "party": "[Grupo] ", "clan": "[Clan] ", "whisper": "[Privado] "}.get(chat.channel, "")

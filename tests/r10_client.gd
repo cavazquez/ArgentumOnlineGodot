@@ -74,6 +74,8 @@ func snapshot() -> Dictionary:
 		if panel is PlayerTradePanel:
 			result.panel = "trade"
 			result.trade = panel.snapshot
+			result.trade_conditions_ready = panel._conditions_ready()
+			result.trade_confirm_disabled = panel.confirm_button.disabled
 		elif panel is MerchantPanel:
 			result.panel = "merchant"
 			result.merchant_items = {}
@@ -219,6 +221,10 @@ func execute(command: Dictionary) -> bool:
 			var capture := OS.get_environment("PYAO_TEST_SCREENSHOT")
 			var label: String = command.get("label", "ui")
 			if label.length() > 40 or not label.replace("-", "").is_valid_identifier(): return false
+			var inventory_view: String = command.get("inventory_view", "")
+			if not inventory_view.is_empty():
+				if inventory_view not in ["equipment", "inventory", "spells"]: return false
+				hub.ShowInventoryView(inventory_view)
 			if not capture.is_empty() and DisplayServer.get_name() != "headless":
 				await RenderingServer.frame_post_draw
 				if host.get_viewport().get_texture().get_image().save_png(capture.get_basename() + "-" + label + ".png") != OK: return false
@@ -329,15 +335,32 @@ func execute(command: Dictionary) -> bool:
 			for window in game.get_children():
 				if window is Window and window.get_script() != null and window.get_script().resource_path.ends_with("/drop_panel.gd"):
 					window.drop(int(command.amount))
-		"equip", "use", "drop":
+		"gear", "equip", "gear_use":
+			var slot := int(command.slot) - 1
+			var stack: ItemStack = game._gameContext.playerInventory.GetSlot(slot)
+			var layer: String = EquipmentPanel.TYPES.get(stack.item.type, "")
+			if layer.is_empty(): return false
+			if command.op == "gear_use":
+				var tool_timer = game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_U]
+				while Time.get_ticks_msec() <= tool_timer.get_tick(): await host.get_tree().process_frame
+			hub.ShowInventoryView("equipment")
+			hub.equipment_panel.buttons[layer].pressed.emit()
+			await host.get_tree().process_frame
+			if not hub.equipment_panel.choices.visible: return false
+			var controls: Dictionary = hub.equipment_panel.use_buttons if command.op == "gear_use" else hub.equipment_panel.choice_buttons
+			if not controls.has(slot): return false
+			controls[slot].pressed.emit()
+		"use", "drop":
+			hub.ShowInventoryView("inventory")
+			if not inventory.IsSlotDisplayed(int(command.slot) - 1):
+				if command.op != "use": return false
+				return await execute({"op": "gear_use", "slot": command.slot})
 			# Respetar el intervalo del mismo gesto que usa el inventario real.
 			var timer = game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_DOUBLE_CLICK]
 			while Time.get_ticks_msec() <= timer.get_tick():
 				await host.get_tree().process_frame
 			inventory._InventorySlotOnPressed(int(command.slot) - 1)
-			if command.op == "equip":
-				hub._equip_object()
-			elif command.op == "use":
+			if command.op == "use":
 				var cell := inventory.GetInventorySlot(int(command.slot) - 1)
 				var click := InputEventMouseButton.new()
 				click.button_index = MOUSE_BUTTON_LEFT
