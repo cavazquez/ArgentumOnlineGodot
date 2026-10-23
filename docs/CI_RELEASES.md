@@ -53,3 +53,11 @@ Es posible validar un candidato manualmente sobre main antes de crear el tag
 final. Se registra y exige el SHA exacto de cada ejecución; ambos tags finales
 deben apuntar a esos mismos commits fusionados antes de preparar los borradores.
 Un reintento fallido de CI no requiere mover un tag ya publicado.
+
+La prueba Windows usa Redis oficial dentro de WSL2, en un directorio Linux
+privado. Se comprueba el kernel real y se rechaza WSL1: sus pausas al crear el
+proceso de una copia RDB pueden superar el timeout del juego. La aceptación
+conserva AOF con `appendfsync always`, valida un RDB mayor a 32 MiB y su reinicio,
+y fuerza otra copia con más de 400.000 claves y los dos clientes conectados.
+El recibo registra la latencia del fork y de las respuestas; superar cinco
+segundos o perder una sesión mantiene fallida la aceptación.

@@ -170,11 +170,16 @@ def redis_fixture_configuration(template, directory, *, wsl_runtime):
     if template.count("dir /data") != 1:
         raise ValueError("La fixture requiere un único directorio de datos controlado")
     text = template.replace("dir /data", 'dir "' + directory + '"')
-    if wsl_runtime:
-        # WSL1 no implementa sync_file_range, usado por el autosync incremental
-        # de Redis. Se conserva fsync final de RDB y appendfsync always del AOF.
-        text += "\nrdb-save-incremental-fsync no\naof-rewrite-incremental-fsync no\n"
     return text
+
+
+def require_wsl2():
+    kernel = subprocess.check_output(
+        ["wsl", "--exec", "uname", "-r"], text=True, timeout=15
+    ).strip()
+    if not re.search(r"microsoft-standard-WSL2", kernel, re.IGNORECASE):
+        raise RuntimeError("La fixture Redis requiere el kernel Linux de WSL2: " + kernel)
+    return kernel
 
 
 class NativeRedis:
@@ -197,6 +202,7 @@ class NativeRedis:
         self.log = None
         self.wsl_data_dir = None
         self.storage_kind = "native"
+        self.kernel = None
 
     def __enter__(self):
         try:
@@ -233,6 +239,8 @@ class NativeRedis:
         ]
         native = runtime / "runtime.json"
         wsl_runtime = bool(json.loads(native.read_text()).get("wsl")) if native.exists() else False
+        if wsl_runtime:
+            self.kernel = require_wsl2()
         def native_path(path):
             if wsl_runtime:
                 return subprocess.check_output(["wsl", "--exec", "wslpath", "-u", str(path)], text=True).strip()
@@ -300,6 +308,49 @@ class NativeRedis:
         if self.evidence is not None:
             (self.evidence / "native-redis-persistence.json").write_text(json.dumps({"passed": True, "payload_bytes": len(payload), "payload_sha256": expected, "rdb_saved": True, "rdb_checksum_verified": True, "aof_restarted": True, "payload_preserved": True, "appendfsync": "always", "production_data_used": False}, indent=2) + "\n")
 
+    def verify_live_snapshot(self):
+        """Fuerza el fork del catálogo completo mientras siguen vivas dos sesiones."""
+        proof = {"passed": False, "production_data_used": False, "kernel": self.kernel}
+        try:
+            with self.client() as client:
+                proof["keys"] = client.dbsize()
+                if proof["keys"] < 400000:
+                    raise RuntimeError("BGSAVE requiere el catálogo individual completo")
+                deadline = time.monotonic() + 30
+                while client.info("persistence")["rdb_bgsave_in_progress"]:
+                    if time.monotonic() > deadline:
+                        raise TimeoutError("La copia previa de Redis no terminó")
+                    time.sleep(0.05)
+                started = time.monotonic()
+                client.bgsave()
+                maximum = time.monotonic() - started
+                while True:
+                    started = time.monotonic()
+                    client.ping()
+                    maximum = max(maximum, time.monotonic() - started)
+                    state = client.info("persistence")
+                    if not state["rdb_bgsave_in_progress"]:
+                        break
+                    if time.monotonic() > deadline:
+                        raise TimeoutError("La copia en juego de Redis no terminó")
+                    time.sleep(0.05)
+                proof.update(maximum_roundtrip_seconds=maximum,
+                             latest_fork_usec=client.info("stats")["latest_fork_usec"],
+                             rdb_last_bgsave_status=state["rdb_last_bgsave_status"])
+                settings = client.config_get("appendonly", "appendfsync", "stop-writes-on-bgsave-error")
+                proof["durability"] = settings
+                if maximum >= 5 or proof["latest_fork_usec"] >= 5000000:
+                    raise RuntimeError("La copia de Redis excedió el plazo del juego")
+                if state["rdb_last_bgsave_status"] != "ok" or settings != {
+                    "appendonly": "yes", "appendfsync": "always", "stop-writes-on-bgsave-error": "yes"
+                }:
+                    raise RuntimeError("La copia en juego perdió persistencia")
+                proof["passed"] = True
+        finally:
+            if self.evidence is not None:
+                (self.evidence / "native-redis-live-snapshot.json").write_text(json.dumps(proof, indent=2) + "\n")
+        return proof
+
     def stop_for_restart(self):
         from redis.exceptions import TimeoutError as RedisTimeoutError
 
@@ -348,9 +399,9 @@ class NativeRedis:
                     self.evidence.mkdir(parents=True, exist_ok=True)
                     with contextlib.suppress(Exception):
                         with self.client() as client:
-                            fields = ("rdb_last_bgsave_status", "aof_last_write_status", "aof_last_bgrewrite_status", "aof_rewrite_in_progress", "loading", "used_memory", "maxmemory")
-                            values = client.info("persistence") | client.info("memory")
-                            (self.evidence / "redis-runtime.json").write_text(json.dumps({"state": {key: values[key] for key in fields if key in values}, "errors": client.info("errorstats"), "storage": self.storage_kind}, indent=2) + "\n")
+                            fields = ("rdb_last_bgsave_status", "aof_last_write_status", "aof_last_bgrewrite_status", "aof_rewrite_in_progress", "loading", "used_memory", "maxmemory", "latest_fork_usec", "total_forks")
+                            values = client.info("persistence") | client.info("memory") | client.info("stats")
+                            (self.evidence / "redis-runtime.json").write_text(json.dumps({"state": {key: values[key] for key in fields if key in values}, "errors": client.info("errorstats"), "storage": self.storage_kind, "kernel": getattr(self, "kernel", None)}, indent=2) + "\n")
                 with contextlib.suppress(Exception):
                     with self.client() as client:
                         try:

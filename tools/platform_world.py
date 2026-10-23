@@ -47,6 +47,9 @@ class PlatformWorld(R10World):
 
     def run(self, locations):
         self.wait_for_ready()
+        if sys.platform == "win32":
+            proof = self.fixture.verify_live_snapshot()
+            self.passed("windows-live-snapshot", "RDB del catálogo completo con dos sesiones activas", **proof)
         for index in (1, 2):
             if sys.platform == "win32":
                 # Como al alternar con Alt-Tab: sólo un cliente posee el foco
