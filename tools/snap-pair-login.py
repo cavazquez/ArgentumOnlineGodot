@@ -137,7 +137,6 @@ async def create_account(port, cert, username, password):
         await peer.send(packet)
         await peer.wait(
             lambda frames: any(f[0] == ServerPacketID.LOGGED for f in frames)
-            and any(f[0] == ServerPacketID.SHOW_PARTY_FORM for f in frames)
         )
         # El PONG confirma que terminó el handler de alta y su envío inicial.
         await peer.send(b"\x77")
