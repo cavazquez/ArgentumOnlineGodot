@@ -14,6 +14,7 @@ import json
 import os
 import re
 from pathlib import Path
+import platform
 import secrets
 import signal
 import socket
@@ -55,6 +56,13 @@ SCENARIO_TIMEOUT_SECONDS = {
     "npc-loot": 1200,
     "world-routes": 1800,
 }
+
+
+def server_startup_budget(scenario, *, system=None, machine=None):
+    """El bootstrap vacío de macOS Intel precede al plazo de login del producto."""
+    system = sys.platform if system is None else system
+    machine = platform.machine() if machine is None else machine
+    return 360 if (scenario, system, machine) == ("platform", "darwin", "x86_64") else 240
 
 
 def verify_wheel_source(project, wheel):
@@ -530,7 +538,7 @@ def worker(args):
         # El estado nuevo valida 290 mapas y migra 427.000 unidades del stock.
         # Ese trabajo único precede al listener y al presupuesto de login.
         startup_started = time.monotonic()
-        startup_budget = 240
+        startup_budget = server_startup_budget(args.scenario)
         deadline = startup_started + startup_budget
         while True:
             if server.poll() is not None:
