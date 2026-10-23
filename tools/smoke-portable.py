@@ -44,6 +44,21 @@ def verify_desktop(executable, target, output):
     return {"passed": True, "host_available": host, "accessible_without_host": fallback, "executable_sha256": sha(executable)}
 
 
+def verify_early_close(executable, target, output):
+    """Cierra la entrada de producción mientras su introducción Ogg está activa."""
+    config = '[application]\nrun/main_scene="res://Main.tscn"\n'
+    (executable.parent / "override.cfg").write_text(config)
+    if target == "macos":
+        (executable.parent.parent / "Resources/override.cfg").write_text(config)
+    log_path = output / "early-close.log"
+    with log_path.open("wb") as stream:
+        subprocess.run([str(executable), "--rendering-method", "gl_compatibility", "--audio-driver", "Dummy", "--max-fps", "240", "--quit-after", "45", "--verbose"], cwd=executable.parent, stdout=stream, stderr=subprocess.STDOUT, check=True, timeout=90)
+    log = log_path.read_text(errors="replace")
+    if not classify_runtime_log(log)["passed"] or "res://Assets/Music/1.ogg" not in log:
+        raise ValueError("El cierre durante la introducción dejó errores o no ejercitó la música")
+    return {"passed": True, "introduction_loaded": True, "log_sha256": sha(log_path)}
+
+
 def smoke(candidate, server, engine, output, redis_runtime, server_bundle=None, server_wheel=None):
     record = json.loads((candidate / "candidate-manifest.json").read_text())
     target = record["platform"]
@@ -86,6 +101,7 @@ def smoke(candidate, server, engine, output, redis_runtime, server_bundle=None, 
             proof[check] = len(steps) == 2 and all(row["observations"].get(check) is True for row in steps)
         proof["desktop_evidence"] = verify_desktop(executable, target, output)
         proof["desktop"] = proof["desktop_evidence"]["passed"]
+        proof["early_close"] = verify_early_close(executable, target, output)
         (output / "native-proof.json").write_text(json.dumps(proof, indent=2) + "\n")
         if not all(proof[key] is True for key in ("passed", "login", "rendering", "audio", "input", "preferences", "outside_checkout", "desktop")):
             raise ValueError("La prueba nativa no acredita todos los requisitos")
