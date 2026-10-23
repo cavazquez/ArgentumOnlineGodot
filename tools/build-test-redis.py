@@ -37,7 +37,7 @@ def build(destination):
         if os.name == "nt":
             command = ["wsl", "--exec", "make", "-C", wsl(source), *command[3:]]
         subprocess.run(command, check=True)
-        for name in ("redis-server", "redis-cli"):
+        for name in ("redis-server", "redis-cli", "redis-check-rdb"):
             shutil.copy2(source / "src" / name, destination / name)
             (destination / name).chmod(0o755)
         (destination / "runtime.json").write_text(json.dumps({"version": "8.10.2", "url": URL, "sha256": SHA256, "wsl": os.name == "nt"}) + "\n")

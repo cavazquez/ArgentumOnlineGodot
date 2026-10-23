@@ -385,6 +385,12 @@ class FullWorld(SkillsWorld):
             items={1: (15, 1), 2: (58, 3)},
             stats={"class_id": 5, "gold": 0},
         )
+        # La fixture sembró cantidades antiguas: un arrastre real las normaliza
+        # antes de fijar la identidad que el robo debe conservar.
+        self.command(2, "drag", source=1, destination=3)
+        self.wait(lambda: self.items(store, 2).get(3) == (15, 1), "arma preparada en mochila")
+        self.command(2, "drag", source=3, destination=1)
+        self.wait(lambda: self.items(store, 2).get(1) == (15, 1), "identidad individual preparada")
         self.command(2, "equip", slot=1)
         inventory = f"player:{self.ids[2]}:inventory"
         equipment = f"player:{self.ids[2]}:equipment"
@@ -401,8 +407,10 @@ class FullWorld(SkillsWorld):
             raise RuntimeError("El ladrón no robó un objeto permitido")
         if sum(self.count(store, i, 58) for i in (1, 2)) != before:
             raise RuntimeError("Robo no conservó los objetos")
-        if store.hget(inventory, "slot_1") != protected or store.hget(equipment, "weapon") != "1":
-            raise RuntimeError("Se robó equipo protegido")
+        after = store.hget(inventory, "slot_1")
+        weapon = store.hget(equipment, "weapon")
+        if after != protected or weapon != "1":
+            raise RuntimeError(f"Se robó equipo protegido: antes={protected!r}, después={after!r}, ranura={weapon!r}")
         self.both_screens("thief-item-theft")
         self.passed("full-thief", protected_equipment=True, objects_conserved=True)
 

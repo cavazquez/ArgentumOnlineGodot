@@ -18,11 +18,15 @@ class ThiefItemEvidenceTests(unittest.TestCase):
         world = SimpleNamespace()
         world.ids = {1: 101, 2: 202}
         world.reset = Mock()
-        world.command = Mock()
-        world.items = Mock(return_value={1: (15, 1)})
         world.both_screens = Mock()
         world.passed = Mock()
         fields = {"slot_1": "i1:15:" + "a" * 32, "weapon": "1"}
+        def command(player, operation, **args):
+            if operation == "drag":
+                source, target = ("slot_" + str(args[key]) for key in ("source", "destination"))
+                fields[source], fields[target] = fields.get(target), fields.get(source)
+        world.command = Mock(side_effect=command)
+        world.items = Mock(side_effect=lambda *_: {int(key[5:]): (15, 1) for key, value in fields.items() if key.startswith("slot_") and value})
         store = SimpleNamespace(hget=lambda key, field: fields.get(field))
         moved = [False]
         def steal(*args):
