@@ -158,6 +158,17 @@ def child_process_options():
     return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {}
 
 
+def redis_fixture_configuration(template, directory, *, wsl_runtime):
+    if template.count("dir /data") != 1:
+        raise ValueError("La fixture requiere un único directorio de datos controlado")
+    text = template.replace("dir /data", 'dir "' + directory + '"')
+    if wsl_runtime:
+        # WSL1 no implementa sync_file_range, usado por el autosync incremental
+        # de Redis. Se conserva fsync final de RDB y appendfsync always del AOF.
+        text += "\nrdb-save-incremental-fsync no\naof-rewrite-incremental-fsync no\n"
+    return text
+
+
 class NativeRedis:
     """Alternativa local al contenedor, sobre el mismo Redis 8.10.2 real.
 
@@ -233,31 +244,56 @@ class NativeRedis:
         acl.chmod(0o600)
         config = self.root / "redis.conf"
         config.write_text(
-            (resource_root() / "redis/redis.conf")
-            .read_text()
-            .replace("dir /data", 'dir "' + self.data_directory(wsl_runtime) + '"')
+            redis_fixture_configuration(
+                (resource_root() / "redis/redis.conf").read_text(),
+                self.data_directory(wsl_runtime),
+                wsl_runtime=wsl_runtime,
+            )
         )
         self.log = (self.root / "redis.log").open("wb")
+        invocation = [*command, native_path(config), "--bind", "127.0.0.1", "--port", str(self.port), "--aclfile", native_path(acl)]
         self.process = subprocess.Popen(
-            [
-                *command,
-                native_path(config),
-                "--bind",
-                "127.0.0.1",
-                "--port",
-                str(self.port),
-                "--aclfile",
-                native_path(acl),
-            ],
+            invocation,
             stdout=self.log,
             stderr=subprocess.STDOUT,
             **child_process_options(),
         )
         with self.client():
             pass
+        if wsl_runtime:
+            self.verify_wsl_persistence(invocation, native_path(runtime / "redis-check-rdb"))
         return self
 
-    def client(self):
+    def verify_wsl_persistence(self, invocation, checker):
+        """Ensaya RDB mayor a 32 MiB y recuperación AOF antes de crear cuentas."""
+        key = "__pyao_private_persistence_probe__"
+        payload = secrets.token_urlsafe(32 * 1024 * 1024)
+        expected = hashlib.sha256(payload.encode()).hexdigest()
+        with self.client(socket_limit=60) as client:
+            if client.dbsize() != 0:
+                raise RuntimeError("La comprobación de persistencia exige nuestra instancia vacía")
+            settings = client.config_get("appendonly", "appendfsync", "stop-writes-on-bgsave-error")
+            if settings != {"appendonly": "yes", "appendfsync": "always", "stop-writes-on-bgsave-error": "yes"}:
+                raise RuntimeError("La fixture perdió sus garantías de persistencia")
+            client.set(key, payload)
+            client.save()
+            checked = subprocess.run(["wsl", "--exec", checker, self.wsl_data_dir + "/dump.rdb"], check=True, capture_output=True, text=True, timeout=90)
+            if "Checksum OK" not in checked.stdout or "RDB looks OK" not in checked.stdout:
+                raise RuntimeError("La instantánea grande no pasó redis-check-rdb")
+            client.shutdown(save=True)
+        stop(self.process)
+        self.process = subprocess.Popen(invocation, stdout=self.log, stderr=subprocess.STDOUT, **child_process_options())
+        with self.client(socket_limit=60) as client:
+            restored = client.get(key)
+            if restored is None or hashlib.sha256(restored.encode()).hexdigest() != expected:
+                raise RuntimeError("El reinicio no conservó el contenido persistido")
+            if client.info("persistence")["aof_enabled"] != 1:
+                raise RuntimeError("El reinicio no usó AOF")
+            client.delete(key)
+        if self.evidence is not None:
+            (self.evidence / "native-redis-persistence.json").write_text(json.dumps({"passed": True, "payload_bytes": len(payload), "payload_sha256": expected, "rdb_saved": True, "rdb_checksum_verified": True, "aof_restarted": True, "payload_preserved": True, "appendfsync": "always", "production_data_used": False}, indent=2) + "\n")
+
+    def client(self, *, socket_limit=5):
         from redis import Redis, ConnectionError
 
         client = Redis(
@@ -265,7 +301,7 @@ class NativeRedis:
             port=self.port,
             password=self.password_file.read_text(),
             decode_responses=True,
-            socket_timeout=5,
+            socket_timeout=socket_limit,
             socket_connect_timeout=1,
         )
         deadline = time.monotonic() + 15
@@ -281,10 +317,10 @@ class NativeRedis:
         raise RuntimeError("Redis propio no inició")
 
     def __exit__(self, *_):
-        from redis.exceptions import ResponseError
-
         try:
             if self.process is not None:
+                from redis.exceptions import ResponseError
+
                 if self.evidence is not None:
                     self.evidence.mkdir(parents=True, exist_ok=True)
                     with contextlib.suppress(Exception):

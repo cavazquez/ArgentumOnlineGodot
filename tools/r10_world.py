@@ -885,12 +885,14 @@ class R10World:
             lambda: [(n["x"], n["y"]) for n in pets()] != original,
             "seguimiento de mascota",
         )
-        moved = pets()[0]
         self.view(
             1,
-            lambda v: (
-                v["world_characters"].get(pet["char_index"], [])[:2]
-                == [int(moved["x"]), int(moved["y"])]
+            lambda v: any(
+                current["char_index"] == pet["char_index"]
+                and (current["x"], current["y"]) not in original
+                and v["world_characters"].get(pet["char_index"], [])[:2]
+                == [int(current["x"]), int(current["y"])]
+                for current in pets()
             ),
             "seguimiento observado en Godot",
         )
