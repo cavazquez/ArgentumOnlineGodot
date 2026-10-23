@@ -30,6 +30,13 @@ if [ "$#" -eq 0 ]; then
   exit 0
 fi
 
+# La copia conserva suites/componentes y Signed-By; nunca cambia fuentes del host.
+pyao_ci_sources=$(mktemp /tmp/pyao-ubuntu-sources.XXXXXXXX.sources)
+trap 'rm -f -- "$pyao_ci_sources"' EXIT HUP INT TERM
+python3 "$(dirname "$0")/ubuntu_ci_sources.py" \
+  /etc/apt/sources.list.d/ubuntu.sources "$pyao_ci_sources" "$(dpkg --print-architecture)"
+chmod 644 "$pyao_ci_sources"
+
 run_apt() {
   pyao_apt_stage=$1
   pyao_apt_limit=$2
@@ -38,8 +45,9 @@ run_apt() {
   while [ "$pyao_apt_attempt" -le 2 ]; do
     printf '%s APT %s attempt=%s start\n' "$(date -u +%FT%TZ)" "$pyao_apt_stage" "$pyao_apt_attempt"
     if timeout --signal=TERM --kill-after=15s "$pyao_apt_limit" sudo apt-get \
-      -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources \
+      -o Dir::Etc::sourcelist="$pyao_ci_sources" \
       -o Dir::Etc::sourceparts=- \
+      -o Acquire::ForceIPv4=true \
       -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
       -o Acquire::Retries=2 -o DPkg::Lock::Timeout=60 "$@"; then
       printf '%s APT %s complete\n' "$(date -u +%FT%TZ)" "$pyao_apt_stage"

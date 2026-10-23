@@ -38,7 +38,8 @@ path = Path(os.environ["PYAO_TEST_CALLS"])
 calls = json.loads(path.read_text()) if path.exists() else []
 args = sys.argv[1:]
 kind = "install" if "install" in args else "update"
-calls.append({"kind": kind, "args": args})
+sources = next(value.split("=", 1)[1] for value in args if value.startswith("Dir::Etc::sourcelist="))
+calls.append({"kind": kind, "args": args, "sources_path": sources, "sources": Path(sources).read_text()})
 path.write_text(json.dumps(calls))
 count = sum(call["kind"] == kind for call in calls)
 mode = os.environ["PYAO_TEST_APT_MODE"]
@@ -71,7 +72,11 @@ if mode == "failed-install" and kind == "install": sys.exit(100)
         self.assertIn("--no-install-recommends", installation)
         self.assertEqual(["xvfb", "pulseaudio"], installation[-2:])
         for call in calls:
-            self.assertIn("Dir::Etc::sourcelist=" + str(SOURCES), call["args"])
+            self.assertIn("Dir::Etc::sourcelist=" + call["sources_path"], call["args"])
+            self.assertFalse(Path(call["sources_path"]).exists())
+            self.assertIn("ubuntu-archive-keyring.gpg", call["sources"])
+            self.assertNotIn("azure.archive.ubuntu.com", call["sources"])
+            self.assertIn("Acquire::ForceIPv4=true", call["args"])
             self.assertIn("Dir::Etc::sourceparts=-", call["args"])
             self.assertNotIn("--allow-unauthenticated", call["args"])
         bounds = self.bounds.read_text().splitlines()
