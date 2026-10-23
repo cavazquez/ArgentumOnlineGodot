@@ -456,10 +456,10 @@ def worker(args):
             **child_process_options(),
         )
         stack.callback(stop, server)
-        # Fuente y Python privado validan/extractan los 290 mapas en un estado
-        # nuevo. Ese trabajo precede al listener y al presupuesto de login.
+        # El estado nuevo valida 290 mapas y migra 427.000 unidades del stock.
+        # Ese trabajo único precede al listener y al presupuesto de login.
         startup_started = time.monotonic()
-        startup_budget = 240 if args.source or args.server_bundle else 60
+        startup_budget = 240
         deadline = startup_started + startup_budget
         while True:
             if server.poll() is not None:

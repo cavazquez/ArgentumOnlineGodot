@@ -37,7 +37,12 @@ func _connect_session_cleanup() -> void:
 	ClientInterface.disconnected.connect(StopAll)
 
 func _exit_tree() -> void:
-	StopAll()
+	Shutdown()
+	# El mezclador libera el playback en su siguiente ciclo, también al cerrar
+	# desde --quit-after. Esperar sólo aquí evita retener los paquetes Ogg.
+	var deadline := Time.get_ticks_msec() + 250
+	while not IsDrained() and Time.get_ticks_msec() < deadline:
+		OS.delay_msec(5)
 
 func StopAll() -> void:
 	_active.clear()

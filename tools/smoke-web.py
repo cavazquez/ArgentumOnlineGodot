@@ -71,7 +71,8 @@ def smoke(candidate, server, output):
         log = stack.enter_context((output / "server.log").open("wb"))
         process = subprocess.Popen([str(server / ".venv/bin/python"), "-m", "src.run_server", "--host", "127.0.0.1", "--port", str(tcp_port), "--ssl", "--ssl-cert", str(certificate), "--ssl-key", str(key)], cwd=work, env=env, stdout=log, stderr=subprocess.STDOUT)
         stack.callback(runner.stop, process)
-        deadline = time.monotonic() + 60
+        # El Redis vacío migra el catálogo completo antes de admitir conexiones.
+        deadline = time.monotonic() + 240
         while True:
             try:
                 with socket.create_connection(("127.0.0.1", wss_port), timeout=0.2): break
