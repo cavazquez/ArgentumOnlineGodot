@@ -19,7 +19,9 @@ func _ready() -> void:
 		reader.data_array = bytes
 		var id := reader.get_u8()
 		var packet = contract.directions[fixture.direction][str(id)]
-		for field in packet.fields:
+		var fields: Array = packet.fields.duplicate()
+		if packet.has("variants"): fields.append_array(packet.variants[str(bytes[1])])
+		for field in fields:
 			var value
 			match field.type:
 				"u8": value = reader.get_u8()

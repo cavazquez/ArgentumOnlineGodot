@@ -7,6 +7,10 @@ const WIDTHS := {"u8": 1, "i16": 2, "i32": 4, "u32": 4, "f32": 4}
 var _contract: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/contract.json"))
 var _pending := PackedByteArray()
 var error := ""
+var _direction := "server"
+
+func _init(direction: String = "server") -> void:
+	_direction = direction
 
 func clear() -> void:
 	_pending.clear()
@@ -30,6 +34,17 @@ func _fields_end(fields: Array, offset: int) -> int:
 				return _invalid("Longitud de cadena fuera del contrato")
 			offset += length
 		else:
+			var width := int(WIDTHS[field.type])
+			if offset + width > _pending.size(): return 0
+			var value: float
+			match field.type:
+				"u8": value = _pending[offset]
+				"i16": value = _pending.decode_s16(offset)
+				"i32": value = _pending.decode_s32(offset)
+				"u32": value = _pending.decode_u32(offset)
+				"f32": value = _pending.decode_float(offset)
+			if not is_finite(value) or (field.has("min") and value < field.min) or (field.has("max") and value > field.max):
+				return _invalid("Campo fuera del contrato: " + field.name)
 			offset += int(WIDTHS[field.type])
 		if offset > MAX_BUFFER_BYTES:
 			return _invalid("Paquete demasiado grande")
@@ -40,7 +55,7 @@ func _fields_end(fields: Array, offset: int) -> int:
 func _next_length() -> int:
 	if _pending.is_empty():
 		return 0
-	var entry: Dictionary = _contract.directions.server.get(str(_pending[0]), {})
+	var entry: Dictionary = _contract.directions[_direction].get(str(_pending[0]), {})
 	if entry.is_empty() or entry.status != "supported":
 		return _invalid("ID de paquete desconocido o no soportado")
 	var end := _fields_end(entry.fields, 1)

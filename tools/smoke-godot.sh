@@ -39,6 +39,12 @@ CHECK_LOG
 run_checked "$run_dir/protocol.log" "$godot_bin" --headless --path "$project_root" --quit-after 300 res://tests/protocol_smoke.tscn
 grep -q 'PROTOCOL_SMOKE: PASS' "$run_dir/protocol.log"
 
+run_checked "$run_dir/wire.log" "$godot_bin" --headless --path "$project_root" --quit-after 600 res://tests/wire_validation.tscn
+grep -q 'WIRE_VALIDATION: .*failures=0' "$run_dir/wire.log"
+
+run_checked "$run_dir/storage.log" "$godot_bin" --headless --path "$project_root" --quit-after 600 res://tests/storage_ui.tscn
+grep -q 'STORAGE_UI: failures=0' "$run_dir/storage.log"
+
 run_checked "$run_dir/lottery.log" "$godot_bin" --headless --path "$project_root" --quit-after 300 res://tests/lottery_packet.tscn
 grep -q 'LOTTERY_PACKET: checks completed; failures=0' "$run_dir/lottery.log"
 

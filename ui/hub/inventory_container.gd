@@ -3,6 +3,7 @@ class_name InventoryContainer
 const InventorySlotScene = preload("uid://b8q7jv01joc1r")
 
 @export var allow_reorder := false
+var reorder_handler: Callable
 
 signal slotPressed(index:int) 
 signal slotActivated(index:int)
@@ -87,7 +88,10 @@ func DropItem(destination: int, data: Variant) -> void:
 	if not CanDropItem(destination, data):
 		return
 	# Sin cambios optimistas: sólo ChangeInventorySlot puede actualizar el modelo.
-	GameProtocol.WriteMoveItem(int(data.source) + 1, destination + 1)
+	if reorder_handler.is_valid():
+		reorder_handler.call(int(data.source) + 1, destination + 1)
+	else:
+		GameProtocol.WriteMoveItem(int(data.source) + 1, destination + 1)
 
 func ClearSelection() -> void:
 	var selected := GetInventorySlot(_selectedSlot)
