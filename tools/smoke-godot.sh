@@ -39,6 +39,9 @@ CHECK_LOG
 run_checked "$run_dir/protocol.log" "$godot_bin" --headless --path "$project_root" --quit-after 300 res://tests/protocol_smoke.tscn
 grep -q 'PROTOCOL_SMOKE: PASS' "$run_dir/protocol.log"
 
+run_checked "$run_dir/lottery.log" "$godot_bin" --headless --path "$project_root" --quit-after 300 res://tests/lottery_packet.tscn
+grep -q 'LOTTERY_PACKET: checks completed; failures=0' "$run_dir/lottery.log"
+
 run_checked "$run_dir/chat-commands.log" "$godot_bin" --headless --path "$project_root" --quit-after 600 res://tests/chat_commands.tscn
 grep -q 'CHAT_COMMANDS: PASS' "$run_dir/chat-commands.log"
 python3 - "$run_dir/chat-commands.log" <<'CHECK_CHAT_LOG'

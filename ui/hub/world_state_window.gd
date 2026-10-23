@@ -81,7 +81,7 @@ func _visibility() -> void:
 			_receive(topic, ClientInterface.world_state.states[topic], ClientInterface.world_state.revisions.get(topic, ""))
 		GameProtocol.WriteWorldAction("subscribe", {"topic": topic, "enabled": true})
 		request_state()
-	elif not topic in ["tax", "weather"]:
+	elif not topic in ["tax", "weather", "lottery"]:
 		GameProtocol.WriteWorldAction("subscribe", {"topic": topic, "enabled": false})
 
 func request_state() -> void:
@@ -107,7 +107,7 @@ func confirm_action(action: String, params: Dictionary, explanation: String) -> 
 
 func _confirm() -> void:
 	if _confirmed_action.get("revision", "") != revision:
-		status.text = "El grupo cambió; volvé a seleccionar la acción."
+		status.text = "El estado cambió; volvé a seleccionar la acción."
 		return
 	mutate(_confirmed_action.action, _confirmed_action.params)
 	_confirmed_action.clear()

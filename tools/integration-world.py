@@ -29,6 +29,7 @@ from periodic_captures import collect_native_captures, ensure_fresh_captures, re
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIO_TIMEOUT_SECONDS = {
+    "lottery": 1200,
     "classic-chat": 1200,
     "r10": 900,
     "skills": 1800,
@@ -311,7 +312,9 @@ def worker(args):
     if args.seconds >= 1800:
         ensure_fresh_captures(output)
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    if args.scenario == "classic-chat":
+    if args.scenario == "lottery":
+        from lottery_world import LotteryWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "classic-chat":
         from classic_chat_world import ClassicChatWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "world-routes":
         from world_routes_world import WorldRoutesWorld as R10World, acceptance, prepare_fixture

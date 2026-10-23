@@ -104,6 +104,10 @@ func snapshot() -> Dictionary:
 			result["world_window_state"] = window.state.duplicate(true)
 			result["world_pending"] = window.pending()
 			result["world_status"] = window.status.text
+			if window is LotteryWindow:
+				result["lottery_bet_disabled"] = window._bet.disabled
+				result["lottery_summary"] = window._summary.text
+				result["lottery_winner"] = window._winner.text
 			if window is SocialWindow and topic == "clan": result.clan_details = window._summary.text
 	if is_instance_valid(hub._currentPanel) and hub._currentPanel is PlayerTradePanel:
 		result["trade_metadata_ready"] = hub._currentPanel._metadata_ready()
@@ -210,6 +214,12 @@ func execute(command: Dictionary) -> bool:
 				if button == null or button.disabled: return false
 				button.pressed.emit()
 				if window._confirmation.visible: window._confirmation.confirmed.emit()
+			elif window is LotteryWindow:
+				if command.action != "bet" or window._bet.disabled: return false
+				window._amount.value = int(command.gross)
+				window._bet.pressed.emit()
+				if not window._confirmation.visible: return false
+				window._confirmation.confirmed.emit()
 			elif window is ExpansionWindow:
 				for key in command.get("controls", {}):
 					if not window._controls.has(key): return false
