@@ -53,7 +53,9 @@ func _ready() -> void:
 	panel._OnWorldState("items", {"scope": "merchant"}, "")
 	check(panel._infoLabel.text == "Daga" and panel._statLabel.text == "1/2", "Una actualización ajena borra el detalle seleccionado en la bóveda")
 	check(panel._playerInventoryContainer.GetSelectedSlot() == -1, "Mochila y bóveda comparten dos selecciones activas")
-	bank.GetSlot(0).instance_state = {"effective": {"MinHit": 1, "MaxHit": 1}}
+	bank.GetSlot(0).instance_state = {"id": "b".repeat(32), "item": 15, "broken": false,
+		"condition": 5000, "max_uses": 10000, "uses": 5000, "created": 1792000000,
+		"expires": 0, "base": {"MinHit": 1, "MaxHit": 2}, "effective": {"MinHit": 1, "MaxHit": 1}}
 	panel._OnWorldState("items", {"scope": "bank"}, "")
 	check(panel._statLabel.text == "1/1" and panel._statRow.tooltip_text == "Daño: 1/1", "El detalle mezcla daño efectivo y base")
 	panel._OnWorldState("bank", {"banker": "banker", "access": true, "capacity": 40, "slots": [[1, 15, 2]]}, "revision")
