@@ -61,6 +61,11 @@ func _ready() -> void:
 	check(GameProtocol.Flush().is_empty(), "Truncó una dirección inválida antes de validarla")
 	GameProtocol.WriteBankDepositItem(31, 1)
 	check(GameProtocol.Flush().is_empty(), "Envió slot inválido")
+	GameProtocol.WriteDrop(32, 1)
+	check(GameProtocol.Flush().is_empty(), "Confundió un slot inválido con el marcador de oro")
+	for quantity in [0, 10001]:
+		GameProtocol.WriteDrop(Consts.Flagoro, quantity)
+		check(GameProtocol.Flush().is_empty(), "El marcador de oro evita validar la cantidad")
 	for bad in [PackedByteArray([7, 1, 0, 0]), PackedByteArray([85]), PackedByteArray([99]), PackedByteArray([9, 0, 0])]:
 		var decoder := AOMessageDispatcher.new()
 		var errors := []
