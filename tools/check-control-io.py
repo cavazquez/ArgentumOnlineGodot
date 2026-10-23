@@ -41,6 +41,7 @@ def locked(path):
 def run(godot, output):
     output.mkdir(parents=True, exist_ok=False)
     records = []
+    case_started = {}
     with tempfile.TemporaryDirectory(prefix="pyao control con espacios ñ ") as temporary:
         project = Path(temporary)
         (project / "project.godot").write_text('[application]\nconfig/name="Control IO fixture"\n', encoding="utf-8")
@@ -48,7 +49,22 @@ def run(godot, output):
         shutil.copyfile(ROOT / "tests/control_request_reader.gd", project / "tests/control_request_reader.gd")
         shutil.copyfile(ROOT / "tools/control-io-probe.gd", project / "probe.gd")
 
+        def file_snapshot():
+            entries = []
+            for folder, _, names in os.walk(project):
+                for name in names:
+                    path = Path(folder) / name
+                    row = {"file": str(path.relative_to(project))}
+                    try:
+                        stat = path.stat()
+                        row.update(bytes=stat.st_size, modified_unix=stat.st_mtime)
+                    except OSError as error:
+                        row.update(stat_errno=error.errno, stat_winerror=getattr(error, "winerror", None))
+                    entries.append(row)
+            return entries
+
         def start(name, body, mode="reader", timeout=1000):
+            case_started[name] = time.time()
             request = project / (name + ".request.json")
             request.write_bytes(body)
             result = project / (name + ".result.json")
@@ -66,8 +82,8 @@ def run(godot, output):
                 (output / (name + ".log")).write_bytes(stdout + stderr)
                 (output / (name + "-timeout.json")).write_text(json.dumps({
                     "phase": "process-timeout", "process_returncode": process.returncode,
-                    "files": [{"file": str(p.relative_to(project)), "bytes": p.stat().st_size}
-                              for p in project.rglob('*') if p.is_file()],
+                    "case_started_unix": case_started[name], "observed_unix": time.time(),
+                    "files": file_snapshot(),
                 }, indent=2) + "\n", encoding="utf-8")
                 raise
             log = stdout + stderr
@@ -82,6 +98,12 @@ def run(godot, output):
             deadline = time.monotonic() + 10
             while not observed.exists():
                 if process.poll() is not None or time.monotonic() >= deadline:
+                    (output / (name + "-wait-failure.json")).write_text(json.dumps({
+                        "case_started_unix": case_started[name], "observed_unix": time.time(),
+                        "expected_signal": str(observed), "signal_exists": observed.exists(),
+                        "process_returncode": process.poll(),
+                        "files": file_snapshot(),
+                    }, indent=2) + "\n", encoding="utf-8")
                     finish(name, process, result)
                     raise AssertionError("The reader never reached the controlled file operation")
                 time.sleep(0.005)
