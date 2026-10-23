@@ -948,6 +948,9 @@ class R10World:
                 "fantasma visible",
             )
             if method == "spell":
+                # El acompañante esperó fuera del agro durante el ataque. Para
+                # resucitar debe estar de nuevo dentro del alcance del cliente.
+                self.relocate(store, {1: (1, x + 1, y)}, allow_adjustment=True)
                 self.command(1, "cast", slot=4, x=x, y=y)
             else:
                 priest = next(
