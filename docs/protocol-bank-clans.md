@@ -31,6 +31,10 @@ conservación de borradores y ausencia de movimientos bancarios optimistas.
 conjunta con dos clientes y un Redis aislado. El workflow Cliente Linux permite
 seleccionar ese escenario al solicitar la campaña gráfica.
 
+Los 25 recorridos aprobaron con dos clientes renderizando, TLS, PulseAudio,
+reinicio del servidor y reconexión. Las capturas y la verificación de procedencia
+se conservan en [el registro de la tanda](https://github.com/cavazquez/pyao-server/tree/main/docs/audits/protocol-bank-clans-2026-10-22).
+
 La política de persistencia y los detalles de las transacciones se documentan en
 [el servidor](https://github.com/cavazquez/pyao-server/blob/main/docs/development/protocol-bank-clans.md).
 El perfil Redis recomendado es AOF `always`: el resultado del combate sólo se
