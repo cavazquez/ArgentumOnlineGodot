@@ -22,6 +22,20 @@ def sha(path):
     with path.open("rb") as stream: return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def platform_requirements(steps):
+    """Cada cliente acredita su UI; otras sondas conservan su propio requisito."""
+    identifiers = {"platform-1", "platform-2"}
+    probes = [row for row in steps if row.get("id") in identifiers]
+    if len(probes) != 2 or {row["id"] for row in probes} != identifiers:
+        raise ValueError("Falta una sonda nativa única para cada cliente")
+    if any(row.get("passed") is not True for row in steps):
+        raise ValueError("Una sonda nativa o auxiliar falló")
+    return {
+        check: all(row.get("observations", {}).get(check) is True for row in probes)
+        for check in ("rendering", "audio", "input", "preferences")
+    }
+
+
 def verify_desktop(executable, target, output):
     """Usa los mismos bytes del portable, con una entrada y perfil aislados."""
     profile = "PyAO-tray-validation-" + executable.parent.parent.name
@@ -98,8 +112,7 @@ def smoke(candidate, server, engine, output, redis_runtime, server_bundle=None, 
         steps = json.loads((proof_dir / "r10-scenarios.json").read_text())
         verified = result.get("regression_passed") is True and result.get("native_export") is True and result.get("tls") is True
         proof = {"passed": verified, "platform": target, "client_commit": record["commit"], "server_commit": result["server_commit"], "candidate_manifest_sha256": sha(candidate / "candidate-manifest.json"), "login": verified, "outside_checkout": not runtime.is_relative_to(ROOT), "native_system": platform.platform(), "native_machine": platform.machine()}
-        for check in ("rendering", "audio", "input", "preferences"):
-            proof[check] = len(steps) == 2 and all(row["observations"].get(check) is True for row in steps)
+        proof.update(platform_requirements(steps))
         proof["desktop_evidence"] = verify_desktop(executable, target, output)
         proof["desktop"] = proof["desktop_evidence"]["passed"]
         proof["early_close"] = verify_early_close(executable, target, output)

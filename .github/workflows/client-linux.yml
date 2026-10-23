@@ -111,10 +111,14 @@ jobs:
           pactl load-module module-null-sink sink_name=pyao_test
       - name: Compilador de Redis en WSL del runner Windows
         if: runner.os == 'Windows'
+        timeout-minutes: 8
         run: |
-          wsl --set-default-version 1
+          # El fork de RDB en WSL1 puede detener Redis más que su plazo de 5 s.
+          # WSL2 usa el kernel Linux; el ensayo también verifica uname y BGSAVE.
+          wsl --set-default-version 2
           wsl --install --distribution Ubuntu-24.04 --no-launch --web-download
           wsl --set-default Ubuntu-24.04
+          wsl --distribution Ubuntu-24.04 --user root --exec uname -r
           wsl --distribution Ubuntu-24.04 --user root --exec sh -c 'apt-get update && apt-get install -y build-essential'
       - name: Dispositivo firmado de audio para WASAPI del runner Windows
         if: runner.os == 'Windows'
