@@ -78,8 +78,14 @@ class NativeRedisStorageTests(unittest.TestCase):
         state = {"rdb_bgsave_in_progress": 0, "rdb_last_bgsave_status": status}
         client = SimpleNamespace(dbsize=Mock(return_value=keys), bgsave=Mock(), ping=Mock(),
             info=Mock(side_effect=lambda section: state if section == "persistence" else {"latest_fork_usec": fork}),
+            config_set=Mock(return_value=True), latency_latest=Mock(return_value=[]), slowlog_get=Mock(return_value=[]),
             config_get=Mock(return_value={"appendonly": "yes", "appendfsync": fsync, "stop-writes-on-bgsave-error": "yes"}))
         fixture.client = Mock(side_effect=lambda **kwargs: nullcontext(client))
+        # These unit cases exercise persistence invariants without launching
+        # network observers. The Windows diagnostic runs both real observers.
+        observers = patch("snapshot_observation.SnapshotObservation.__enter__", lambda observer: observer)
+        observers.start()
+        self.addCleanup(observers.stop)
         return fixture, client
 
     def test_live_snapshot_checks_full_catalog_and_fork_latency(self):
