@@ -85,9 +85,12 @@ def stop(process):
         raise RuntimeError("El proceso Snap no terminó limpiamente")
 
 
-def ready(process, port, cert):
+def ready(process, port, cert, *, initial=False):
     context = ssl.create_default_context(cafile=cert)
-    deadline = time.monotonic() + 60
+    started = time.monotonic()
+    # Redis vacío migra el catálogo completo; el login conserva su límite de 5 s.
+    budget = 240 if initial else 60
+    deadline = started + budget
     while time.monotonic() < deadline:
         if process.poll() is not None:
             raise RuntimeError("El servidor Snap terminó antes de abrir TLS")
@@ -97,7 +100,8 @@ def ready(process, port, cert):
                     stream.sendall(b"\x77")
                     if stream.recv(1) != b"\x58":
                         raise RuntimeError("No respondió PONG dentro de TLS verificado")
-                    return
+                    return {"elapsed_seconds": round(time.monotonic() - started, 3),
+                            "budget_seconds": budget, "login_budget_changed": False}
         except (ConnectionRefusedError, TimeoutError):
             time.sleep(0.1)
     raise TimeoutError("El servidor no abrió TLS")
@@ -276,7 +280,7 @@ def main():
                         stderr=subprocess.STDOUT,
                     )
                     try:
-                        ready(server, port, cert)
+                        startup = ready(server, port, cert, initial=attempt == 1)
                         if attempt == 1:
                             asyncio.run(create_account(port, cert, username, password))
                         account = wait_until(
@@ -383,6 +387,7 @@ def main():
                         attempts.append(
                             {
                                 "attempt": attempt,
+                                "server_startup": startup,
                                 **result,
                                 "movement_confirmed_in_redis": True,
                                 "distinct_positions": len(positions),
