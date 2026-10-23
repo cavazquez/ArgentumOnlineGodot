@@ -19,6 +19,7 @@ var _selected_invitation := 0
 var _previous: Button
 var _next: Button
 var _page: Label
+var _profile_editor: ClanProfileEditor
 
 func _init(kind: String = "party") -> void:
 	topic = kind
@@ -26,6 +27,10 @@ func _init(kind: String = "party") -> void:
 
 func _build() -> void:
 	_summary = label(body)
+	if topic == "clan":
+		_profile_editor = ClanProfileEditor.new()
+		body.add_child(_profile_editor)
+		_profile_editor.save_requested.connect(func(params: Dictionary): mutate("clan.profile", params))
 	_name = LineEdit.new()
 	_name.placeholder_text = "Nombre del clan"
 	_name.max_length = 30
@@ -51,6 +56,9 @@ func _build() -> void:
 	body.add_child(pages)
 	_previous = button(pages, "Anterior", _change_page.bind(-1))
 	_page = label(pages)
+	_page.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_page.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_next = button(pages, "Siguiente", _change_page.bind(1))
 	var invitation := HBoxContainer.new()
 	body.add_child(invitation)
@@ -73,6 +81,7 @@ func _build() -> void:
 	_reject = button(invitation_actions, "Rechazar", _invitation_action.bind("reject"))
 
 func _render() -> void:
+	if is_instance_valid(_profile_editor): _profile_editor.Apply(state, pending())
 	_members.clear()
 	_invitations.clear()
 	if state.is_empty():
@@ -155,3 +164,8 @@ func _change_page(delta: int) -> void:
 func _process(delta: float) -> void:
 	super._process(delta)
 	if visible and _accept != null: _refresh_buttons()
+
+func _receive(kind: String, data: Dictionary, value: String) -> void:
+	if kind == "result" and _pending.get("action", "") == "clan.profile" and data.get("id", "") == _pending.get("id", "missing"):
+		_profile_editor.Confirmed(data)
+	super._receive(kind, data, value)

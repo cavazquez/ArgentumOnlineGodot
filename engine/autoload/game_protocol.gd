@@ -15,6 +15,12 @@ static func _log_outgoing_packet(packet_name: String, params: String = "") -> vo
 static func Flush() -> PackedByteArray:
 	var data = _writer.data_array
 	_writer.clear() 
+	if not data.is_empty():
+		var validator := AOPacketFramer.new("client")
+		validator.feed(data)
+		if not validator.error.is_empty() or validator.pending_size() != 0:
+			ClientInterface.serialization_failed.emit("No se envió un mensaje fuera del contrato.")
+			return PackedByteArray()
 	return data
 	
 static func IsEmpty() -> bool:
@@ -24,6 +30,8 @@ static func Clear() -> void:
 	_writer.clear()
 
 static func WriteLoginExistingCharacter(username:String, password:String) -> void:
+	if not _valid_fields(0, {"username": username, "password": password}):
+		return
 	if not _can_write(Enums.ClientPacketID.LoginExistingChar):
 		return
 	var credential_error := CredentialPolicy.validate(username, password)
@@ -41,6 +49,8 @@ static func WriteLoginExistingCharacter(username:String, password:String) -> voi
 	_writer.put_u8(0)
 	
 static func WriteLoginNewChar(username:String, password:String, email:String, job:int, race:int, gender:int, home:int, head:int) -> void:
+	if not _valid_fields(2, {"username": username, "password": password, "email": email, "job": job, "race": race, "gender": gender, "home": home, "head": head}):
+		return
 	if not _can_write(Enums.ClientPacketID.LoginNewChar):
 		return
 	var credential_error := CredentialPolicy.validate(username, password)
@@ -71,6 +81,8 @@ static func WriteThrowDice() -> void:
 	_writer.put_u8(Enums.ClientPacketID.ThrowDices)
 	
 static func WriteWalk(heading:int) -> void:
+	if not _valid_fields(6, {"heading": heading}):
+		return
 	if not _can_write(Enums.ClientPacketID.Walk):
 		return
 	_log_outgoing_packet("Walk", "heading: " + str(heading))
@@ -78,6 +90,8 @@ static func WriteWalk(heading:int) -> void:
 	_writer.put_u8(heading)
 	
 static func WriteChangeHeading(heading:int) -> void:
+	if not _valid_fields(37, {"heading": heading}):
+		return
 	if not _can_write(Enums.ClientPacketID.ChangeHeading):
 		return
 	_log_outgoing_packet("ChangeHeading", "heading: " + str(heading))
@@ -85,6 +99,8 @@ static func WriteChangeHeading(heading:int) -> void:
 	_writer.put_u8(heading) 
 	
 static func WriteEquipItem(slot:int) -> void:
+	if not _valid_fields(36, {"slot": slot}):
+		return
 	if not _can_write(Enums.ClientPacketID.EquipItem):
 		return
 	_log_outgoing_packet("EquipItem", "slot: " + str(slot))
@@ -92,6 +108,8 @@ static func WriteEquipItem(slot:int) -> void:
 	_writer.put_u8(slot) 
 	
 static func WriteUseItem(slot:int) -> void:
+	if not _valid_fields(30, {"slot": slot}):
+		return
 	if not _can_write(Enums.ClientPacketID.UseItem):
 		return
 	_log_outgoing_packet("UseItem", "slot: " + str(slot))
@@ -117,6 +135,8 @@ static func WriteResuscitationToggle() -> void:
 	_writer.put_u8(Enums.ClientPacketID.ResuscitationSafeToggle)
 	
 static func WriteDrop(slot:int, quantity:int) -> void:
+	if not _valid_fields(24, {"slot": slot, "quantity": quantity}):
+		return
 	if not _can_write(Enums.ClientPacketID.Drop):
 		return
 	_log_outgoing_packet("Drop", "slot: " + str(slot) + ", quantity: " + str(quantity))
@@ -125,6 +145,8 @@ static func WriteDrop(slot:int, quantity:int) -> void:
 	_writer.put_16(quantity) 
 	
 static func WriteDoubleClick(x:int, y:int) -> void:
+	if not _valid_fields(27, {"x": x, "y": y}):
+		return
 	if not _can_write(Enums.ClientPacketID.DoubleClick):
 		return
 	_log_outgoing_packet("DoubleClick", "x: " + str(x) + ", y: " + str(y))
@@ -133,6 +155,8 @@ static func WriteDoubleClick(x:int, y:int) -> void:
 	_writer.put_u8(y) 
 
 static func WriteLeftClick(x:int, y:int) -> void:
+	if not _valid_fields(26, {"x": x, "y": y}):
+		return
 	if not _can_write(Enums.ClientPacketID.LeftClick):
 		return
 	_log_outgoing_packet("LeftClick", "x: " + str(x) + ", y: " + str(y))
@@ -141,6 +165,8 @@ static func WriteLeftClick(x:int, y:int) -> void:
 	_writer.put_u8(y) 
 	
 static func WriteWorkLeftClick(x:int, y:int, skill:int) -> void:
+	if not _valid_fields(33, {"x": x, "y": y, "skill": skill}):
+		return
 	if not _can_write(Enums.ClientPacketID.WorkLeftClick):
 		return
 	_log_outgoing_packet("WorkLeftClick", "x: " + str(x) + ", y: " + str(y) + ", skill: " + str(skill))
@@ -156,6 +182,8 @@ static func WriteCommerceEnd() -> void:
 	_writer.put_u8(Enums.ClientPacketID.CommerceEnd) 
 	
 static func WriteCommerceSell(slot:int, quantity:int) -> void:
+	if not _valid_fields(42, {"slot": slot, "quantity": quantity}):
+		return
 	if not _can_write(Enums.ClientPacketID.CommerceSell):
 		return
 	_log_outgoing_packet("CommerceSell", "slot: " + str(slot) + ", quantity: " + str(quantity))
@@ -164,6 +192,8 @@ static func WriteCommerceSell(slot:int, quantity:int) -> void:
 	_writer.put_16(quantity) 
 
 static func WriteCommerceBuy(slot:int, quantity:int) -> void:
+	if not _valid_fields(40, {"slot": slot, "quantity": quantity}):
+		return
 	if not _can_write(Enums.ClientPacketID.CommerceBuy):
 		return
 	_log_outgoing_packet("CommerceBuy", "slot: " + str(slot) + ", quantity: " + str(quantity))
@@ -190,6 +220,8 @@ static func WriteBankEnd() -> void:
 	_writer.put_u8(Enums.ClientPacketID.BankEnd)  
 	
 static func WriteBankExtractItem(slot:int, quantity:int) -> void:
+	if not _valid_fields(41, {"slot": slot, "quantity": quantity}):
+		return
 	if not _can_write(Enums.ClientPacketID.BankExtractItem):
 		return
 	_log_outgoing_packet("BankExtractItem", "slot: " + str(slot) + ", quantity: " + str(quantity))
@@ -198,6 +230,8 @@ static func WriteBankExtractItem(slot:int, quantity:int) -> void:
 	_writer.put_16(quantity) 
 
 static func WriteBankDepositItem(slot:int, quantity:int) -> void:
+	if not _valid_fields(43, {"slot": slot, "quantity": quantity}):
+		return
 	if not _can_write(Enums.ClientPacketID.BankDeposit):
 		return
 	_log_outgoing_packet("BankDeposit", "slot: " + str(slot) + ", quantity: " + str(quantity))
@@ -206,6 +240,8 @@ static func WriteBankDepositItem(slot:int, quantity:int) -> void:
 	_writer.put_16(quantity) 
 	
 static func WriteBankDepositGold(quantity:int) -> void:
+	if not _valid_fields(112, {"amount": quantity}):
+		return
 	if not _can_write(Enums.ClientPacketID.BankDepositGold):
 		return
 	_log_outgoing_packet("BankDepositGold", "quantity: " + str(quantity))
@@ -213,6 +249,8 @@ static func WriteBankDepositGold(quantity:int) -> void:
 	_writer.put_32(quantity)
 	
 static func WriteBankExtractGold(quantity:int) -> void:
+	if not _valid_fields(111, {"amount": quantity}):
+		return
 	if not _can_write(Enums.ClientPacketID.BankExtractGold):
 		return
 	_log_outgoing_packet("BankExtractGold", "quantity: " + str(quantity))
@@ -281,6 +319,8 @@ static func WriteMeditate() -> void:
 	_writer.put_u8(Enums.ClientPacketID.Meditate)
 	
 static func WriteWork(skill:int) -> void:
+	if not _valid_fields(28, {"skill": skill}):
+		return
 	if not _can_write(Enums.ClientPacketID.Work):
 		return
 	_log_outgoing_packet("Work", "skill: " + str(skill))
@@ -288,6 +328,8 @@ static func WriteWork(skill:int) -> void:
 	_writer.put_u8(skill) 
 
 static func WriteTalk(text:String) -> void:
+	if not _valid_fields(3, {"message": text}):
+		return
 	if not _can_write(Enums.ClientPacketID.Talk):
 		return
 	if not _validate_text_fields([text]):
@@ -298,6 +340,8 @@ static func WriteTalk(text:String) -> void:
 	Utils.PutUnicodeString(_writer, text)
 
 static func WriteYell(text:String) -> void:
+	if not _valid_fields(4, {"message": text}):
+		return
 	if not _can_write(Enums.ClientPacketID.Yell):
 		return
 	if not _validate_text_fields([text]):
@@ -307,6 +351,8 @@ static func WriteYell(text:String) -> void:
 	Utils.PutUnicodeString(_writer, text)
 
 static func WriteWhisper(receiver:String, text:String) -> void:
+	if not _valid_fields(5, {"receiver": receiver, "message": text}):
+		return
 	if not _can_write(Enums.ClientPacketID.Whisper):
 		return
 	if not _validate_text_fields([receiver, text]):
@@ -323,6 +369,8 @@ static func WritePing() -> void:
 	_writer.put_u8(Enums.ClientPacketID.Ping)
 
 static func WriteSpellInfo(slot:int) -> void:
+	if not _valid_fields(35, {"slot": slot}):
+		return
 	if not _can_write(Enums.ClientPacketID.SpellInfo):
 		return
 	_log_outgoing_packet("SpellInfo", "slot: " + str(slot))
@@ -330,6 +378,8 @@ static func WriteSpellInfo(slot:int) -> void:
 	_writer.put_u8(slot) 
 
 static func WriteCastSpell(slot:int) -> void:
+	if not _valid_fields(25, {"slot": slot}):
+		return
 	if not _can_write(Enums.ClientPacketID.CastSpell):
 		return
 	_log_outgoing_packet("CastSpell", "slot: " + str(slot))
@@ -337,6 +387,8 @@ static func WriteCastSpell(slot:int) -> void:
 	_writer.put_u8(slot) 
 	
 static func WriteCastTarget(slot: int, tile: Vector2i) -> bool:
+	if not _valid_fields(253, {"slot": slot, "x": tile.x, "y": tile.y}):
+		return false
 	if not _can_write(253) or slot < 1 or slot > Consts.MaxUserHechizos or tile.x < 1 or tile.x > 100 or tile.y < 1 or tile.y > 100:
 		return false
 	_writer.put_u8(253)
@@ -347,6 +399,8 @@ static func WriteCastTarget(slot: int, tile: Vector2i) -> bool:
 	return true
 
 static func WriteMoveSpell(upwards: bool, slot: int) -> bool:
+	if not _valid_fields(45, {"upwards": int(upwards), "slot": slot}):
+		return false
 	if not _can_write(Enums.ClientPacketID.MoveSpell) or slot < 1 or slot > Consts.MaxUserHechizos:
 		return false
 	if (upwards and slot == 1) or (not upwards and slot == Consts.MaxUserHechizos):
@@ -357,6 +411,8 @@ static func WriteMoveSpell(upwards: bool, slot: int) -> bool:
 	return true
 
 static func WriteWarpChar(username:String, map_id:int, x:int, y:int) -> void:
+	if not _valid_fields(122, {"username": username, "map": map_id, "x": x, "y": y}):
+		return
 	if not _can_write(Enums.ClientPacketID.GMCommands, Enums.EGMCommands.WARP_CHAR):
 		return
 	if not _validate_text_fields([username]):
@@ -404,6 +460,8 @@ static func WriteRequestFame() -> void:
 
 
 static func WriteModifySkills(deltas: Array, operation_id: String = "") -> bool:
+	if not _valid_fields(38, {"operation_id": operation_id}):
+		return false
 	if not _can_write(Enums.ClientPacketID.ModifySkills) or not SkillAllocationState.valid_identity(operation_id) or deltas.size() != 22:
 		return false
 	for index in deltas.size():
@@ -541,6 +599,8 @@ static func WritePartyCreate() -> void:
 
 
 static func WritePartyJoin(nickname: String) -> void:
+	if not _valid_fields(93, {"nickname": nickname}):
+		return
 	if not _can_write(Enums.ClientPacketID.PartyJoin):
 		return
 	if not _validate_text_fields([nickname]):
@@ -569,6 +629,8 @@ static func WriteStopSharingNpc() -> void:
 
 
 static func WritePartyKick(nickname:String) -> void:
+	if not _valid_fields(116, {"nickname": nickname}):
+		return
 	if not _can_write(Enums.ClientPacketID.PartyKick):
 		return
 	if not _validate_text_fields([nickname]):
@@ -579,6 +641,8 @@ static func WritePartyKick(nickname:String) -> void:
 
 
 static func WritePartySetLeader(nickname:String) -> void:
+	if not _valid_fields(117, {"nickname": nickname}):
+		return
 	if not _can_write(Enums.ClientPacketID.PartySetLeader):
 		return
 	if not _validate_text_fields([nickname]):
@@ -589,6 +653,8 @@ static func WritePartySetLeader(nickname:String) -> void:
 
 
 static func WritePartyAcceptMember(nickname:String) -> void:
+	if not _valid_fields(118, {"nickname": nickname}):
+		return
 	if not _can_write(Enums.ClientPacketID.PartyAcceptMember):
 		return
 	if not _validate_text_fields([nickname]):
@@ -625,6 +691,8 @@ static func WriteGuildMessage(message:String) -> void:
 
 
 static func WritePartyMessage(message:String) -> void:
+	if not _valid_fields(96, {"message": message}):
+		return
 	if not _can_write(Enums.ClientPacketID.PartyMessage):
 		return
 	if not _validate_text_fields([message]):
@@ -739,6 +807,8 @@ static func WriteDenounce(denounce_text:String) -> void:
 
 
 static func WritePasswordRequest(operation_id: String, current_password: String, new_password: String) -> bool:
+	if not _valid_fields(107, {"operation_id": operation_id, "current_password": current_password, "new_password": new_password}):
+		return false
 	if not _can_write(Enums.ClientPacketID.ChangePassword):
 		return false
 	if not operation_id.is_empty() and not SkillAllocationState.valid_identity(operation_id):
@@ -785,7 +855,28 @@ static func _can_write(packet_id: int, subcommand: int = -1) -> bool:
 	ClientInterface.serialization_failed.emit("Esta función no está disponible en el servidor conectado")
 	return false
 
+static func _valid_fields(packet_id: int, values: Dictionary) -> bool:
+	var entry: Dictionary = ClientInterface.capabilities._contract.directions.client.get(str(packet_id), {})
+	var fields: Array = entry.get("fields", []).duplicate()
+	if entry.has("variants"): fields.append_array(entry.variants.get(str(values.get("subcommand", -1)), []))
+	var limits := {"u8": [0, 255], "i16": [-32768, 32767], "i32": [-2147483648, 2147483647]}
+	for field in fields:
+		if not values.has(field.name): continue
+		var value: Variant = values[field.name]
+		var valid := true
+		if field.type == "str16":
+			valid = value is String and Utils.CanEncodeLatin1(value) and value.length() >= int(field.get("min_bytes", 0)) and value.length() <= int(field.max_bytes)
+		elif limits.has(field.type):
+			var bounds: Array = limits[field.type]
+			valid = TradeSnapshot.integer(value, int(field.get("min", bounds[0])), int(field.get("max", bounds[1])))
+		if not valid:
+			ClientInterface.serialization_failed.emit("El valor ingresado está fuera del rango permitido.")
+			return false
+	return true
+
 static func WriteMoveItem(source: int, destination: int) -> void:
+	if not _valid_fields(129, {"source": source, "destination": destination}):
+		return
 	if source < 1 or source > Consts.MaxInventorySlots or destination < 1 or destination > Consts.MaxInventorySlots or source == destination:
 		return
 	if not _can_write(Enums.ClientPacketID.MoveItem):
@@ -795,6 +886,8 @@ static func WriteMoveItem(source: int, destination: int) -> void:
 	_writer.put_u8(destination)
 
 static func WriteTradeAction(session_id: String, revision: int, action: int, slot: int = 0, quantity: int = 0) -> bool:
+	if not _valid_fields(252, {"session_id": session_id, "revision": revision, "action": action, "slot": slot, "quantity": quantity}):
+		return false
 	if not _can_write(252) or not TradeSnapshot.is_session_id(session_id) or revision < 0 or revision > 2147483647:
 		return false
 	if action < 0 or action > 5 or slot < 0 or slot > 30 or quantity < 0 or quantity > 999999999:

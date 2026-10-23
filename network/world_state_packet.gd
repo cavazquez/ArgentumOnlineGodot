@@ -2,7 +2,7 @@ extends RefCounted
 class_name WorldStatePacket
 
 const MAX_SAFE_INTEGER := 9007199254740991
-const KINDS := ["tax", "party", "clan", "pets", "weather", "commands", "trade", "result", "chat", "finder", "diplomacy", "depot", "faction", "quests", "lottery", "lottery_open"]
+const KINDS := ["tax", "party", "clan", "pets", "weather", "commands", "trade", "result", "chat", "finder", "diplomacy", "depot", "faction", "quests", "lottery", "lottery_open", "bank"]
 var valid := false
 var data: Dictionary = {}
 
@@ -36,12 +36,21 @@ static func _permissions(value: Variant) -> bool:
 	if not value is Array or value.size() > 12:
 		return false
 	for action in value:
-		if not action in ["create", "invite", "leave", "kick", "leader", "promote", "demote", "transfer"]:
+		if not action in ["create", "invite", "leave", "kick", "leader", "promote", "demote", "transfer", "profile"]:
 			return false
 	return true
 
 static func _payload(kind: String, value: Dictionary) -> bool:
 	match kind:
+		"bank":
+			if not value.get("access") is bool or not _text(value.get("banker"), 36) or not TradeSnapshot.integer(value.get("capacity"), 1, 40): return false
+			if not value.get("slots") is Array or value.slots.size() > int(value.capacity): return false
+			var seen := {}
+			for row in value.slots:
+				if not row is Array or row.size() != 3: return false
+				if not TradeSnapshot.integer(row[0], 1, int(value.capacity)) or not TradeSnapshot.integer(row[1], 1, 32767) or not TradeSnapshot.integer(row[2], 1, 32767) or seen.has(row[0]): return false
+				seen[row[0]] = true
+			return value.access or value.slots.is_empty()
 		"lottery_open":
 			return value.get("npc") == "lottery-ullathorpe"
 		"lottery":
@@ -176,6 +185,11 @@ static func _social(kind: String, value: Dictionary) -> bool:
 		if kind == "clan" and (not TradeSnapshot.integer(member.get("rank"), 1, 4) or not _permissions(member.get("actions"))): return false
 		if kind == "party" and (not _number(member.get("hp")) or not _number(member.get("max_hp")) or not _number(member.get("map"))): return false
 	if kind == "clan":
+		if value.has("profile"):
+			var profile: Variant = value.profile
+			if not profile is Dictionary or not _number(profile.get("version")): return false
+			for field in ["description", "news", "website"]:
+				if not _text(profile.get(field), 200): return false
 		var invitation: Variant = value.get("invitation")
 		if not invitation is Dictionary: return false
 		if not invitation.is_empty() and (not _number(invitation.get("clan_id")) or not _text(invitation.get("from"), 20) or not _text(invitation.get("name"), 30) or not _number(invitation.get("expires"), MAX_SAFE_INTEGER)): return false

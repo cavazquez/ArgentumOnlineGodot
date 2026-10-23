@@ -29,6 +29,8 @@ from periodic_captures import collect_native_captures, ensure_fresh_captures, re
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIO_TIMEOUT_SECONDS = {
+    "storage-protocol": 1800,
+    "storage-protocol-fast": 600,
     "lottery": 1200,
     "classic-chat": 1200,
     "r10": 900,
@@ -312,7 +314,11 @@ def worker(args):
     if args.seconds >= 1800:
         ensure_fresh_captures(output)
     os.environ["PYAO_STATE_DIR"] = str(work / "runner-state")
-    if args.scenario == "lottery":
+    if args.scenario == "storage-protocol-fast":
+        from storage_protocol_world import FastStorageProtocolWorld as R10World, fast_acceptance as acceptance, prepare_fixture
+    elif args.scenario == "storage-protocol":
+        from storage_protocol_world import StorageProtocolWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "lottery":
         from lottery_world import LotteryWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "classic-chat":
         from classic_chat_world import ClassicChatWorld as R10World, acceptance, prepare_fixture

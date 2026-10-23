@@ -278,7 +278,11 @@ func _HandleMouseInput(event:InputEventMouseButton) -> void:
 	if _target_spell_slot != 0:
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			var tile := TargetTile(event.position)
-			if tile != Vector2i.ZERO and GameProtocol.WriteCastTarget(_target_spell_slot, tile):
+			if tile == Vector2i.ZERO: return
+			if not _gameContext.tick_intervals.request_cast_spell():
+				ShowConsoleMessage("No puedes lanzar hechizos tan rápido.")
+				return
+			if GameProtocol.WriteCastTarget(_target_spell_slot, tile):
 				_restore_default_cursor()
 		return
 	var mouse_tile_position = Vector2i((_CameraTransformVector(event.position) / 32.0).ceil()) 

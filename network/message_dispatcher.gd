@@ -12,9 +12,16 @@ func dispatch(data: PackedByteArray) -> void:
 	if data.is_empty():
 		protocol_error.emit("Paquete vacío")
 		return
+	var validator := AOPacketFramer.new()
+	var frames := validator.feed(data)
+	if not validator.error.is_empty() or validator.pending_size() != 0 or frames.size() != 1:
+		protocol_error.emit("Mensaje fuera del contrato")
+		return
 	var stream := StreamPeerBuffer.new()
 	stream.data_array = data
 	dispatch_stream(stream)
+	if stream.get_available_bytes() != 0:
+		protocol_error.emit("El receptor no consumió exactamente el mensaje")
 
 func _emit(handler: StringName, payload: Variant = null, has_payload: bool = true) -> void:
 	message_decoded.emit(handler, payload, has_payload)
@@ -171,10 +178,6 @@ func dispatch_stream(stream: StreamPeerBuffer) -> void:
 			_emit(&"_HandleCommerceInit", null, false)
 		Enums.ServerPacketID.CommerceEnd:
 			_emit(&"_HandleCommerceEnd", null, false)
-		Enums.ServerPacketID.TradeOK:
-			pass
-		Enums.ServerPacketID.BankOK:
-			pass
 		Enums.ServerPacketID.Blind:
 			_emit(&"_handle_blind", null, false)
 		Enums.ServerPacketID.BlindNoMore:
@@ -185,16 +188,6 @@ func dispatch_stream(stream: StreamPeerBuffer) -> void:
 			_emit(&"_handle_dumb", null, false)
 		Enums.ServerPacketID.DumbNoMore:
 			_emit(&"_handle_dumb_no_more", null, false)
-		Enums.ServerPacketID.UserCommerceInit:
-			_emit(&"_handle_user_commerce_init", UserCommerceInit.new(stream))
-		Enums.ServerPacketID.UserCommerceEnd:
-			_emit(&"_handle_commerce_end", null, false)
-		Enums.ServerPacketID.UserOfferConfirm:
-			_emit(&"_handle_user_offer_confirm", null, false)
-		Enums.ServerPacketID.CommerceChat:
-			_emit(&"_handle_commerce_chat", CommerceChat.new(stream))
-		Enums.ServerPacketID.CancelOfferItem:
-			_emit(&"_handle_cancel_offer_item", CancelOfferItem.new(stream))
 		Enums.ServerPacketID.ParalizeOK:
 			_emit(&"_handle_paralize_ok", null, false)
 		Enums.ServerPacketID.SendNight:

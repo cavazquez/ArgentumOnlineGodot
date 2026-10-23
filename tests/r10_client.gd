@@ -84,6 +84,8 @@ func snapshot() -> Dictionary:
 						result.merchant_items[str(index + 1)] = [stack.item.index, stack.quantity, stack.item.salePrice]
 		elif panel is BankPanel:
 			result.panel = "bank"
+			result.bank_pending = not panel._pending.is_empty()
+			result.bank_status = panel._status.text
 			result.bank_items = {}
 			for index in panel._bankInventory.GetSize():
 				var stack: ItemStack = panel._bankInventory.GetSlot(index)
@@ -108,7 +110,10 @@ func snapshot() -> Dictionary:
 				result["lottery_bet_disabled"] = window._bet.disabled
 				result["lottery_summary"] = window._summary.text
 				result["lottery_winner"] = window._winner.text
-			if window is SocialWindow and topic == "clan": result.clan_details = window._summary.text
+			if window is SocialWindow and topic == "clan":
+				result.clan_details = window._summary.text
+				var editor: ClanProfileEditor = window._profile_editor
+				result.clan_draft = {"description": editor.description.text, "news": editor.news.text, "website": editor.website.text, "version": editor._version, "disabled": editor.save.disabled, "notice": editor.notice.text}
 	if is_instance_valid(hub._currentPanel) and hub._currentPanel is PlayerTradePanel:
 		result["trade_metadata_ready"] = hub._currentPanel._metadata_ready()
 		result["trade_confirm_disabled"] = hub._currentPanel.confirm_button.disabled
@@ -182,6 +187,34 @@ func execute(command: Dictionary) -> bool:
 	var hub: HubController = game._gameInput
 	var inventory: InventoryContainer = hub._inventoryContainer
 	match command.op:
+		"bank_move":
+			if not hub._currentPanel is BankPanel: return false
+			var panel: BankPanel = hub._currentPanel
+			var drag = panel._bankInventoryContainer.CreateDragData(int(command.source) - 1)
+			if not panel._bankInventoryContainer.CanDropItem(int(command.destination) - 1, drag): return false
+			panel._bankInventoryContainer.DropItem(int(command.destination) - 1, drag)
+		"clan_draft", "clan_save", "clan_rebase":
+			var window: SocialWindow = hub._world_windows.get("clan")
+			if not is_instance_valid(window) or not window.visible: return false
+			var editor: ClanProfileEditor = window._profile_editor
+			if command.op == "clan_rebase":
+				editor.rebase.pressed.emit()
+			elif command.op == "clan_save":
+				if editor.save.disabled: return false
+				editor.save.pressed.emit()
+			else:
+				for field in ["description", "news", "website"]:
+					var input: LineEdit = editor.get(field)
+					input.text = command.get(field, input.text)
+					input.text_changed.emit(input.text)
+		"world_raw":
+			var params: Dictionary = command.params.duplicate(true)
+			# JSON del controlador usa doubles; conservar los enteros del protocolo
+			# al probar una petición válida que deliberadamente evita los botones.
+			for field in params:
+				if typeof(params[field]) == TYPE_FLOAT and params[field] == floor(params[field]):
+					params[field] = int(params[field])
+			if not GameProtocol.WriteWorldAction(command.action, params, command.get("revision", "")): return false
 		"capture":
 			var capture := OS.get_environment("PYAO_TEST_SCREENSHOT")
 			var label: String = command.get("label", "ui")
@@ -189,6 +222,10 @@ func execute(command: Dictionary) -> bool:
 			if not capture.is_empty() and DisplayServer.get_name() != "headless":
 				await RenderingServer.frame_post_draw
 				if host.get_viewport().get_texture().get_image().save_png(capture.get_basename() + "-" + label + ".png") != OK: return false
+				for topic in hub._world_windows:
+					var window: WorldStateWindow = hub._world_windows[topic]
+					if is_instance_valid(window) and window.visible:
+						if window.get_texture().get_image().save_png(capture.get_basename() + "-" + label + "-" + topic + ".png") != OK: return false
 		"world_open":
 			hub.OpenWorldTopic(command.topic)
 		"world_action":

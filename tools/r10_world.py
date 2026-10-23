@@ -705,7 +705,10 @@ class R10World:
 
     def magic_combat(self, store, locations):
         x, y = locations["base"]
-        self.relocate(store, {1: (1, x, y), 2: (1, x + 1, y)}, reset=True)
+        # Dejar margen para observar, reconectar y detener manualmente antes de
+        # que el maná se complete. La velocidad de AOF no debe decidir ese margen.
+        self.relocate(store, {1: (1, x, y), 2: (1, x + 1, y)}, reset=True,
+                      stats={1: {"min_mana": "1000"}})
         self.command(1, "chat", text=f"/party {self.names[1]}")
         self.console(2, self.names[0])
         self.command(2, "chat", text=f"/acceptparty {self.names[0]}")
