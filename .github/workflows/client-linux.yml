@@ -117,8 +117,8 @@ jobs:
           # WSL2 usa el kernel Linux; el ensayo también verifica uname y BGSAVE.
           wsl --set-default-version 2
           wsl --install --distribution Ubuntu-24.04 --no-launch --web-download
-          wsl --set-version Ubuntu-24.04 2
           wsl --set-default Ubuntu-24.04
+          wsl --distribution Ubuntu-24.04 --user root --exec uname -r
           wsl --distribution Ubuntu-24.04 --user root --exec sh -c 'apt-get update && apt-get install -y build-essential'
       - name: Dispositivo firmado de audio para WASAPI del runner Windows
         if: runner.os == 'Windows'
