@@ -61,3 +61,7 @@ conserva AOF con `appendfsync always`, valida un RDB mayor a 32 MiB y su reinici
 y fuerza otra copia con más de 400.000 claves y los dos clientes conectados.
 El recibo registra la latencia del fork y de las respuestas; superar cinco
 segundos o perder una sesión mantiene fallida la aceptación.
+La creación inicial de las 427.000 identidades del catálogo y la validación del
+bundle tienen un presupuesto propio de 360 segundos en los portables Windows
+y macOS Intel. Este plazo termina antes de lanzar los clientes: no modifica
+el timeout Redis del juego, el login ni los demás escenarios.

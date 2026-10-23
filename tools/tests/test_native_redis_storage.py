@@ -143,11 +143,14 @@ class NativeRedisStorageTests(unittest.TestCase):
 
 
 class ServerStartupBudgetTests(unittest.TestCase):
-    def test_only_intel_macos_portable_gets_a_longer_cold_bootstrap(self):
+    def test_only_intel_macos_and_windows_portables_get_a_longer_cold_bootstrap(self):
         self.assertEqual(module.server_startup_budget("platform", system="darwin", machine="x86_64"), 360)
+        self.assertEqual(module.server_startup_budget("platform", system="win32", machine="AMD64"), 360)
+        self.assertEqual(module.server_startup_budget("platform", system="win32", machine="x86_64"), 360)
         for scenario, system, machine in (
             ("r10", "darwin", "x86_64"), ("npcs", "darwin", "x86_64"),
-            ("platform", "darwin", "arm64"), ("platform", "win32", "AMD64"),
+            ("platform", "darwin", "arm64"), ("full", "win32", "AMD64"),
+            ("r10", "win32", "AMD64"), ("platform", "win32", "arm64"),
             ("platform", "linux", "x86_64"), ("platform", "linux", "aarch64"),
         ):
             with self.subTest(scenario=scenario, system=system, machine=machine):
