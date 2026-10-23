@@ -49,9 +49,11 @@ func _ready() -> void:
 	GameProtocol.WriteWorldAction("bank.read", {})
 	GameProtocol.WriteWorldAction("subscribe", {"topic": "bank", "enabled": true})
 	_bankInventoryContainer.slotPressed.connect(func(index:int):
+		_playerInventoryContainer.ClearSelection()
 		_UpdateStackInfo(_bankInventory.GetSlot(index) if _bankInventory != null else null))
 		
 	_playerInventoryContainer.slotPressed.connect(func(index:int):
+		_bankInventoryContainer.ClearSelection()
 		_UpdateStackInfo(_playerInventory.GetSlot(index) if _playerInventory != null else null))
 
 
@@ -76,7 +78,9 @@ func _UpdateStackInfo(stack: ItemStack) -> void:
 	if stack != null and not stack.instance_state.is_empty():
 		var stats: Dictionary = stack.instance_state.effective
 		var pair := ["MinHit", "MaxHit"] if stack.item.IsWeapon() else ["MinDef", "MaxDef"]
-		if stats.has(pair[0]) and stats.has(pair[1]): _statLabel.text = "%d/%d" % [stats[pair[0]], stats[pair[1]]]
+		if stats.has(pair[0]) and stats.has(pair[1]):
+			_statLabel.text = "%d/%d" % [stats[pair[0]], stats[pair[1]]]
+			_statRow.tooltip_text = "%s: %s" % [_statRow.tooltip_text.get_slice(":", 0), _statLabel.text]
 
 func _UpdateInfo(item:Item) -> void:
 	_statRow.hide()
@@ -167,6 +171,7 @@ func _SetBusy() -> void:
 func _OnWorldState(kind: String, data: Dictionary, revision: String) -> void:
 	if _closing: return
 	if kind == "items":
+		if not data.scope in ["bank", "inventory"]: return
 		var container := _bankInventoryContainer if data.scope == "bank" else _playerInventoryContainer
 		var selected := container.GetSelectedSlot()
 		if selected >= 0: _UpdateStackInfo(container.GetInventory().GetSlot(selected))

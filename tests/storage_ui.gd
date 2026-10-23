@@ -41,6 +41,21 @@ func _ready() -> void:
 	bank.SetProtocolSlot(1, ItemStack.new(2, false, item))
 	panel.SetBankInventory(bank)
 	panel.SetPlayerInventory(Inventory.new(30))
+	item.name = "Daga"
+	item.type = Enums.eOBJType.eOBJType_otWeapon
+	item.minHit = 1
+	item.maxHit = 2
+	panel._playerInventory.SetProtocolSlot(1, ItemStack.new(1, false, item))
+	panel._playerInventoryContainer._InventorySlotOnPressed(0)
+	panel._bankInventoryContainer._InventorySlotOnPressed(0)
+	panel._playerInventory.SetProtocolSlot(1, ItemStack.new(0, false, Item.new()))
+	panel._OnWorldState("items", {"scope": "inventory"}, "")
+	panel._OnWorldState("items", {"scope": "merchant"}, "")
+	check(panel._infoLabel.text == "Daga" and panel._statLabel.text == "1/2", "Una actualización ajena borra el detalle seleccionado en la bóveda")
+	check(panel._playerInventoryContainer.GetSelectedSlot() == -1, "Mochila y bóveda comparten dos selecciones activas")
+	bank.GetSlot(0).instance_state = {"effective": {"MinHit": 1, "MaxHit": 1}}
+	panel._OnWorldState("items", {"scope": "bank"}, "")
+	check(panel._statLabel.text == "1/1" and panel._statRow.tooltip_text == "Daño: 1/1", "El detalle mezcla daño efectivo y base")
 	panel._OnWorldState("bank", {"banker": "banker", "access": true, "capacity": 40, "slots": [[1, 15, 2]]}, "revision")
 	GameProtocol.Clear()
 	var drag = panel._bankInventoryContainer.CreateDragData(0)
