@@ -70,32 +70,28 @@ class SnapshotObservation:
         return row["ok"]
 
     def tls_ping(self):
-        raw = wrapped = None
         try:
             port, certificate = self.fixture.snapshot_endpoint
             context = ssl.create_default_context(cafile=str(certificate))
             context.minimum_version = ssl.TLSVersion.TLSv1_2
-            raw = socket.create_connection(("127.0.0.1", port), timeout=5)
-            wrapped = context.wrap_socket(raw, server_hostname="localhost")
-            wrapped.settimeout(5)
 
             def ping():
-                wrapped.sendall(b"\x77")
-                if wrapped.recv(1) != b"\x58":
-                    raise RuntimeError("Unexpected PONG")
+                # Reconnect for each public health ping: authentication expiry
+                # must not end an idle observer before the RDB copy finishes.
+                with socket.create_connection(("127.0.0.1", port), timeout=5) as raw:
+                    with context.wrap_socket(raw, server_hostname="localhost") as wrapped:
+                        wrapped.settimeout(5)
+                        wrapped.sendall(b"\x77")
+                        if wrapped.recv(1) != b"\x58":
+                            raise RuntimeError("Unexpected PONG")
 
             while not self.stop.is_set():
                 if not self.sample("tls_game_ping", ping):
                     break
                 self.data["windows_memory"].append({"at": time.monotonic(), **windows_memory()})
-                self.stop.wait(0.1)
+                self.stop.wait(0.5)
         except Exception as error:
             self.data["tls_monitor_error"] = type(error).__name__
-        finally:
-            if wrapped is not None:
-                wrapped.close()
-            elif raw is not None:
-                raw.close()
 
     async def async_ping(self):
         from redis.asyncio import Redis
