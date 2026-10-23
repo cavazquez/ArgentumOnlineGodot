@@ -17,6 +17,7 @@ def acceptance(steps, seconds, *, graphical, exported=False):
         "missing": missing,
         "functional_passed": not missing,
         "graphical_passed": graphical and not missing,
+        "test_execution_passed": graphical and not missing,
     }
 
 
@@ -250,6 +251,7 @@ def fast_acceptance(steps, seconds, *, graphical, exported=False):
         "missing": missing,
         "functional_passed": not missing,
         "graphical_passed": graphical and not missing,
+        "test_execution_passed": graphical and not missing,
         "full_r10": False,
     }
 

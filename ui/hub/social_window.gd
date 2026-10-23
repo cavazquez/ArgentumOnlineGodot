@@ -56,6 +56,9 @@ func _build() -> void:
 	body.add_child(pages)
 	_previous = button(pages, "Anterior", _change_page.bind(-1))
 	_page = label(pages)
+	_page.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_page.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_next = button(pages, "Siguiente", _change_page.bind(1))
 	var invitation := HBoxContainer.new()
 	body.add_child(invitation)
