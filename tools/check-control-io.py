@@ -12,6 +12,9 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
+# Windows measured a 10.16 s engine boot before executing the probe script.
+# This budget covers engine startup; read_request still allows only 1000 ms.
+ENGINE_STARTUP_SECONDS = 30
 
 
 @contextmanager
@@ -75,7 +78,7 @@ def run(godot, output):
 
         def finish(name, process, result):
             try:
-                stdout, stderr = process.communicate(timeout=15)
+                stdout, stderr = process.communicate(timeout=ENGINE_STARTUP_SECONDS + 2)
             except subprocess.TimeoutExpired:
                 process.kill()
                 stdout, stderr = process.communicate()
@@ -90,12 +93,13 @@ def run(godot, output):
             (output / (name + ".log")).write_bytes(log)
             assert process.returncode == 0 and b"ERROR:" not in log, name
             value = json.loads(result.read_text(encoding="utf-8"))
+            value["process_seconds"] = round(time.time() - case_started[name], 3)
             (output / (name + ".json")).write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
             records.append({"case": name, **value})
             return value
 
         def wait_observed(name, process, observed, result):
-            deadline = time.monotonic() + 10
+            deadline = time.monotonic() + ENGINE_STARTUP_SECONDS
             while not observed.exists():
                 if process.poll() is not None or time.monotonic() >= deadline:
                     (output / (name + "-wait-failure.json")).write_text(json.dumps({
@@ -146,7 +150,8 @@ def run(godot, output):
             value = finish(name, subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE), result)
             assert not value["ok"] and value["kind"] == kind and value["attempts"] == 1 and value["io_error"] == 0
     proof = {"passed": True, "platform": sys.platform, "native_windows_lock": os.name == "nt", "cases": records,
-             "production_data_used": False, "login_budget_changed": False}
+             "production_data_used": False, "login_budget_changed": False,
+             "engine_startup_budget_seconds": ENGINE_STARTUP_SECONDS, "read_budget_ms": 1000}
     (output / "result.json").write_text(json.dumps(proof, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"passed": True, "cases": len(records), "platform": sys.platform}))
 
