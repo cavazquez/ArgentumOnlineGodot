@@ -63,6 +63,11 @@ y 386 referencias gráficas, incluidas las cinco botas.
 
 ## Reproducir
 
+La aclaración posterior de #239 se comprueba en [equipo y mochila separados](backpack/README.md):
+las piezas equipadas dejan de duplicarse en la mochila, vuelven al retirarlas
+y las herramientas siguen pudiendo usarse desde EQUIPO o con U. Esa evidencia
+registra su candidato y su nueva ejecución de las catorce etapas.
+
 Desde el servidor:
 
 ```sh
