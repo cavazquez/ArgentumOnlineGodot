@@ -308,9 +308,13 @@ class NativeRedis:
 
     def verify_live_snapshot(self):
         """Fuerza el fork del catálogo completo mientras siguen vivas dos sesiones."""
+        from snapshot_observation import SnapshotObservation
+
         proof = {"passed": False, "production_data_used": False, "kernel": self.kernel}
         try:
-            with self.client() as client:
+            with SnapshotObservation(self) as observation, self.client() as raw_client:
+                raw_client.config_set("latency-monitor-threshold", 10)
+                client = observation.wrap(raw_client)
                 proof["keys"] = client.dbsize()
                 if proof["keys"] < 400000:
                     raise RuntimeError("BGSAVE requiere el catálogo individual completo")
@@ -332,6 +336,7 @@ class NativeRedis:
                     if time.monotonic() > deadline:
                         raise TimeoutError("La copia en juego de Redis no terminó")
                     time.sleep(0.05)
+                maximum = max(row["seconds"] for row in observation.data["commands"])
                 proof.update(maximum_roundtrip_seconds=maximum,
                              latest_fork_usec=client.info("stats")["latest_fork_usec"],
                              rdb_last_bgsave_status=state["rdb_last_bgsave_status"])
@@ -704,6 +709,8 @@ def worker(args):
             return server
 
         scenario.restart_server = restart_server
+        if isinstance(redis, NativeRedis):
+            redis.snapshot_endpoint = (endpoint, certificate)
         scenario_steps = scenario.run(locations)
         from src.utils.redis_config import RedisKeys
 
