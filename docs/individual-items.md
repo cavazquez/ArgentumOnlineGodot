@@ -4,6 +4,19 @@ Esta tanda necesita el servidor de objetos individuales (#565–#570). No se
 mantiene el formato anterior de CharacterCreate/CharacterChange: ambos agregan
 el ID de botas al final. Servidor y cliente conservan la misma versión común.
 
+La vista EQUIPO presenta seis ranuras fijas: arma/herramienta, armadura, casco,
+escudo, botas y accesorio. MOCHILA y HECHIZOS tienen sus propias pestañas.
+El selector de cada ranura ofrece sólo piezas compatibles e incluye desequipar;
+se puede arrastrar desde la mochila pasando por la pestaña EQUIPO. La interfaz
+espera la respuesta del servidor y no crea una copia del objeto. Cada referencia
+conserva el mismo ejemplar almacenado en la mochila.
+
+No hay una ranura para la cara. El rostro base se elige al crear el personaje;
+equipar y retirar piezas conserva ese valor en el jugador y sus observadores.
+Fantasma, barco y mimetismo son apariencias temporales y no alteran el rostro
+persistido. Las pruebas recorren todas las piezas del catálogo y vuelven a
+comprobar la cara con dos clientes, reconexiones y cruces de mapa.
+
 Las cinco botas del catálogo usan ObjType 36 y una ranura independiente de la
 armadura. El avatar superpone fotogramas originales de The Mana World,
 reutilizados sin cambiar sus píxeles, escalados/anclados al cuerpo y con los

@@ -331,7 +331,18 @@ func execute(command: Dictionary) -> bool:
 			for window in game.get_children():
 				if window is Window and window.get_script() != null and window.get_script().resource_path.ends_with("/drop_panel.gd"):
 					window.drop(int(command.amount))
+		"gear":
+			var slot := int(command.slot) - 1
+			var stack: ItemStack = game._gameContext.playerInventory.GetSlot(slot)
+			var layer: String = EquipmentPanel.TYPES.get(stack.item.type, "")
+			if layer.is_empty(): return false
+			hub.ShowInventoryView("equipment")
+			hub.equipment_panel.buttons[layer].pressed.emit()
+			if not hub.equipment_panel.choices.visible: return false
+			hub.equipment_panel.choices.id_pressed.emit(slot)
+			hub.equipment_panel.choices.hide()
 		"equip", "use", "drop":
+			hub.ShowInventoryView("inventory")
 			# Respetar el intervalo del mismo gesto que usa el inventario real.
 			var timer = game._gameContext.tick_intervals.timers[TickIntervals.ActionTimers.USE_ITEM_WITH_DOUBLE_CLICK]
 			while Time.get_ticks_msec() <= timer.get_tick():

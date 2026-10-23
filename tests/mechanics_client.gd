@@ -117,6 +117,10 @@ func snapshot() -> Dictionary:
 	view.gear_labels = {"weapon": hub.get_node("%LblWeapon").text,
 		"shield": hub.get_node("%LblShield").text, "armor": hub.get_node("%LblArmor").text,
 		"helmet": hub.get_node("%LblHelmet").text}
+	view.equipment_slots = {}
+	for layer in hub.equipment_panel.slots:
+		var index: int = hub.equipment_panel.slots[layer]
+		view.equipment_slots[layer] = {"slot": index + 1, "item": context.playerInventory.GetSlot(index).item.index}
 	view.actor_visibility = {}
 	view.actor_equipment = {}
 	for actor in ScreenController.currentScreen._gameWorld.GetMapContainer()._characterCollection:

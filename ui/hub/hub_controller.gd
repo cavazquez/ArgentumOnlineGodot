@@ -59,6 +59,7 @@ const StatsWindowScene = preload("res://ui/hub/stats_window.tscn")
 
 @onready var minimap: Minimap = $Minimap
 @onready var spell_list_panel: SpellListPanel = $"Inventory-Spell/SpellListPanel" 
+@onready var equipment_panel: EquipmentPanel = $"Inventory-Spell/EquipmentPanel"
 
 @onready var experience_stat_bar: StatBar = $StatBars/ExperienceStatBar
 @onready var stamina_stat_bar: StatBar = $StatBars/StaminaStatBar
@@ -104,6 +105,9 @@ func _ready() -> void:
 			minimap.accept_event())
 	_chat_helper = ChatInputHelper.new()
 	_chat_helper.install(_consoleInputLineEdit)
+	$"Inventory-Spell/ShowEquipment".tooltip_text = "Equipo por pieza. Arrastrá una pieza sobre esta pestaña para abrir las ranuras."
+	$"Inventory-Spell/ShowEquipment".mouse_entered.connect(func():
+		if get_viewport().gui_is_dragging(): ShowInventoryView("equipment"))
 	_install_world_buttons()
 	_responsive.install(self)
 	get_window().min_size = Vector2i(800, 600)
@@ -143,8 +147,28 @@ func Init(gameContext:GameContext) -> void:
 	ClientInterface.disconnected.connect(_restore_default_cursor)
 	_inventoryContainer.allow_reorder = true
 	_inventoryContainer.SetInventory(_gameContext.playerInventory)
+	equipment_panel.setup(_gameContext.playerInventory)
+	equipment_panel.equip_requested.connect(_RequestEquipment)
+	_RegisterModal(equipment_panel.choices)
+	equipment_panel.choices.popup_hide.connect(func():
+		get_viewport().gui_release_focus()
+		get_window().grab_focus())
 	_inventoryContainer.slotActivated.connect(func(_v):
 		_use_object(true))
+
+func ShowInventoryView(view_name: String) -> void:
+	$"Inventory-Spell/InventoryPanel".visible = view_name == "inventory"
+	spell_list_panel.visible = view_name == "spells"
+	equipment_panel.visible = view_name == "equipment"
+	for entry in [["ShowInventory", "inventory"], ["ShowEquipment", "equipment"], ["ShowSpells", "spells"]]:
+		get_node("Inventory-Spell/" + entry[0]).set_pressed_no_signal(view_name == entry[1])
+
+func _RequestEquipment(index: int) -> void:
+	if _gameContext == null or _gameContext.trading or _gameContext.pause: return
+	var stack := _gameContext.playerInventory.GetSlot(index)
+	if stack == null or stack.item == null: return
+	if not stack.equipped and not _gameContext.player_stats.is_alive(): return
+	GameProtocol.WriteEquipItem(index + 1)
 
 func ShowConsoleMessage(message:String, fontData:FontData = FontData.new(Color.WHITE)) -> void:
 	for part in message.split("\n"):

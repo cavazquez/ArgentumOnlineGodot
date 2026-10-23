@@ -96,6 +96,13 @@ class DurableWorld(EquipmentWorld):
         self.command(1, "login")
         self.view(1, lambda v: v.get("gear_labels", {}).get("weapon") == "0/0", "arma rota sin estadísticas en HUD")
         spent = store.hget(weapon, "uses_spent")
+        # El golpe anterior puede matar al objetivo. Usar otro NPC vivo real;
+        # no asumir que una identidad eliminada todavía conserva coordenadas.
+        survivors = [row for key in store.scan_iter("npc:instance:*")
+                     if (row := store.hgetall(key)) and row.get("npc_id") == "500" and int(row.get("hp", 0)) > 0]
+        assert survivors, "No queda un NPC vivo para comprobar el rechazo del arma rota"
+        self.targets["combat"] = survivors[0]["instance_id"]
+        self.encounter(store, locations, "combat", 1, 2)
         attack_until(lambda: "arma está rota" in self.command(1, "snapshot")["console"].lower())
         self.console(1, "arma está rota")
         assert store.hget(weapon, "uses_spent") == spent

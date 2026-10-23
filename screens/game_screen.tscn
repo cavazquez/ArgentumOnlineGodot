@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3 uid="uid://b2dyxo3826bub"]
+[gd_scene load_steps=32 format=3 uid="uid://b2dyxo3826bub"]
 
 [ext_resource type="Script" uid="uid://f2uhmm6ihlir" path="res://screens/game_screen.gd" id="1_p7x0p"]
 [ext_resource type="Script" uid="uid://d0pmiko84khl7" path="res://ui/hub/hub_controller.gd" id="2_b7a1e"]
@@ -16,6 +16,7 @@
 [ext_resource type="Script" uid="uid://dnw8e0dssdpj4" path="res://ui/hub/stat_bar.gd" id="15_dlj5t"]
 [ext_resource type="Texture2D" uid="uid://dkhonpkjanea7" path="res://Assets/UI/panel_inventario.jpg" id="16_t2d6d"]
 [ext_resource type="PackedScene" uid="uid://cmwexlttk8ltw" path="res://ui/hub/spell_list_panel.tscn" id="17_t2d6d"]
+[ext_resource type="Script" path="res://ui/hub/equipment_panel.gd" id="18_equipment"]
 
 [sub_resource type="FontVariation" id="FontVariation_ltsmt"]
 base_font = ExtResource("7_rqp22")
@@ -346,6 +347,7 @@ metadata/_edit_lock_ = true
 [node name="Inventory-Spell" type="Node" parent="HubController"]
 
 [node name="InventoryPanel" type="TextureRect" parent="HubController/Inventory-Spell"]
+visible = false
 offset_left = 561.0
 offset_top = 98.0
 offset_right = 789.0
@@ -378,20 +380,41 @@ offset_right = 789.0
 offset_bottom = 350.0
 metadata/_edit_lock_ = true
 
-[node name="ShowInventory" type="TextureButton" parent="HubController/Inventory-Spell"]
+[node name="EquipmentPanel" type="PanelContainer" parent="HubController/Inventory-Spell"]
 offset_left = 574.0
+offset_top = 170.0
+offset_right = 777.0
+offset_bottom = 386.0
+script = ExtResource("18_equipment")
+
+[node name="ShowInventory" type="Button" parent="HubController/Inventory-Spell"]
+offset_left = 641.0
 offset_top = 138.0
-offset_right = 674.0
+offset_right = 709.0
 offset_bottom = 166.0
-focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "MOCHILA"
+toggle_mode = true
 metadata/_edit_lock_ = true
 
-[node name="ShowSpells" type="TextureButton" parent="HubController/Inventory-Spell"]
-offset_left = 677.0
+[node name="ShowEquipment" type="Button" parent="HubController/Inventory-Spell"]
+offset_left = 574.0
 offset_top = 138.0
-offset_right = 776.0
+offset_right = 641.0
 offset_bottom = 166.0
-focus_mode = 0
+theme_override_font_sizes/font_size = 11
+text = "EQUIPO"
+toggle_mode = true
+button_pressed = true
+
+[node name="ShowSpells" type="Button" parent="HubController/Inventory-Spell"]
+offset_left = 709.0
+offset_top = 138.0
+offset_right = 777.0
+offset_bottom = 166.0
+theme_override_font_sizes/font_size = 11
+text = "HECHIZOS"
+toggle_mode = true
 metadata/_edit_lock_ = true
 
 [node name="Buttons-Misc" type="Node" parent="HubController"]
@@ -441,8 +464,7 @@ offset_bottom = 516.0
 [connection signal="pressed" from="HubController/Buttons/BtnQuit" to="HubController" method="_on_btn_quit_pressed"]
 [connection signal="pressed" from="HubController/Buttons/BtnDropGold" to="HubController" method="_on_btn_drop_gold_pressed"]
 [connection signal="pressed" from="HubController/Buttons/BtnMinimize" to="HubController" method="_on_btn_minimize_pressed"]
-[connection signal="pressed" from="HubController/Inventory-Spell/ShowInventory" to="HubController/Inventory-Spell/InventoryPanel" method="set_visible" binds= [true]]
-[connection signal="pressed" from="HubController/Inventory-Spell/ShowInventory" to="HubController/Inventory-Spell/SpellListPanel" method="set_visible" binds= [false]]
-[connection signal="pressed" from="HubController/Inventory-Spell/ShowSpells" to="HubController/Inventory-Spell/InventoryPanel" method="set_visible" binds= [false]]
-[connection signal="pressed" from="HubController/Inventory-Spell/ShowSpells" to="HubController/Inventory-Spell/SpellListPanel" method="set_visible" binds= [true]]
+[connection signal="pressed" from="HubController/Inventory-Spell/ShowInventory" to="HubController" method="ShowInventoryView" binds= ["inventory"]]
+[connection signal="pressed" from="HubController/Inventory-Spell/ShowEquipment" to="HubController" method="ShowInventoryView" binds= ["equipment"]]
+[connection signal="pressed" from="HubController/Inventory-Spell/ShowSpells" to="HubController" method="ShowInventoryView" binds= ["spells"]]
 [connection signal="timeout" from="Timers/PingTimer" to="." method="_OnPingTimerTimeout"]

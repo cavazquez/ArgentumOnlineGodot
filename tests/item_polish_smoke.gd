@@ -51,6 +51,7 @@ func _ready() -> void:
 	AudioManager.BeginGame()
 	check(AudioManager._track == 0, "La introducción continúa al entrar sin música de mapa")
 	login.free()
+	await _equipment_slots()
 	var state := {"id": "a".repeat(32), "item": 2, "version": 1, "created": 100, "expires": 200, "uses": 9, "max_uses": 10, "condition": 1000, "factor": 5500, "broken": false, "base": {"MinHit": 10}, "effective": {"MinHit": 6}}
 	var text := ItemCondition.describe(state)
 	check(text.contains("10.00") and text.contains("10 → 6") and text.contains("UTC") and text.contains("1 / 10"), "Descripción incompleta del ejemplar")
@@ -72,3 +73,42 @@ func _ready() -> void:
 		file.store_string(JSON.stringify({"failures": failures, "driver": AudioServer.get_driver_name(), "tracks": audio_results}, "  "))
 	print("ITEM_POLISH: failures=", failures, " audio=", audio_results)
 	get_tree().quit(1 if failures else 0)
+
+func _equipment_slots() -> void:
+	var panel := EquipmentPanel.new()
+	panel.size = Vector2(203, 216)
+	add_child(panel)
+	var bag := Inventory.new(30)
+	panel.setup(bag)
+	var requests: Array[int] = []
+	panel.equip_requested.connect(func(index: int): requests.append(index))
+	check(panel.buttons.size() == 6 and not panel.buttons.has("head"), "Ranuras incompletas o rostro equipable")
+	for row in [[2, "weapon"], [3, "armor"], [17, "helmet"], [16, "shield"], [36, "boots"], [18, "accessory"]]:
+		var item := Item.new()
+		item.index = row[0]
+		item.type = row[0]
+		item.name = "Pieza " + row[1]
+		var stack := ItemStack.new(1, false, item)
+		stack.instance_state = {"id": str(row[0]).sha256_text().substr(0, 32), "condition": 10000, "max_uses": 0, "uses": 0, "created": 100, "expires": 0, "base": {}, "effective": {}, "broken": false}
+		bag.SetSlot(0, stack)
+		var drag := {"kind": "pyao_player_inventory", "inventory": bag.get_instance_id(), "source": 0}
+		check(panel.can_equip_drop(row[1], drag), "Rechazó su tipo de equipo")
+		check(not panel.can_equip_drop("head", drag), "Admitió una ranura de rostro")
+		check(not panel.can_equip_drop("boots" if row[1] != "boots" else "weapon", drag), "Admitió una pieza en la ranura incorrecta")
+		panel.request_slot(0, row[1])
+		check(not panel.slots.has(row[1]), "Equipó antes de confirmar el servidor")
+		stack.equipped = true
+		bag.SetSlot(0, stack)
+		check(panel.slots.get(row[1], -1) == 0, "No actualizó la ranura confirmada")
+	check(requests.size() == 6, "No envió las seis solicitudes tipadas")
+	panel.buttons.boots.pressed.emit()
+	check(panel.choices.item_count == 1 and panel.choices.is_item_disabled(0), "Selector vacío permite equipar otra categoría")
+	panel.choices.hide()
+	panel.buttons.accessory.pressed.emit()
+	bag.SetSlot(0, ItemStack.new())
+	panel.choices.id_pressed.emit(0)
+	panel.choices.hide()
+	check(requests.size() == 6, "Aceptó una opción obsoleta del selector")
+	await get_tree().process_frame
+	check(panel.get_combined_minimum_size().x <= 203 and panel.get_combined_minimum_size().y <= 216, "Ranuras fuera del panel de 800×600")
+	panel.free()

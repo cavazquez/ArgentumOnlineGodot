@@ -8,7 +8,7 @@ SAMPLES = ((30, "armor"), (15, "weapon"), (563, "weapon"), (561, "weapon"),
            (1058, "helmet"), (401, "weapon"), (543, "weapon"),
            (1055, "boots"), (1059, "boots"), (1063, "boots"), (1067, "boots"), (1071, "boots"))
 FOLDERS = {"body": ("Bodies", "body"), "weapon": ("Weapons", "weapon"),
-           "shield": ("Shields", "shield"), "helmet": ("Helmets", "helmet")}
+           "shield": ("Shields", "shield"), "helmet": ("Helmets", "helmet"), "head": ("Heads", "head")}
 
 
 def acceptance(steps, _seconds, **_kwargs):
@@ -60,13 +60,15 @@ class EquipmentWorld(R10World):
                 account = store.hgetall(f"account:{self.names[actor-1]}:data")
                 baseline = int(account.get("char_body", account.get("char_race", 1))) or 1
                 bases[actor] = baseline
-                visual = {"body": baseline, "weapon": 0, "shield": 0, "helmet": 0, "boots": 0}
+                visual = {"body": baseline, "head": int(account.get("char_head", 1)), "weapon": 0, "shield": 0, "helmet": 0, "boots": 0}
                 for slot, (item_id, kind) in enumerate(SAMPLES, 1):
                     item = ITEMS_CATALOG[item_id]
-                    self.command(actor, "equip", slot=slot)
+                    self.command(actor, "gear", slot=slot)
                     self.wait(lambda: store.hget(f"player:{self.ids[actor]}:equipment", kind) == str(slot), "equipo confirmado en Redis")
+                    self.view(actor, lambda v: v.get("equipment_slots", {}).get(kind, {}).get("item") == item_id, "ranura fija confirmada en la interfaz")
                     visual["body" if kind == "armor" else kind] = item.body_animation if kind == "armor" else (item.dwarf_animation or item.animation) if kind == "weapon" and actor == 2 else item.animation
                     self.see(actor, visual)
+                    assert store.hget(f"account:{self.names[actor-1]}:data", "char_head") == str(visual["head"])
                     if kind in ("armor", "helmet", "shield", "boots") or item_id in (15, 563, 401, 543):
                         for viewer in (1, 2): self.command(viewer, "capture", label=f"equip-{actor}-{item_id}")
                 origin = (x+actor-1, y)
@@ -105,7 +107,7 @@ class EquipmentWorld(R10World):
             for actor in (1, 2):
                 equipped = store.hgetall(f"player:{self.ids[actor]}:equipment")
                 for kind, slot in equipped.items():
-                    self.command(actor, "equip", slot=int(slot))
+                    self.command(actor, "gear", slot=int(slot))
                     self.wait(lambda: store.hget(f"player:{self.ids[actor]}:equipment", kind) in (None, "0"), "desequipado confirmado")
                     expected[actor]["body" if kind == "armor" else kind] = bases[actor] if kind == "armor" else 0
                     self.see(actor, expected[actor])
