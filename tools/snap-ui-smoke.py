@@ -17,6 +17,7 @@ import time
 from PIL import ImageGrab
 
 from runtime_log import classify_runtime_log
+from snap_ui_layout import inventory_cell
 
 
 def login_visible(screenshot):
@@ -99,8 +100,12 @@ def main():
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--version", required=True)
     parser.add_argument("--commit", required=True)
+    parser.add_argument("--hidden-slot", type=int, action="append", default=[],
+                        help="Occupied logical slot hidden because its item is equipped")
     parser.add_argument("--executable", type=Path, help="Sólo desarrollo local; no acredita confinamiento")
     args = parser.parse_args()
+    source_cell = inventory_cell(30, args.hidden_slot)
+    destination_cell = inventory_cell(1, args.hidden_slot)
     if not args.executable:
         metadata = subprocess.check_output(["snap", "list", "pyao-client", "--unicode=never"], text=True)
         if metadata.splitlines()[1].split()[1] != args.version:
@@ -165,7 +170,9 @@ def main():
                 world = pixels((10, 135, 540, 550), lambda r, g, b: max(r, g, b) - min(r, g, b) > 30)
                 minimap = pixels((456, 7, 552, 103), lambda r, g, b: max(r, g, b) - min(r, g, b) > 30)
                 console = pixels((12, 6, 445, 104), lambda r, g, b: g > 120 and g > r * 1.5 and g > b * 1.5)
-                last_slot = pixels((730, 326, 758, 350), lambda r, g, b: min(r, g, b) > 110)
+                x, y = source_cell
+                last_slot = pixels((x - 14, y - 14, x + 14, y + 10),
+                                   lambda r, g, b: max(r, g, b) > 110)
                 if world > 10000 and minimap > 500 and console > 100:
                     if not backpack_opened:
                         controls.click(675, 152)  # Pestaña MOCHILA del HUD real.
@@ -187,11 +194,12 @@ def main():
             controls.tap("Return")
             controls.text("pyao-snap-installed-chat")
             controls.tap("Return")
-            controls.move(744, 340)
+            controls.move(*source_cell)
             controls.button(True)
             time.sleep(.4)
             for step in range(1, 11):
-                controls.move(744 - step * 129 // 10, 340 - step * 160 // 10)
+                controls.move(*(start + (end - start) * step // 10
+                                for start, end in zip(source_cell, destination_cell)))
             time.sleep(.4)
             controls.button(False)
             time.sleep(2)
@@ -216,6 +224,9 @@ def main():
                 "map_rendered": True, "minimap_rendered": True, "console_rendered": True,
                 "inventory_rendered": True, "keyboard_mouse": True, "profile_external": True,
                 "backpack_opened": backpack_opened,
+                "inventory_drag": {"source_slot": 30, "destination_slot": 1,
+                                   "source_cell": source_cell, "destination_cell": destination_cell,
+                                   "hidden_equipped_slots": sorted(set(args.hidden_slot))},
                 "known_engine_diagnostics": diagnostics["known_engine_diagnostics"]}, indent=2) + "\n")
         finally:
             if process.poll() is None:

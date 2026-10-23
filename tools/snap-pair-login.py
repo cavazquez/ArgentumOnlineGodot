@@ -313,6 +313,13 @@ def main():
                             )
                             before = store.hgetall(inventory)
                         ui_output = output / f"login-{attempt}"
+                        from snap_ui_layout import hidden_equipped_slots
+
+                        hidden = hidden_equipped_slots(
+                            store.hgetall(f"player:{uid}:equipment"), before
+                        )
+                        layout_arguments = [argument for slot in hidden
+                                            for argument in ("--hidden-slot", str(slot))]
                         positions = set()
                         with (output / f"ui-{attempt}.log").open("wb") as ui_log:
                             ui = subprocess.Popen(
@@ -329,6 +336,7 @@ def main():
                                     args.version,
                                     "--commit",
                                     args.client_commit,
+                                    *layout_arguments,
                                 ],
                                 env=dict(
                                     clean_environment,

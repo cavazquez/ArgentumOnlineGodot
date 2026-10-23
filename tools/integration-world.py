@@ -835,6 +835,13 @@ def worker(args):
                 user_id = store.hget(RedisKeys.account_data(names[0]), "user_id")
                 inventory_key = RedisKeys.player_inventory(int(user_id))
                 before_inventory = store.hgetall(inventory_key)
+                from snap_ui_layout import hidden_equipped_slots
+
+                hidden = hidden_equipped_slots(
+                    store.hgetall(RedisKeys.player_equipment(int(user_id))), before_inventory
+                )
+                for slot in hidden:
+                    arguments += ["--hidden-slot", str(slot)]
                 expected_source = before_inventory.get("slot_30")
                 expected_destination = before_inventory.get("slot_1")
                 if not expected_source:
