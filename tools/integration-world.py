@@ -58,15 +58,9 @@ SCENARIO_TIMEOUT_SECONDS = {
 }
 
 
-def server_startup_budget(scenario, *, system=None, machine=None):
+def server_startup_budget(scenario):
     """El catálogo vacío del portable precede al plazo de login del producto."""
-    system = sys.platform if system is None else system
-    machine = platform.machine() if machine is None else machine
-    cold_portable = scenario == "platform" and (
-        (system, machine) == ("darwin", "x86_64")
-        or (system == "win32" and machine.lower() in {"amd64", "x86_64"})
-    )
-    return 360 if cold_portable else 240
+    return 360 if scenario == "platform" else 240
 
 
 def verify_wheel_source(project, wheel):

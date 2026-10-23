@@ -143,15 +143,12 @@ class NativeRedisStorageTests(unittest.TestCase):
 
 
 class ServerStartupBudgetTests(unittest.TestCase):
-    def test_only_intel_macos_and_windows_portables_get_a_longer_cold_bootstrap(self):
-        self.assertEqual(module.server_startup_budget("platform", system="darwin", machine="x86_64"), 360)
-        self.assertEqual(module.server_startup_budget("platform", system="win32", machine="AMD64"), 360)
-        self.assertEqual(module.server_startup_budget("platform", system="win32", machine="x86_64"), 360)
-        for scenario, system, machine in (
-            ("r10", "darwin", "x86_64"), ("npcs", "darwin", "x86_64"),
-            ("platform", "darwin", "arm64"), ("full", "win32", "AMD64"),
-            ("r10", "win32", "AMD64"), ("platform", "win32", "arm64"),
-            ("platform", "linux", "x86_64"), ("platform", "linux", "aarch64"),
+    def test_all_portables_have_the_same_cold_bootstrap_and_other_budgets_do_not_change(self):
+        for system, machine in (
+            ("darwin", "x86_64"), ("darwin", "arm64"), ("win32", "AMD64"),
+            ("linux", "x86_64"), ("linux", "aarch64"),
         ):
-            with self.subTest(scenario=scenario, system=system, machine=machine):
-                self.assertEqual(module.server_startup_budget(scenario, system=system, machine=machine), 240)
+            with self.subTest(system=system, machine=machine), patch.object(module.sys, "platform", system), patch.object(module.platform, "machine", return_value=machine):
+                self.assertEqual(module.server_startup_budget("platform"), 360)
+                for scenario in ("r10", "full", "npcs", "skills", "spells"):
+                    self.assertEqual(module.server_startup_budget(scenario), 240)
