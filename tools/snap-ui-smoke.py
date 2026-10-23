@@ -25,7 +25,8 @@ def login_visible(screenshot):
     # El logo de arranque también tiene texto blanco en estas zonas. Exigir
     # además los fondos oscuros de los campos y del botón evita escribir allí.
     rgb = screenshot.convert("RGB")
-    for point in ((205, 218), (590, 218), (205, 280), (550, 280), (205, 445)):
+    # Bajo la línea de texto, el fondo también queda libre con usuario recordado.
+    for point in ((205, 230), (590, 218), (205, 280), (550, 280), (205, 445)):
         color = rgb.getpixel(point)
         if min(color) < 8 or max(color) > 30 or max(color) - min(color) > 3:
             return False
