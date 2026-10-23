@@ -102,9 +102,11 @@ func _equipment_slots() -> void:
 		check(panel.slots.get(row[1], -1) == 0, "No actualizó la ranura confirmada")
 	check(requests.size() == 6, "No envió las seis solicitudes tipadas")
 	panel.buttons.boots.pressed.emit()
+	await get_tree().process_frame
 	check(panel.choices.item_count == 1 and panel.choices.is_item_disabled(0), "Selector vacío permite equipar otra categoría")
 	panel.choices.hide()
 	panel.buttons.accessory.pressed.emit()
+	await get_tree().process_frame
 	bag.SetSlot(0, ItemStack.new())
 	panel.choices.id_pressed.emit(0)
 	panel.choices.hide()

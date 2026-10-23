@@ -105,6 +105,7 @@ func _ready() -> void:
 			minimap.accept_event())
 	_chat_helper = ChatInputHelper.new()
 	_chat_helper.install(_consoleInputLineEdit)
+	_style_equipment_tabs()
 	$"Inventory-Spell/ShowEquipment".tooltip_text = "Equipo por pieza. Arrastrá una pieza sobre esta pestaña para abrir las ranuras."
 	$"Inventory-Spell/ShowEquipment".mouse_entered.connect(func():
 		if get_viewport().gui_is_dragging(): ShowInventoryView("equipment"))
@@ -151,8 +152,7 @@ func Init(gameContext:GameContext) -> void:
 	equipment_panel.equip_requested.connect(_RequestEquipment)
 	_RegisterModal(equipment_panel.choices)
 	equipment_panel.choices.popup_hide.connect(func():
-		get_viewport().gui_release_focus()
-		get_window().grab_focus())
+		get_viewport().call_deferred("gui_release_focus"))
 	_inventoryContainer.slotActivated.connect(func(_v):
 		_use_object(true))
 
@@ -162,6 +162,26 @@ func ShowInventoryView(view_name: String) -> void:
 	equipment_panel.visible = view_name == "equipment"
 	for entry in [["ShowInventory", "inventory"], ["ShowEquipment", "equipment"], ["ShowSpells", "spells"]]:
 		get_node("Inventory-Spell/" + entry[0]).set_pressed_no_signal(view_name == entry[1])
+
+func _style_equipment_tabs() -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color("17110b")
+	normal.set_content_margin_all(2)
+	normal.set_border_width_all(1)
+	normal.border_color = Color("4c3522")
+	var selected := normal.duplicate() as StyleBoxFlat
+	selected.bg_color = Color("3d2915")
+	selected.border_color = Color("a07939")
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color("2b2015")
+	for button_name in ["ShowEquipment", "ShowInventory", "ShowSpells"]:
+		var button := get_node("Inventory-Spell/" + button_name) as Button
+		button.add_theme_stylebox_override("normal", normal)
+		button.add_theme_stylebox_override("pressed", selected)
+		button.add_theme_stylebox_override("hover_pressed", selected)
+		button.add_theme_stylebox_override("hover", hover)
+		button.add_theme_color_override("font_color", Color("e7bc72"))
+		button.add_theme_color_override("font_pressed_color", Color("ffe1a0"))
 
 func _RequestEquipment(index: int) -> void:
 	if _gameContext == null or _gameContext.trading or _gameContext.pause: return

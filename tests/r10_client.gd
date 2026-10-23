@@ -338,6 +338,7 @@ func execute(command: Dictionary) -> bool:
 			if layer.is_empty(): return false
 			hub.ShowInventoryView("equipment")
 			hub.equipment_panel.buttons[layer].pressed.emit()
+			await host.get_tree().process_frame
 			if not hub.equipment_panel.choices.visible: return false
 			hub.equipment_panel.choices.id_pressed.emit(slot)
 			hub.equipment_panel.choices.hide()
