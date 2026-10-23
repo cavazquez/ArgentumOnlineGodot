@@ -2,6 +2,7 @@ extends PanelContainer
 class_name EquipmentPanel
 
 signal equip_requested(index: int)
+signal use_requested(index: int)
 
 # Las mismas seis ranuras tipadas del servidor. No hay ranura de rostro.
 const LAYERS := {"weapon": "Arma / herramienta", "armor": "Armadura", "helmet": "Casco", "shield": "Escudo", "boots": "Botas", "accessory": "Accesorio"}
@@ -13,6 +14,7 @@ var _choices: Dictionary = {}
 var _choice_layer := ""
 var choices: VBoxContainer
 var choice_buttons: Dictionary = {}
+var use_buttons: Dictionary = {}
 var _grid: GridContainer
 var _choice_title: Label
 var _choice_rows: VBoxContainer
@@ -111,6 +113,7 @@ func refresh() -> void:
 		button.icon = stack.item.icon if stack != null else null
 		button.text = stack.item.name if stack != null else "Vacío"
 		button.tooltip_text = LAYERS[layer] + ": " + button.text + "\nClic para elegir una pieza o desequipar."
+		if layer == "weapon" and stack != null: button.tooltip_text += "\nUsar desde el selector o con U si no hay una pieza seleccionada en la mochila."
 		if stack != null and not stack.instance_state.is_empty():
 			button.tooltip_text += "\n" + ItemCondition.describe(stack.instance_state)
 
@@ -119,12 +122,23 @@ func show_choices(layer: String) -> void:
 	_choice_layer = layer
 	_choices.clear()
 	choice_buttons.clear()
+	use_buttons.clear()
 	for child in _choice_rows.get_children(): child.free()
 	_choice_title.text = LAYERS[layer]
 	for index in inventory.GetSize():
 		var stack := inventory.GetSlot(index)
 		if stack.item == null or stack.quantity < 1 or TYPES.get(stack.item.type, "") != layer: continue
-		_choices[index] = {"item": stack.item.index, "instance": stack.instance_state.get("id", "")}
+		_choices[index] = {"item": stack.item.index, "instance": stack.instance_state.get("id", ""), "equipped": stack.equipped}
+		if stack.equipped and layer == "weapon":
+			var use := Button.new()
+			use.text = "Usar " + stack.item.name
+			use.clip_text = true
+			use.custom_minimum_size.y = 34
+			use.add_theme_font_size_override("font_size", 11)
+			use.tooltip_text = "Usar " + stack.item.name
+			use.pressed.connect(_use_choice.bind(index))
+			_choice_rows.add_child(use)
+			use_buttons[index] = use
 		var button := Button.new()
 		button.text = ("Quitar: " if stack.equipped else "") + stack.item.name
 		button.icon = stack.item.icon
@@ -155,12 +169,20 @@ func close_choices() -> void:
 	get_viewport().gui_release_focus()
 
 func _choose(index: int) -> void:
-	if not _choices.has(index) or inventory == null: return
-	var stack := inventory.GetSlot(index)
-	var expected: Dictionary = _choices[index]
-	if stack == null or stack.item == null or stack.item.index != expected.item or stack.instance_state.get("id", "") != expected.instance: return
+	if not _matches_choice(index): return
 	request_slot(index, _choice_layer)
 	close_choices()
+
+func _matches_choice(index: int) -> bool:
+	if not _choices.has(index) or inventory == null: return false
+	var stack := inventory.GetSlot(index)
+	var expected: Dictionary = _choices[index]
+	return stack != null and stack.quantity > 0 and stack.item != null and stack.item.index == expected.item and stack.instance_state.get("id", "") == expected.instance and stack.equipped == expected.equipped
+
+func _use_choice(index: int) -> void:
+	if not _matches_choice(index) or not inventory.GetSlot(index).equipped or _choice_layer != "weapon": return
+	close_choices()
+	use_requested.emit(index)
 
 func request_slot(index: int, layer: String) -> void:
 	if inventory == null: return

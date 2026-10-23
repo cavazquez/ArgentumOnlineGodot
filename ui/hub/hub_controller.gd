@@ -151,6 +151,7 @@ func Init(gameContext:GameContext) -> void:
 	_inventoryContainer.SetInventory(_gameContext.playerInventory)
 	equipment_panel.setup(_gameContext.playerInventory)
 	equipment_panel.equip_requested.connect(_RequestEquipment)
+	equipment_panel.use_requested.connect(_RequestEquipmentUse)
 	_inventoryContainer.slotActivated.connect(func(_v):
 		_use_object(true))
 
@@ -188,6 +189,10 @@ func _RequestEquipment(index: int) -> void:
 	if stack == null or stack.item == null: return
 	if not stack.equipped and not _gameContext.player_stats.is_alive(): return
 	GameProtocol.WriteEquipItem(index + 1)
+
+func _RequestEquipmentUse(index: int) -> void:
+	var stack := _gameContext.playerInventory.GetSlot(index)
+	if stack != null and stack.quantity > 0 and stack.equipped: _use_object(false, index)
 
 func ShowConsoleMessage(message:String, fontData:FontData = FontData.new(Color.WHITE)) -> void:
 	for part in message.split("\n"):
@@ -454,7 +459,7 @@ func _equip_object() -> void:
 
 	GameProtocol.WriteEquipItem(slot + 1)
 
-func _use_object(double_click = false) -> void:
+func _use_object(double_click = false, equipment_slot: int = -1) -> void:
 	if double_click:
 		if !_gameContext.tick_intervals.request_use_item_with_double_click():
 			return
@@ -462,7 +467,8 @@ func _use_object(double_click = false) -> void:
 		if !_gameContext.tick_intervals.request_use_item_with_u():
 			return
 	 
-	var slot = _inventoryContainer.GetSelectedSlot() 
+	var slot = equipment_slot if equipment_slot >= 0 else _inventoryContainer.GetSelectedSlot()
+	if slot == -1 and not double_click: slot = equipment_panel.slots.get("weapon", -1)
 	if slot == -1 || _gameContext.trading || _gameContext.pause: return
 	
 	GameProtocol.WriteUseItem(slot + 1)

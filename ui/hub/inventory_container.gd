@@ -68,8 +68,8 @@ func _UpdateFocusNeighbors() -> void:
 		for info in [["focus_neighbor_left", position - 1], ["focus_neighbor_right", position + 1], ["focus_neighbor_top", position - columns], ["focus_neighbor_bottom", position + columns]]:
 			var neighbor: int = info[1]
 			cell.set(info[0], cell.get_path_to(cells[neighbor] if neighbor >= 0 and neighbor < cells.size() else cell))
-		cell.focus_next = cell.get_path_to(cells[(position + 1) % cells.size()])
-		cell.focus_previous = cell.get_path_to(cells[(position + cells.size() - 1) % cells.size()])
+		cell.focus_next = cell.get_path_to(cells[position + 1]) if position + 1 < cells.size() else NodePath()
+		cell.focus_previous = cell.get_path_to(cells[position - 1]) if position > 0 else NodePath()
 
 func GetInventorySlot(index:int) -> InventorySlot:
 	for child in get_children():

@@ -75,24 +75,28 @@ func _ready() -> void:
 	get_tree().quit(1 if failures else 0)
 
 func _equipment_slots() -> void:
+	var controls := Control.new()
+	add_child(controls)
 	var panel := EquipmentPanel.new()
 	panel.size = Vector2(203, 216)
-	add_child(panel)
+	controls.add_child(panel)
 	var bag := Inventory.new(30)
 	panel.setup(bag)
 	var backpack := InventoryContainer.new()
 	backpack.columns = 5
 	backpack.hide_equipped = true
 	backpack.allow_reorder = true
-	add_child(backpack)
+	controls.add_child(backpack)
 	backpack.SetInventory(bag)
 	var bank_inventory := InventoryContainer.new()
-	add_child(bank_inventory)
+	controls.add_child(bank_inventory)
 	bank_inventory.SetInventory(bag)
 	var requests: Array[int] = []
 	panel.equip_requested.connect(func(index: int): requests.append(index))
 	var activations: Array[int] = []
 	backpack.slotActivated.connect(func(index: int): activations.append(index))
+	var uses: Array[int] = []
+	panel.use_requested.connect(func(index: int): uses.append(index))
 	check(panel.buttons.size() == 6 and not panel.buttons.has("head"), "Ranuras incompletas o rostro equipable")
 	for row in [[2, "weapon"], [3, "armor"], [17, "helmet"], [16, "shield"], [36, "boots"], [18, "accessory"]]:
 		var item := Item.new()
@@ -151,6 +155,9 @@ func _equipment_slots() -> void:
 	replacement.equipped = true
 	bag.SetSlot(29, replacement)
 	check(panel.slots.weapon == 29 and backpack.GetInventorySlot(3).visible and not backpack.GetInventorySlot(29).visible, "No devolvió la pieza anterior a la mochila")
+	panel.buttons.weapon.pressed.emit()
+	panel.use_buttons[29].pressed.emit()
+	check(uses == [29] and panel.slots.weapon == 29 and not backpack.GetInventorySlot(29).visible, "Usar equipo lo movió a la mochila o emitió el slot equivocado")
 	var drag = backpack.CreateDragData(3)
 	check(drag.source == 3 and backpack.CanDropItem(28, drag), "El filtro cambió los índices de protocolo")
 	check(backpack.CreateDragData(29) == null and not backpack.CanDropItem(29, drag), "La mochila permite arrastrar o pisar una pieza equipada")
@@ -159,13 +166,16 @@ func _equipment_slots() -> void:
 	backpack.DropItem(28, drag)
 	check(moves == [[4, 29]] and bag.GetSlot(3) == old, "Reordenar no respetó los slots originales o mutó antes de confirmar")
 	var first := backpack.GetInventorySlot(28)
-	check(first.get_node(first.focus_next) != backpack.GetInventorySlot(29), "La navegación por teclado apunta a equipo oculto")
+	check(first.find_next_valid_focus() != backpack.GetInventorySlot(29), "La navegación por teclado apunta a equipo oculto")
+	check(not backpack.is_ancestor_of(first.find_next_valid_focus()), "Tab queda encerrado en la mochila")
 	panel.buttons.weapon.pressed.emit()
 	panel.choice_buttons[29].pressed.emit()
 	check(panel.slots.weapon == 29 and not backpack.GetInventorySlot(29).visible, "Quitó equipo antes de recibir confirmación")
 	replacement.equipped = false
 	bag.SetSlot(29, replacement)
 	check(not panel.slots.has("weapon") and backpack.GetInventorySlot(29).visible and bag.GetSlot(29).instance_state.id == "b".repeat(32), "Desequipar no devolvió el mismo ejemplar a la mochila")
+	panel._use_choice(29)
+	check(uses == [29], "Usó una pieza que ya no está equipada")
 	backpack.SetInventory(bag)
 	check(backpack.GetInventorySlot(3).visible and backpack.GetInventorySlot(29).visible and panel.slots.is_empty(), "Reconstruir la mochila perdió piezas o duplicó equipo")
 	await get_tree().process_frame
@@ -173,3 +183,4 @@ func _equipment_slots() -> void:
 	panel.free()
 	backpack.free()
 	bank_inventory.free()
+	controls.free()
