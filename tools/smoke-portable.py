@@ -10,7 +10,8 @@ import platform
 import shutil
 import subprocess
 import sys
-import tempfile
+
+from portable_temp import portable_runtime
 
 from runtime_log import classify_runtime_log
 
@@ -70,7 +71,7 @@ def smoke(candidate, server, engine, output, redis_runtime, server_bundle=None, 
     for name, digest in record["files"].items():
         if sha(candidate / name) != digest: raise ValueError("Candidato alterado: " + name)
     output.mkdir(parents=True, exist_ok=False)
-    with tempfile.TemporaryDirectory(prefix="PyAO portable con espacios ") as temporary:
+    with portable_runtime(output) as temporary:
         runtime = Path(temporary) / "Cliente listo"
         shutil.copytree(candidate, runtime)
         pattern = {"windows": "pyao-client.exe", "linux": "pyao-client.x86_64", "linux-arm64": "pyao-client.arm64", "macos": "*.app/Contents/MacOS/*"}[target]
@@ -102,9 +103,10 @@ def smoke(candidate, server, engine, output, redis_runtime, server_bundle=None, 
         proof["desktop_evidence"] = verify_desktop(executable, target, output)
         proof["desktop"] = proof["desktop_evidence"]["passed"]
         proof["early_close"] = verify_early_close(executable, target, output)
-        (output / "native-proof.json").write_text(json.dumps(proof, indent=2) + "\n")
         if not all(proof[key] is True for key in ("passed", "login", "rendering", "audio", "input", "preferences", "outside_checkout", "desktop")):
             raise ValueError("La prueba nativa no acredita todos los requisitos")
+    proof["temporary_cleanup"] = json.loads((output / "portable-cleanup.json").read_text())
+    (output / "native-proof.json").write_text(json.dumps(proof, indent=2) + "\n")
 
 
 if __name__ == "__main__":
