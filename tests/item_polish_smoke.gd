@@ -103,13 +103,13 @@ func _equipment_slots() -> void:
 	check(requests.size() == 6, "No envió las seis solicitudes tipadas")
 	panel.buttons.boots.pressed.emit()
 	await get_tree().process_frame
-	check(panel.choices.item_count == 1 and panel.choices.is_item_disabled(0), "Selector vacío permite equipar otra categoría")
-	panel.choices.hide()
+	check(panel.choice_buttons.is_empty(), "Selector vacío permite equipar otra categoría")
+	panel.close_choices()
 	panel.buttons.accessory.pressed.emit()
 	await get_tree().process_frame
 	bag.SetSlot(0, ItemStack.new())
-	panel.choices.id_pressed.emit(0)
-	panel.choices.hide()
+	panel._choose(0)
+	panel.close_choices()
 	check(requests.size() == 6, "Aceptó una opción obsoleta del selector")
 	await get_tree().process_frame
 	check(panel.get_combined_minimum_size().x <= 203 and panel.get_combined_minimum_size().y <= 216, "Ranuras fuera del panel de 800×600")

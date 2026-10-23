@@ -150,13 +150,11 @@ func Init(gameContext:GameContext) -> void:
 	_inventoryContainer.SetInventory(_gameContext.playerInventory)
 	equipment_panel.setup(_gameContext.playerInventory)
 	equipment_panel.equip_requested.connect(_RequestEquipment)
-	_RegisterModal(equipment_panel.choices)
-	equipment_panel.choices.popup_hide.connect(func():
-		get_viewport().call_deferred("gui_release_focus"))
 	_inventoryContainer.slotActivated.connect(func(_v):
 		_use_object(true))
 
 func ShowInventoryView(view_name: String) -> void:
+	if view_name != "equipment": equipment_panel.close_choices()
 	$"Inventory-Spell/InventoryPanel".visible = view_name == "inventory"
 	spell_list_panel.visible = view_name == "spells"
 	equipment_panel.visible = view_name == "equipment"
@@ -763,9 +761,12 @@ func IsWorldInputBlocked() -> bool:
 	if _gameContext == null:
 		return true
 	var focus := get_viewport().gui_get_focus_owner()
-	return InputBindings.capturing or _gameContext.trading or _consoleInputLineEdit.visible or focus != null or (is_instance_valid(_currentPanel) and _currentPanel.visible) or not _VisibleModals().is_empty()
+	return InputBindings.capturing or _gameContext.trading or _consoleInputLineEdit.visible or focus != null or equipment_panel.choices.visible or (is_instance_valid(_currentPanel) and _currentPanel.visible) or not _VisibleModals().is_empty()
 
 func RouteEscape() -> void:
+	if equipment_panel.choices.visible:
+		equipment_panel.close_choices()
+		return
 	if _chat_helper != null and _chat_helper.dismiss_completion(): return
 	if InputBindings.capturing: return
 	if _gameContext.usingSkill != 0:

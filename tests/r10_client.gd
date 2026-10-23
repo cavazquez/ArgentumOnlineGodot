@@ -340,8 +340,8 @@ func execute(command: Dictionary) -> bool:
 			hub.equipment_panel.buttons[layer].pressed.emit()
 			await host.get_tree().process_frame
 			if not hub.equipment_panel.choices.visible: return false
-			hub.equipment_panel.choices.id_pressed.emit(slot)
-			hub.equipment_panel.choices.hide()
+			if not hub.equipment_panel.choice_buttons.has(slot): return false
+			hub.equipment_panel.choice_buttons[slot].pressed.emit()
 		"equip", "use", "drop":
 			hub.ShowInventoryView("inventory")
 			# Respetar el intervalo del mismo gesto que usa el inventario real.

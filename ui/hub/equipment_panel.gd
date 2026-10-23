@@ -11,7 +11,11 @@ var buttons: Dictionary = {}
 var slots: Dictionary = {}
 var _choices: Dictionary = {}
 var _choice_layer := ""
-var choices: PopupMenu
+var choices: VBoxContainer
+var choice_buttons: Dictionary = {}
+var _grid: GridContainer
+var _choice_title: Label
+var _choice_rows: VBoxContainer
 
 func _ready() -> void:
 	var background := StyleBoxFlat.new()
@@ -22,6 +26,7 @@ func _ready() -> void:
 	content.add_theme_constant_override("separation", 2)
 	add_child(content)
 	var grid := GridContainer.new()
+	_grid = grid
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 6)
 	grid.add_theme_constant_override("v_separation", 4)
@@ -55,11 +60,27 @@ func _ready() -> void:
 	face_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	face_note.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(face_note)
-	choices = PopupMenu.new()
+	choices = VBoxContainer.new()
 	choices.name = "EquipmentChoices"
-	choices.id_pressed.connect(_choose)
-	choices.close_requested.connect(choices.hide)
-	add_child(choices)
+	choices.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_choice_title = Label.new()
+	_choice_title.add_theme_font_size_override("font_size", 12)
+	choices.add_child(_choice_title)
+	var back := Button.new()
+	back.text = "Volver al equipo"
+	back.add_theme_font_size_override("font_size", 11)
+	back.pressed.connect(close_choices)
+	choices.add_child(back)
+	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_choice_rows = VBoxContainer.new()
+	_choice_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_choice_rows)
+	choices.add_child(scroll)
+	content.add_child(choices)
+	choices.hide()
 	ClientInterface.world_state.changed.connect(_state_changed)
 	refresh()
 
@@ -97,20 +118,41 @@ func show_choices(layer: String) -> void:
 	if inventory == null or not LAYERS.has(layer): return
 	_choice_layer = layer
 	_choices.clear()
-	choices.clear()
+	choice_buttons.clear()
+	for child in _choice_rows.get_children(): child.free()
+	_choice_title.text = LAYERS[layer]
 	for index in inventory.GetSize():
 		var stack := inventory.GetSlot(index)
 		if stack.item == null or stack.quantity < 1 or TYPES.get(stack.item.type, "") != layer: continue
 		_choices[index] = {"item": stack.item.index, "instance": stack.instance_state.get("id", "")}
-		choices.add_icon_item(stack.item.icon, ("Desequipar " if stack.equipped else "Equipar ") + stack.item.name + " · mochila %d" % (index + 1), index)
+		var button := Button.new()
+		button.text = ("Quitar: " if stack.equipped else "") + stack.item.name
+		button.icon = stack.item.icon
+		button.expand_icon = true
+		button.clip_text = true
+		button.custom_minimum_size.y = 34
+		button.add_theme_font_size_override("font_size", 11)
+		button.add_theme_constant_override("icon_max_width", 28)
+		button.tooltip_text = ("Desequipar " if stack.equipped else "Equipar ") + stack.item.name + " · mochila %d" % (index + 1)
 		if not stack.instance_state.is_empty():
-			choices.set_item_tooltip(choices.item_count - 1, ItemCondition.describe(stack.instance_state))
-	if choices.item_count == 0:
-		choices.add_item("No tenés piezas para esta ranura.")
-		choices.set_item_disabled(0, true)
-	var rect: Rect2 = buttons[layer].get_global_rect()
-	choices.position = get_window().position + Vector2i(rect.position.x, rect.end.y)
-	choices.popup()
+			button.tooltip_text += "\n" + ItemCondition.describe(stack.instance_state)
+		button.pressed.connect(_choose.bind(index))
+		_choice_rows.add_child(button)
+		choice_buttons[index] = button
+	if choice_buttons.is_empty():
+		var empty := Label.new()
+		empty.text = "No tenés piezas para esta ranura."
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		empty.add_theme_font_size_override("font_size", 11)
+		_choice_rows.add_child(empty)
+	_grid.hide()
+	choices.show()
+	if not choice_buttons.is_empty(): choice_buttons.values()[0].call_deferred("grab_focus")
+
+func close_choices() -> void:
+	choices.hide()
+	_grid.show()
+	get_viewport().gui_release_focus()
 
 func _choose(index: int) -> void:
 	if not _choices.has(index) or inventory == null: return
@@ -118,6 +160,7 @@ func _choose(index: int) -> void:
 	var expected: Dictionary = _choices[index]
 	if stack == null or stack.item == null or stack.item.index != expected.item or stack.instance_state.get("id", "") != expected.instance: return
 	request_slot(index, _choice_layer)
+	close_choices()
 
 func request_slot(index: int, layer: String) -> void:
 	if inventory == null: return
