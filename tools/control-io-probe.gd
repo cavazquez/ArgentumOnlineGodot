@@ -18,6 +18,9 @@ func _run() -> void:
 	var result: Dictionary
 	if options["--mode"] == "legacy":
 		var exists := FileAccess.file_exists(options["--request"])
+		_observed(OK, options["--observed"])
+		while not FileAccess.file_exists(options["--observed"] + ".continue"):
+			await create_timer(0.01).timeout
 		var text := FileAccess.get_file_as_string(options["--request"])
 		var error := FileAccess.get_open_error()
 		result = {"file_exists": exists, "byte_count": text.to_utf8_buffer().size(), "io_error": error}

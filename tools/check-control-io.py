@@ -71,27 +71,37 @@ def run(godot, output):
             records.append({"case": name, **value})
             return value
 
+        def wait_observed(name, process, observed, result):
+            deadline = time.monotonic() + 10
+            while not observed.exists():
+                if process.poll() is not None or time.monotonic() >= deadline:
+                    finish(name, process, result)
+                    raise AssertionError("The reader never reached the controlled file operation")
+                time.sleep(0.005)
+
         body = json.dumps({"op": "snapshot", "text": "lectura ñ"}, ensure_ascii=False).encode("utf-8")
         request, result, _, command = start("healthy", body)
         value = finish("healthy", subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE), result)
         assert value["ok"] and value["attempts"] == 1 and value["operation"] == "snapshot" and value["byte_count"] == len(body)
 
-        request, result, _, command = start("legacy-locked", body, mode="legacy")
-        with locked(request):
-            value = finish("legacy-locked", subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE), result)
-        assert value["byte_count"] == 0 and value["io_error"] != 0
-        if os.name == "nt":
-            assert value["file_exists"], "Windows must reproduce existence without readable content"
+        request, result, observed, command = start("legacy-locked", body, mode="legacy")
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            wait_observed("legacy-locked", process, observed, result)
+            # Lock after the old reader checked existence, before it opens the file.
+            with locked(request):
+                Path(str(observed) + ".continue").write_bytes(b"")
+                value = finish("legacy-locked", process, result)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.communicate()
+        assert value["file_exists"] and value["byte_count"] == 0 and value["io_error"] != 0
 
         request, result, observed, command = start("transient-lock", body)
         with locked(request):
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            deadline = time.monotonic() + 10
-            while not observed.exists():
-                if process.poll() is not None or time.monotonic() >= deadline:
-                    finish("transient-lock", process, result)
-                    raise AssertionError("The reader never observed the real lock")
-                time.sleep(0.005)
+            wait_observed("transient-lock", process, observed, result)
         value = finish("transient-lock", process, result)
         assert value["ok"] and value["attempts"] > 1 and value["io_errors"] and value["byte_count"] == len(body)
 
