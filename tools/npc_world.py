@@ -121,7 +121,8 @@ class NPCWorld(R10World):
                  and manager.get_exit_tile(1, x, y) is None]
         if len(clear) < 2:
             raise RuntimeError("No hay acceso a la criatura de la muestra")
-        self.relocate(store, {i: (1, *clear[i - 1]) for i in (1, 2)}, stats=health)
+        clear.sort(key=lambda point: abs(point[0] - nx) + abs(point[1] - ny))
+        self.relocate(store, {i: (1, *clear[i - 1]) for i in (1, 2)}, stats=health, allow_adjustment=True)
         for i in (1, 2):
             self.represented(store, i, 1)
             key = target["char_index"]
@@ -144,7 +145,7 @@ class NPCWorld(R10World):
             x, y = locations["base"]
             positions = {1: (1, x, y), 2: (1, x + 1, y)}
             health = {i: {"min_hp": 30000, "max_hp": 30000} for i in (1, 2)}
-            self.relocate(store, positions, stats=health)
+            self.relocate(store, positions, stats=health, allow_adjustment=True)
             for i in (1, 2):
                 self.represented(store, i, 1)
                 self.command(i, "capture", label="npc-world")
@@ -152,7 +153,7 @@ class NPCWorld(R10World):
             assert any(row["is_hostile"] == "True" for row in rows)
             assert any(row["is_hostile"] == "False" for row in rows)
             self.passed("npc-identities", "Amistosos y hostiles: posición y apariencia desde Redis", instances=[{k: row[k] for k in ("instance_id", "char_index", "npc_id", "is_hostile")} for row in rows], clients=2)
-            self.relocate(store, {1: positions[1]}, stats=health)
+            self.relocate(store, {1: positions[1]}, stats=health, allow_adjustment=True)
             self.represented(store, 1, 1)
             self.passed("npc-reconnect", "Reconexión conserva el mundo y no duplica NPC")
             merchant = next(row for row in self.current(store, 1) if row["npc_id"] == "2")
@@ -171,7 +172,7 @@ class NPCWorld(R10World):
             self.command(1, "capture", label="npc-map-change")
             self.passed("npc-map-transition", "El cambio de mapa retira los NPC anteriores", destination=destination)
             self.hostile_sample(store, health)
-            self.relocate(store, positions, stats=health)
+            self.relocate(store, positions, stats=health, allow_adjustment=True)
             for i in (1, 2):
                 self.represented(store, i, 1)
                 self.command(i, "capture", label="npc-reconnected")

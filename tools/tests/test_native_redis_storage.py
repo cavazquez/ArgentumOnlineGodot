@@ -94,3 +94,15 @@ class NativeRedisStorageTests(unittest.TestCase):
                 with patch.object(module.secrets, "token_urlsafe", return_value="synthetic-payload"), patch.object(module.subprocess, "run", return_value=SimpleNamespace(stdout="Checksum OK\nRDB looks OK!")), patch.object(module.subprocess, "Popen"), patch.object(module, "stop"), self.assertRaises(RuntimeError):
                     fixture.verify_wsl_persistence(["owned-launcher"], "/owned/checker")
                 self.assertFalse((root / "native-redis-persistence.json").exists())
+
+
+class ServerStartupBudgetTests(unittest.TestCase):
+    def test_only_intel_macos_portable_gets_a_longer_cold_bootstrap(self):
+        self.assertEqual(module.server_startup_budget("platform", system="darwin", machine="x86_64"), 360)
+        for scenario, system, machine in (
+            ("r10", "darwin", "x86_64"), ("npcs", "darwin", "x86_64"),
+            ("platform", "darwin", "arm64"), ("platform", "win32", "AMD64"),
+            ("platform", "linux", "x86_64"), ("platform", "linux", "aarch64"),
+        ):
+            with self.subTest(scenario=scenario, system=system, machine=machine):
+                self.assertEqual(module.server_startup_budget(scenario, system=system, machine=machine), 240)
