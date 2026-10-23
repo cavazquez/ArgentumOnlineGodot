@@ -165,8 +165,9 @@ class NativeRedis:
     acepta una URL Redis existente ni modifica el firewall o las redes del host.
     """
 
-    def __init__(self, runtime, work):
+    def __init__(self, runtime, work, evidence=None):
         self.runtime = runtime
+        self.evidence = evidence
         self.root = work / "redis-owned"
         self.root.mkdir(mode=0o700)
         self.port = port()
@@ -280,14 +281,33 @@ class NativeRedis:
         raise RuntimeError("Redis propio no inició")
 
     def __exit__(self, *_):
+        from redis.exceptions import ResponseError
+
         try:
             if self.process is not None:
+                if self.evidence is not None:
+                    self.evidence.mkdir(parents=True, exist_ok=True)
+                    with contextlib.suppress(Exception):
+                        with self.client() as client:
+                            fields = ("rdb_last_bgsave_status", "aof_last_write_status", "aof_last_bgrewrite_status", "aof_rewrite_in_progress", "loading", "used_memory", "maxmemory")
+                            values = client.info("persistence") | client.info("memory")
+                            (self.evidence / "redis-runtime.json").write_text(json.dumps({"state": {key: values[key] for key in fields if key in values}, "errors": client.info("errorstats"), "storage": self.storage_kind}, indent=2) + "\n")
                 with contextlib.suppress(Exception):
-                    with self.client() as client: client.shutdown(save=True)
+                    with self.client() as client:
+                        try:
+                            client.shutdown(save=True)
+                        except ResponseError:
+                            # Sólo nuestra fixture privada: un error de RDB no
+                            # debe dejar Redis/WSL reteniendo el archivo de log.
+                            client.shutdown(nosave=True)
                 stop(self.process)
         finally:
             if self.log is not None:
                 self.log.close()
+            if self.evidence is not None:
+                with contextlib.suppress(Exception):
+                    text = (self.root / "redis.log").read_bytes()[-1048576:].decode(errors="replace")
+                    (self.evidence / "redis-runtime.log").write_text(text)
             if self.wsl_data_dir is not None:
                 subprocess.run(
                     ["wsl", "--exec", "rm", "-rf", "--", self.wsl_data_dir],
@@ -400,7 +420,7 @@ def worker(args):
     )
     key.chmod(0o600)
     fixture = (
-        NativeRedis(args.redis_runtime, work) if args.redis_runtime else RedisSandbox()
+        NativeRedis(args.redis_runtime, work, output) if args.redis_runtime else RedisSandbox()
     )
     with fixture as redis, contextlib.ExitStack() as stack:
         # R05 conserva recursos; el impuesto periódico se verifica por separado.
