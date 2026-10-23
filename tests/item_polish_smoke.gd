@@ -80,8 +80,19 @@ func _equipment_slots() -> void:
 	add_child(panel)
 	var bag := Inventory.new(30)
 	panel.setup(bag)
+	var backpack := InventoryContainer.new()
+	backpack.columns = 5
+	backpack.hide_equipped = true
+	backpack.allow_reorder = true
+	add_child(backpack)
+	backpack.SetInventory(bag)
+	var bank_inventory := InventoryContainer.new()
+	add_child(bank_inventory)
+	bank_inventory.SetInventory(bag)
 	var requests: Array[int] = []
 	panel.equip_requested.connect(func(index: int): requests.append(index))
+	var activations: Array[int] = []
+	backpack.slotActivated.connect(func(index: int): activations.append(index))
 	check(panel.buttons.size() == 6 and not panel.buttons.has("head"), "Ranuras incompletas o rostro equipable")
 	for row in [[2, "weapon"], [3, "armor"], [17, "helmet"], [16, "shield"], [36, "boots"], [18, "accessory"]]:
 		var item := Item.new()
@@ -91,15 +102,24 @@ func _equipment_slots() -> void:
 		var stack := ItemStack.new(1, false, item)
 		stack.instance_state = {"id": str(row[0]).sha256_text().substr(0, 32), "condition": 10000, "max_uses": 0, "uses": 0, "created": 100, "expires": 0, "base": {}, "effective": {}, "broken": false}
 		bag.SetSlot(0, stack)
+		check(backpack.GetInventorySlot(0).visible and not panel.slots.has(row[1]), "Pieza sin equipar fuera de la mochila o en el equipo")
 		var drag := {"kind": "pyao_player_inventory", "inventory": bag.get_instance_id(), "source": 0}
 		check(panel.can_equip_drop(row[1], drag), "Rechazó su tipo de equipo")
 		check(not panel.can_equip_drop("head", drag), "Admitió una ranura de rostro")
 		check(not panel.can_equip_drop("boots" if row[1] != "boots" else "weapon", drag), "Admitió una pieza en la ranura incorrecta")
 		panel.request_slot(0, row[1])
-		check(not panel.slots.has(row[1]), "Equipó antes de confirmar el servidor")
+		check(not panel.slots.has(row[1]) and backpack.GetInventorySlot(0).visible, "Movió la pieza antes de confirmar el servidor")
+		backpack._InventorySlotOnPressed(0)
 		stack.equipped = true
 		bag.SetSlot(0, stack)
 		check(panel.slots.get(row[1], -1) == 0, "No actualizó la ranura confirmada")
+		check(not backpack.GetInventorySlot(0).visible and backpack.GetSelectedSlot() == -1, "Equipo duplicado o seleccionado en la mochila")
+		check(bank_inventory.GetInventorySlot(0).visible, "El filtro de mochila alteró el inventario del banco")
+		check(backpack.CreateDragData(0) == null and not backpack.CanDropItem(0, drag), "Reordenó una ranura reservada al equipo")
+		backpack._InventorySlotOnPressed(0)
+		backpack.GetInventorySlot(0).activated.emit()
+		check(backpack.GetSelectedSlot() == -1, "Seleccionó una pieza que ya está equipada")
+		check(activations.is_empty(), "Activó una pieza oculta de la mochila")
 	check(requests.size() == 6, "No envió las seis solicitudes tipadas")
 	panel.buttons.boots.pressed.emit()
 	await get_tree().process_frame
@@ -111,6 +131,45 @@ func _equipment_slots() -> void:
 	panel._choose(0)
 	panel.close_choices()
 	check(requests.size() == 6, "Aceptó una opción obsoleta del selector")
+	# Reemplazar una pieza y quitarla conserva la identidad y los índices reales.
+	var sword := Item.new()
+	sword.index = 2
+	sword.type = 2
+	sword.name = "Espada"
+	var old := ItemStack.new(1, true, sword)
+	old.instance_state = {"id": "a".repeat(32), "condition": 10000, "max_uses": 0, "uses": 0, "created": 100, "expires": 0, "base": {}, "effective": {}, "broken": false}
+	var replacement := ItemStack.new(1, false, sword)
+	replacement.instance_state = old.instance_state.duplicate(true)
+	replacement.instance_state.id = "b".repeat(32)
+	bag.SetSlot(3, old)
+	bag.SetSlot(29, replacement)
+	panel.buttons.weapon.pressed.emit()
+	panel.choice_buttons[29].pressed.emit()
+	check(panel.slots.weapon == 3 and backpack.GetInventorySlot(29).visible, "Reemplazo optimista antes de la confirmación")
+	old.equipped = false
+	bag.SetSlot(3, old)
+	replacement.equipped = true
+	bag.SetSlot(29, replacement)
+	check(panel.slots.weapon == 29 and backpack.GetInventorySlot(3).visible and not backpack.GetInventorySlot(29).visible, "No devolvió la pieza anterior a la mochila")
+	var drag = backpack.CreateDragData(3)
+	check(drag.source == 3 and backpack.CanDropItem(28, drag), "El filtro cambió los índices de protocolo")
+	check(backpack.CreateDragData(29) == null and not backpack.CanDropItem(29, drag), "La mochila permite arrastrar o pisar una pieza equipada")
+	var moves: Array = []
+	backpack.reorder_handler = func(source, destination): moves.append([source, destination])
+	backpack.DropItem(28, drag)
+	check(moves == [[4, 29]] and bag.GetSlot(3) == old, "Reordenar no respetó los slots originales o mutó antes de confirmar")
+	var first := backpack.GetInventorySlot(28)
+	check(first.get_node(first.focus_next) != backpack.GetInventorySlot(29), "La navegación por teclado apunta a equipo oculto")
+	panel.buttons.weapon.pressed.emit()
+	panel.choice_buttons[29].pressed.emit()
+	check(panel.slots.weapon == 29 and not backpack.GetInventorySlot(29).visible, "Quitó equipo antes de recibir confirmación")
+	replacement.equipped = false
+	bag.SetSlot(29, replacement)
+	check(not panel.slots.has("weapon") and backpack.GetInventorySlot(29).visible and bag.GetSlot(29).instance_state.id == "b".repeat(32), "Desequipar no devolvió el mismo ejemplar a la mochila")
+	backpack.SetInventory(bag)
+	check(backpack.GetInventorySlot(3).visible and backpack.GetInventorySlot(29).visible and panel.slots.is_empty(), "Reconstruir la mochila perdió piezas o duplicó equipo")
 	await get_tree().process_frame
 	check(panel.get_combined_minimum_size().x <= 203 and panel.get_combined_minimum_size().y <= 216, "Ranuras fuera del panel de 800×600")
 	panel.free()
+	backpack.free()
+	bank_inventory.free()

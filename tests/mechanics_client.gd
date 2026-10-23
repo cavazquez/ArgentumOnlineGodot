@@ -118,6 +118,11 @@ func snapshot() -> Dictionary:
 		"shield": hub.get_node("%LblShield").text, "armor": hub.get_node("%LblArmor").text,
 		"helmet": hub.get_node("%LblHelmet").text}
 	view.equipment_slots = {}
+	view.backpack_items = {}
+	for index in context.playerInventory.GetSize():
+		var stack: ItemStack = context.playerInventory.GetSlot(index)
+		if stack.quantity > 0 and hub._inventoryContainer.GetInventorySlot(index).visible:
+			view.backpack_items[str(index + 1)] = {"item": stack.item.index, "instance": stack.instance_state.get("id", "")}
 	for layer in hub.equipment_panel.slots:
 		var index: int = hub.equipment_panel.slots[layer]
 		view.equipment_slots[layer] = {"slot": index + 1, "item": context.playerInventory.GetSlot(index).item.index}

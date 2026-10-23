@@ -103,7 +103,7 @@ func refresh() -> void:
 	if inventory != null:
 		for index in inventory.GetSize():
 			var stack := inventory.GetSlot(index)
-			if stack.equipped and stack.item != null and TYPES.has(stack.item.type):
+			if stack != null and stack.quantity > 0 and stack.equipped and stack.item != null and TYPES.has(stack.item.type):
 				slots[TYPES[stack.item.type]] = index
 	for layer in buttons:
 		var button: Button = buttons[layer]
@@ -133,7 +133,7 @@ func show_choices(layer: String) -> void:
 		button.custom_minimum_size.y = 34
 		button.add_theme_font_size_override("font_size", 11)
 		button.add_theme_constant_override("icon_max_width", 28)
-		button.tooltip_text = ("Desequipar " if stack.equipped else "Equipar ") + stack.item.name + " · mochila %d" % (index + 1)
+		button.tooltip_text = ("Desequipar " if stack.equipped else "Equipar ") + stack.item.name
 		if not stack.instance_state.is_empty():
 			button.tooltip_text += "\n" + ItemCondition.describe(stack.instance_state)
 		button.pressed.connect(_choose.bind(index))

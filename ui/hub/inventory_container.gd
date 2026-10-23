@@ -3,6 +3,7 @@ class_name InventoryContainer
 const InventorySlotScene = preload("uid://b8q7jv01joc1r")
 
 @export var allow_reorder := false
+@export var hide_equipped := false
 var reorder_handler: Callable
 
 signal slotPressed(index:int) 
@@ -47,11 +48,28 @@ func SetInventory(inventory:Inventory) -> void:
 		
 		inventorySlot.index = i
 		inventorySlot.pressed.connect(_InventorySlotOnPressed.bind(i)) 
-		inventorySlot.activated.connect(func(): slotActivated.emit(inventorySlot.index))
+		inventorySlot.activated.connect(_InventorySlotOnActivated.bind(i))
 		_OnSlotChanged(i, _inventory.GetSlot(i))
 		inventorySlot.SetSelected(i == _selectedSlot)
-		for info in [["focus_neighbor_left", i - 1], ["focus_neighbor_right", i + 1], ["focus_neighbor_top", i - columns], ["focus_neighbor_bottom", i + columns]]:
-			if info[1] >= 0 and info[1] < inventory.GetSize(): inventorySlot.set(info[0], NodePath("../Slot%d" % info[1]))
+	_UpdateFocusNeighbors()
+
+func IsSlotDisplayed(index: int) -> bool:
+	if _inventory == null or index < 0 or index >= _inventory.GetSize(): return false
+	var stack := _inventory.GetSlot(index)
+	return not (hide_equipped and stack != null and stack.quantity > 0 and stack.equipped and stack.item != null and stack.item.IsEquippable())
+
+func _UpdateFocusNeighbors() -> void:
+	# GridContainer compacta las celdas visibles; sus índices de protocolo no cambian.
+	var cells: Array[InventorySlot] = []
+	for child in get_children():
+		if child is InventorySlot and child.visible: cells.append(child)
+	for position in cells.size():
+		var cell := cells[position]
+		for info in [["focus_neighbor_left", position - 1], ["focus_neighbor_right", position + 1], ["focus_neighbor_top", position - columns], ["focus_neighbor_bottom", position + columns]]:
+			var neighbor: int = info[1]
+			cell.set(info[0], cell.get_path_to(cells[neighbor] if neighbor >= 0 and neighbor < cells.size() else cell))
+		cell.focus_next = cell.get_path_to(cells[(position + 1) % cells.size()])
+		cell.focus_previous = cell.get_path_to(cells[(position + cells.size() - 1) % cells.size()])
 
 func GetInventorySlot(index:int) -> InventorySlot:
 	for child in get_children():
@@ -66,9 +84,14 @@ func _OnSlotChanged(index:int, itemStack:ItemStack) -> void:
 		inventorySlot.SetIcon(itemStack.item.icon if itemStack != null and itemStack.item != null else null)
 		inventorySlot.SetQuantity(itemStack.quantity)
 		inventorySlot.SetEquipped(itemStack.equipped)
+		var displayed := IsSlotDisplayed(index)
+		if not displayed and _selectedSlot == index: ClearSelection()
+		if inventorySlot.visible != displayed:
+			inventorySlot.visible = displayed
+			_UpdateFocusNeighbors()
 		
 func _InventorySlotOnPressed(index:int) -> void:
-	if index < 0 or _inventory == null or index >= _inventory.GetSize():
+	if not IsSlotDisplayed(index):
 		return
 	if GetInventorySlot(_selectedSlot):
 		GetInventorySlot(_selectedSlot).SetSelected(false)
@@ -77,8 +100,11 @@ func _InventorySlotOnPressed(index:int) -> void:
 	_selectedSlot = index
 	slotPressed.emit(index) 
 
+func _InventorySlotOnActivated(index: int) -> void:
+	if IsSlotDisplayed(index): slotActivated.emit(index)
+
 func CreateDragData(index: int) -> Variant:
-	if not allow_reorder or _inventory == null or index < 0 or index >= _inventory.GetSize():
+	if not allow_reorder or not IsSlotDisplayed(index):
 		return null
 	var stack := _inventory.GetSlot(index)
 	if stack == null or stack.item == null or stack.quantity < 1 or stack.item.index < 1:
@@ -86,12 +112,12 @@ func CreateDragData(index: int) -> Variant:
 	return {"kind": "pyao_player_inventory", "inventory": _inventory.get_instance_id(), "source": index}
 
 func CanDropItem(destination: int, data: Variant) -> bool:
-	if not allow_reorder or _inventory == null or destination < 0 or destination >= _inventory.GetSize():
+	if not allow_reorder or not IsSlotDisplayed(destination):
 		return false
 	if not data is Dictionary or data.get("kind") != "pyao_player_inventory" or data.get("inventory") != _inventory.get_instance_id():
 		return false
 	var source = data.get("source", -1)
-	if not source is int or source < 0 or source >= _inventory.GetSize() or source == destination:
+	if not source is int or not IsSlotDisplayed(source) or source == destination:
 		return false
 	var stack := _inventory.GetSlot(source)
 	return stack != null and stack.item != null and stack.quantity > 0 and stack.item.index > 0

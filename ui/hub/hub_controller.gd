@@ -147,6 +147,7 @@ func Init(gameContext:GameContext) -> void:
 	spell_list_panel.target_requested.connect(BeginSpellTarget)
 	ClientInterface.disconnected.connect(_restore_default_cursor)
 	_inventoryContainer.allow_reorder = true
+	_inventoryContainer.hide_equipped = true
 	_inventoryContainer.SetInventory(_gameContext.playerInventory)
 	equipment_panel.setup(_gameContext.playerInventory)
 	equipment_panel.equip_requested.connect(_RequestEquipment)
