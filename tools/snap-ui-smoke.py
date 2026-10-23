@@ -21,6 +21,13 @@ from runtime_log import classify_runtime_log
 
 def login_visible(screenshot):
     """Comprueba las tres etiquetas del formulario antes de escribir o pulsar."""
+    # El logo de arranque también tiene texto blanco en estas zonas. Exigir
+    # además los fondos oscuros de los campos y del botón evita escribir allí.
+    rgb = screenshot.convert("RGB")
+    for point in ((205, 218), (590, 218), (205, 280), (550, 280), (205, 445)):
+        color = rgb.getpixel(point)
+        if min(color) < 8 or max(color) > 30 or max(color) - min(color) > 3:
+            return False
     regions = ((330, 178, 480, 199), (345, 240, 455, 260), (305, 432, 395, 458))
     return all(sum(count for count, value in screenshot.crop(box).convert("L").getcolors(100000)
                    if value > 130) > 40 for box in regions)
@@ -150,6 +157,7 @@ def main():
             login_started = time.monotonic()
             controls.click(344, 444)
             deadline = time.monotonic() + 40
+            backpack_opened = False
             while True:
                 screenshot = ImageGrab.grab(xdisplay=os.environ["DISPLAY"])
                 def pixels(box, predicate):
@@ -158,8 +166,13 @@ def main():
                 minimap = pixels((456, 7, 552, 103), lambda r, g, b: max(r, g, b) - min(r, g, b) > 30)
                 console = pixels((12, 6, 445, 104), lambda r, g, b: g > 120 and g > r * 1.5 and g > b * 1.5)
                 last_slot = pixels((730, 326, 758, 350), lambda r, g, b: min(r, g, b) > 110)
-                if world > 10000 and minimap > 500 and console > 100 and last_slot > 10:
-                    break
+                if world > 10000 and minimap > 500 and console > 100:
+                    if not backpack_opened:
+                        controls.click(675, 152)  # Pestaña MOCHILA del HUD real.
+                        backpack_opened = True
+                        continue
+                    if last_slot > 10:
+                        break
                 if time.monotonic() > deadline or process.poll() is not None:
                     screenshot.save(output / "snap-failure.png")
                     raise TimeoutError(f"Interfaz del Snap incompleta: mapa={world}, minimapa={minimap}, consola={console}, slot30={last_slot}")
@@ -202,6 +215,7 @@ def main():
                 "installed": args.executable is None, "tls": True, "audio_driver": audio,
                 "map_rendered": True, "minimap_rendered": True, "console_rendered": True,
                 "inventory_rendered": True, "keyboard_mouse": True, "profile_external": True,
+                "backpack_opened": backpack_opened,
                 "known_engine_diagnostics": diagnostics["known_engine_diagnostics"]}, indent=2) + "\n")
         finally:
             if process.poll() is None:
