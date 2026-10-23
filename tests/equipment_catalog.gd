@@ -4,7 +4,7 @@ func _ready() -> void:
 	var report: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://protocol/equipment-catalog.json"))
 	var checked := 0
 	for row in report.rows:
-		var frames := load("res://" + String(row.resource)) as SpriteFrames
+		var frames := BootFrames.frames(int(row.animation)) if row.slot == "boots" else load("res://" + String(row.resource)) as SpriteFrames
 		if frames == null:
 			fail("Falta SpriteFrames del item %d: %s" % [row.item_id, row.resource])
 			return
@@ -21,7 +21,7 @@ func _ready() -> void:
 						fail("Frame vacío del item %d" % row.item_id)
 						return
 		checked += 1
-	print("EQUIPMENT_CATALOG: PASS references=", checked, " boots=deferred")
+	print("EQUIPMENT_CATALOG: PASS references=", checked, " boots=5")
 	get_tree().quit()
 
 func fail(message: String) -> void:

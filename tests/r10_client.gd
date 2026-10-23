@@ -74,6 +74,8 @@ func snapshot() -> Dictionary:
 		if panel is PlayerTradePanel:
 			result.panel = "trade"
 			result.trade = panel.snapshot
+			result.trade_conditions_ready = panel._conditions_ready()
+			result.trade_confirm_disabled = panel.confirm_button.disabled
 		elif panel is MerchantPanel:
 			result.panel = "merchant"
 			result.merchant_items = {}

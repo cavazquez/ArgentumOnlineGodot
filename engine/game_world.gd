@@ -27,6 +27,7 @@ func CreateCharacter(data:CharacterCreate) -> Character:
 	character.renderer.body = data.body 
 	character.renderer.head = data.head;
 	character.renderer.helmet = data.helmet;
+	character.renderer.boots = data.boots;
 	character.renderer.weapon = data.weapon;
 	character.renderer.shield = data.shield;
 	character.renderer.heading = data.heading; 

@@ -123,13 +123,15 @@ func snapshot() -> Dictionary:
 		view.actor_visibility[str(actor.instanceId)] = {"renderer_visible": actor.renderer.visible, "visible_in_tree": actor.renderer.is_visible_in_tree(), "name_visible": actor._nameLabel.visible, "name": actor.GetCharacterName(), "internal_invisible": actor.GetCharacterInvisible()}
 		if actor.instanceId < 10000:
 			var layers := {}
-			for layer in ["body", "head", "weapon", "shield", "helmet"]:
+			for layer in ["body", "head", "weapon", "shield", "helmet", "boots"]:
 				var sprite: AnimatedSprite2D = actor.renderer.get("_" + layer + "AnimatedSprite")
 				layers[layer] = {"id": actor.renderer.get(layer), "resource": sprite.sprite_frames.resource_path,
 					"position": [sprite.position.x, sprite.position.y],
 					"visible": sprite.is_visible_in_tree(), "animation": String(sprite.animation),
 					"frame": sprite.frame, "frame_count": sprite.sprite_frames.get_frame_count(sprite.animation)}
 			view.actor_equipment[str(actor.instanceId)] = layers
+	view.item_conditions = ClientInterface.world_state.item_states.duplicate(true)
+	view.music = {"track": AudioManager._track, "playing": is_instance_valid(AudioManager._music) and AudioManager._music.playing, "volume": Global.musicVolume}
 	view.sailing = context.userNavegando
 	view.ping_status = Global.pingStatus
 	view.visual_nodes = ScreenController.currentScreen._visuals.get_child_count()

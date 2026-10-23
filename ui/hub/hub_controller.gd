@@ -237,19 +237,19 @@ func update_equipment_label(slot:int, item_stack:ItemStack) -> void:
 	if item_stack.equipped:
 		match item_stack.item.type:
 			Enums.eOBJType.eOBJType_otWeapon:
-				%LblWeapon.text = "%d/%d" % [item_stack.item.minHit, item_stack.item.maxHit]
+				%LblWeapon.text = "%d/%d" % [int(item_stack.instance_state.get("effective", {}).get("MinHit", item_stack.item.minHit)), int(item_stack.instance_state.get("effective", {}).get("MaxHit", item_stack.item.maxHit))]
 				_user_weapon_slot = slot
 			
 			Enums.eOBJType.eOBJType_otESCUDO:
-				%LblShield.text = "%d/%d" % [item_stack.item.minDef, item_stack.item.maxDef]
+				%LblShield.text = "%d/%d" % [int(item_stack.instance_state.get("effective", {}).get("MinDef", item_stack.item.minDef)), int(item_stack.instance_state.get("effective", {}).get("MaxDef", item_stack.item.maxDef))]
 				_user_shield_slot = slot
 			
 			Enums.eOBJType.eOBJType_otArmadura:
-				%LblArmor.text = "%d/%d" % [item_stack.item.minDef, item_stack.item.maxDef]
+				%LblArmor.text = "%d/%d" % [int(item_stack.instance_state.get("effective", {}).get("MinDef", item_stack.item.minDef)), int(item_stack.instance_state.get("effective", {}).get("MaxDef", item_stack.item.maxDef))]
 				_user_armor_slot = slot
 			
 			Enums.eOBJType.eOBJType_otCASCO:
-				%LblHelmet.text = "%d/%d" % [item_stack.item.minDef, item_stack.item.maxDef]
+				%LblHelmet.text = "%d/%d" % [int(item_stack.instance_state.get("effective", {}).get("MinDef", item_stack.item.minDef)), int(item_stack.instance_state.get("effective", {}).get("MaxDef", item_stack.item.maxDef))]
 				_user_helmet_slot = slot 
 	else:
 		match slot:
@@ -882,7 +882,6 @@ func _update_status() -> void:
 	if _gameContext.userCiego: states.append("Ciego")
 	if _gameContext.userEstupido: states.append("Confundido")
 	if _gameContext.userDescansar: states.append("Descansando")
-	if _gameContext.userNavegando: states.append("Navegando")
 	_status_label.text = " · ".join(states)
 	if _previous_dead != dead:
 		_restore_default_cursor()

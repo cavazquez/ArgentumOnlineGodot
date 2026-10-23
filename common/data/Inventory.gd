@@ -3,6 +3,7 @@ class_name Inventory
 
 signal slotChanged(index:int, itemStack:ItemStack)
 
+var scope := "inventory"
 var _slots:Array[ItemStack]
 
 func _init(size:int) -> void:

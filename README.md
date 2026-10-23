@@ -132,3 +132,7 @@ usa `tools/r10_world.py`, el controlador de pantallas `tests/r10_client.gd` y
 aceptación en `build/r10/`; el Snap se construye con el preset de producción.
 El smoke recompila ambos drivers desde su texto con los autoloads del proyecto
 cargados para validar también el arnés.
+
+Los sprites de calzado de The Mana World conservan su licencia GPL-2.0 y
+atribución independiente; el código propio sigue bajo MIT. Ver
+[licencia y procedencia del calzado](Assets/Equipment/Boots/LICENSE.txt).

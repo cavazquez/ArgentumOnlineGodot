@@ -6,6 +6,7 @@ var name:String
 
 var body:int
 var head:int
+var boots:int
 var helmet:int
 var weapon:int
 var shield:int
@@ -40,3 +41,4 @@ func Deserialize(reader:StreamPeerBuffer) -> void:
 	nickColor = reader.get_u8()
 	privileges = reader.get_u8()
 	showName = reader.get_u8() == 1
+	boots = reader.get_16()

@@ -73,6 +73,9 @@ func _ready() -> void:
 	_verify_ui()
 	_verify_screen_handoff()
 	_verify_receive_reconnection()
+	AudioManager.StopAll()
+	await get_tree().process_frame
+	await get_tree().create_timer(0.15).timeout
 	print("PROTOCOL_SMOKE: ", "FAIL" if failed else "PASS")
 	get_tree().quit(1 if failed else 0)
 

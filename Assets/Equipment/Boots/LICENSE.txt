@@ -1,0 +1,17 @@
+Reused original PNG files from The Mana World tmwa-client-data:
+https://github.com/themanaworld/tmwa-client-data
+Pinned source commit: 3ab88eb52cb995be3d85c96810fe1826bc429ede
+Path: graphics/sprites/equipment/feet/
+
+assassin-boots.png: Black Don, GPLv2
+furboots.png: Black Don, GPLv2
+bromenalboots.png: Skipy, GPLv2
+warlordboots.png: Alige, GPLv2
+
+The upstream license manifest calls some male files *-male.png; the pinned
+repository uses the matching un-suffixed filenames. Original PNGs/XML are
+included unchanged with upstream COPYING (GNU GPL version 2) and license.md.
+Adaptation is at runtime: select original 64px frames, scale to AO bodies,
+anchor to feet, synchronize with body animation, and tint some variants.
+No upstream pixels have been redrawn. This license applies to these art files;
+it does not replace the project's MIT license for independently authored code.

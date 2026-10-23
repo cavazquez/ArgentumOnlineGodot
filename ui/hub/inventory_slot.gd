@@ -15,7 +15,8 @@ func _ready() -> void:
 func SetDescription(stack: ItemStack) -> void:
 	tooltip_text = "%s × %d" % [stack.item.name, stack.quantity] if stack != null and stack.item != null and stack.item.index > 0 and stack.quantity > 0 else ""
 
-  
+	if stack != null and not stack.instance_state.is_empty(): tooltip_text += "\n" + ItemCondition.describe(stack.instance_state)
+
 func SetQuantity(quantity:int) -> void:
 	%Quantity.text = str(quantity) if quantity > 1 else ""
 	

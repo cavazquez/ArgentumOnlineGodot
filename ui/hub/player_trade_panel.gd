@@ -28,6 +28,8 @@ var confirm_button: Button
 var cancel_button: Button
 
 func _ready() -> void:
+	ClientInterface.world_state.changed.connect(func(kind: String, _data: Dictionary, _revision: String):
+		if kind == "items" and not snapshot.is_empty() and not _ended: _render_offers())
 	title = "Intercambio entre jugadores"
 	Utils.ApplyDialogTheme(self)
 	size = Vector2i(640, 440)
@@ -143,6 +145,16 @@ func ApplyMetadata(value: Dictionary) -> void:
 	_render_offers()
 	if _metadata_requesting and not _metadata_ready(): _request_metadata()
 
+func _conditions_ready() -> bool:
+	for player in snapshot.get("players", []):
+		var scope := "trade_mine" if player[0] == snapshot.viewer else "trade_other"
+		for item in player[4]:
+			var info := _item_info(int(item[1]))
+			if int(info.get("type", 0)) in [2, 3, 16, 17, 18, 21, 26, 36]:
+				var state: Dictionary = ClientInterface.world_state.item_states.get(scope, {}).get(int(item[0]), {})
+				if state.is_empty() or int(state.item) != int(item[1]): return false
+	return true
+
 func _render_offers() -> void:
 	var value := snapshot
 	status.text = "Revisión %d · %s\n%s" % [int(value.revision), value.state, value.reason]
@@ -153,7 +165,11 @@ func _render_offers() -> void:
 		for item in player[4]:
 			var info := _item_info(int(item[1]))
 			var row := offer_items[index].add_item("%s × %d" % [info.name, int(item[2])], _icon(info))
-			offer_items[index].set_item_tooltip(row, _description(info))
+			var scope := "trade_mine" if player[0] == value.viewer else "trade_other"
+			var condition_state: Dictionary = ClientInterface.world_state.item_states.get(scope, {}).get(int(item[0]), {})
+			var detail := _description(info)
+			if not condition_state.is_empty() and int(condition_state.item) == int(item[1]): detail += "\n" + ItemCondition.describe(condition_state)
+			offer_items[index].set_item_tooltip(row, detail)
 			offer_items[index].set_item_metadata(row, info)
 	var active: bool = value.state == "active" and not _pending and not _closing
 	item_button.disabled = not active
@@ -161,7 +177,7 @@ func _render_offers() -> void:
 	accept_button.disabled = _pending or _closing
 	accept_button.visible = value.state == "pending" and value.viewer == value.players[1][0]
 	var own_index := 0 if value.viewer == value.players[0][0] else 1
-	confirm_button.disabled = not active or bool(value.players[own_index][3]) or not _metadata_ready()
+	confirm_button.disabled = not active or bool(value.players[own_index][3]) or not _metadata_ready() or not _conditions_ready()
 	_metadata_retry.visible = not _metadata_ready() and value.state == "active" and ClientInterface.capabilities.has_feature(ClientCapabilities.WORLD_STATE)
 	if value.state == "active" and not _metadata_ready(): status.text += "\nFaltan datos de los objetos: confirmar está deshabilitado. Podés cancelar."
 

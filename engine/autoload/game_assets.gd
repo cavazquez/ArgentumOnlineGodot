@@ -1,5 +1,9 @@
 extends Node
 
+signal assets_ready(success: bool)
+var loaded := false
+var load_errors := PackedStringArray()
+
 var _textureList:Dictionary[int, Texture2D]
 
 var GrhDataList:Array[GrhData] = []
@@ -25,6 +29,12 @@ func _on_resources_loaded() -> void:
 	call_deferred("_load_all_resources")
 
 func _load_all_resources() -> void:
+	if loaded: return
+	load_errors = GameResourcesAudit.missing_resources()
+	if not load_errors.is_empty():
+		push_error("Recursos obligatorios ausentes: " + ", ".join(load_errors))
+		assets_ready.emit(false)
+		return
 	_LoadGrhData()
 	_LoadWeaponData()
 	_LoadShieldData()
@@ -33,7 +43,10 @@ func _load_all_resources() -> void:
 	_LoadHelmetData()
 	_LoadFonts()
 	_LoadColours()
-	print("GameAssets: Todos los recursos han sido cargados")
+	loaded = GrhDataList.size() > 1 and BodyAnimationList.size() > 1 and HeadAnimationList.size() > 1 and WeaponAnimationList.size() > 1 and ShieldAnimationList.size() > 1 and HelmetAnimationList.size() > 1
+	if loaded: print("GameAssets: Recursos obligatorios verificados y cargados")
+	else: push_error("No se pudieron interpretar los índices de recursos obligatorios")
+	assets_ready.emit(loaded)
 	
 func GetTexture(fileId:int) -> Texture2D:
 	if _textureList.has(fileId):

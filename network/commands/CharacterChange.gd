@@ -7,6 +7,7 @@ var head:int
 var heading:int
 var weapon:int
 var shield:int
+var boots:int
 var helmet:int
 var fxId:int
 var fxLoops:int
@@ -24,3 +25,4 @@ func Deserialize(reader:StreamPeerBuffer) -> void:
 	helmet = reader.get_16()
 	fxId = reader.get_16()
 	fxLoops = reader.get_16()
+	boots = reader.get_16()

@@ -26,7 +26,7 @@
     "data/items/tools/keys.toml": "fd8c17ff6d0f6c2d4258794988ca346e91f3e663ae1bd79d135f754e15536aa2",
     "data/items/world_objects/containers.toml": "b877dc54190044074c91e9679662e7b7d220e62efb8af8eeefa57f8d9fbbecfd",
     "data/items/world_objects/doors.toml": "686cb0365ab607c30d1582eb1b63965e741aa01cdb09bbf3786fe30cccc8965c",
-    "data/items/world_objects/furniture.toml": "41722275ef7b3659d2e1593101d44796f8c9903f443a87523d012bf27778f427",
+    "data/items/world_objects/furniture.toml": "3b77294db00606e4c76dde65f2b50f1a77567178af0e0e8f2b2beefaa525d016",
     "data/items/world_objects/mines.toml": "83bcc4077930428a288520551be3884cc6651935c416e166dba6c78450c85f92",
     "data/items/world_objects/signs.toml": "75a42f891a73b3a6567551c0955759aa8a571eeead38d84d22ceb2ae0853fb1d",
     "data/items/world_objects/trees.toml": "8d757426beb1b507e1471e5b023635a396b18d681fadcc113be746f1995d0c9c"
@@ -35,9 +35,10 @@
     "weapon": 51,
     "armor": 263,
     "shield": 13,
-    "helmet": 15
+    "helmet": 15,
+    "boots": 5
   },
-  "animation_references": 381,
+  "animation_references": 386,
   "rows": [
     {
       "item_id": 2,
@@ -3352,6 +3353,15 @@
       "resource_exists": true
     },
     {
+      "item_id": 1055,
+      "name": "Botas de Cuero",
+      "slot": "boots",
+      "variant": "normal",
+      "animation": 1,
+      "resource": "engine/character/boot_frames.gd",
+      "resource_exists": true
+    },
+    {
       "item_id": 1057,
       "name": "Armadura de Placas de Hierro",
       "slot": "armor",
@@ -3367,6 +3377,15 @@
       "variant": "normal",
       "animation": 3,
       "resource": "Resources/Character/Helmets/helmet_3.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1059,
+      "name": "Botas de Placas de Hierro",
+      "slot": "boots",
+      "variant": "normal",
+      "animation": 2,
+      "resource": "engine/character/boot_frames.gd",
       "resource_exists": true
     },
     {
@@ -3388,6 +3407,15 @@
       "resource_exists": true
     },
     {
+      "item_id": 1063,
+      "name": "Botas de Escamas de Dragón",
+      "slot": "boots",
+      "variant": "normal",
+      "animation": 3,
+      "resource": "engine/character/boot_frames.gd",
+      "resource_exists": true
+    },
+    {
       "item_id": 1065,
       "name": "Túnica de las Sombras",
       "slot": "armor",
@@ -3406,6 +3434,15 @@
       "resource_exists": true
     },
     {
+      "item_id": 1067,
+      "name": "Botas de las Sombras",
+      "slot": "boots",
+      "variant": "normal",
+      "animation": 4,
+      "resource": "engine/character/boot_frames.gd",
+      "resource_exists": true
+    },
+    {
       "item_id": 1069,
       "name": "Túnica Arcana Reforzada",
       "slot": "armor",
@@ -3421,6 +3458,15 @@
       "variant": "normal",
       "animation": 15,
       "resource": "Resources/Character/Helmets/helmet_15.tres",
+      "resource_exists": true
+    },
+    {
+      "item_id": 1071,
+      "name": "Botas Arcanas",
+      "slot": "boots",
+      "variant": "normal",
+      "animation": 5,
+      "resource": "engine/character/boot_frames.gd",
       "resource_exists": true
     },
     {
@@ -3470,38 +3516,7 @@
     }
   ],
   "missing_resources": [],
-  "unsupported_equipment": [
-    {
-      "item_id": 1055,
-      "name": "Botas de Cuero",
-      "obj_type": 20,
-      "reason": "boots_deferred_issue_181"
-    },
-    {
-      "item_id": 1059,
-      "name": "Botas de Placas de Hierro",
-      "obj_type": 20,
-      "reason": "boots_deferred_issue_181"
-    },
-    {
-      "item_id": 1063,
-      "name": "Botas de Escamas de Dragón",
-      "obj_type": 20,
-      "reason": "boots_deferred_issue_181"
-    },
-    {
-      "item_id": 1067,
-      "name": "Botas de las Sombras",
-      "obj_type": 20,
-      "reason": "boots_deferred_issue_181"
-    },
-    {
-      "item_id": 1071,
-      "name": "Botas Arcanas",
-      "obj_type": 20,
-      "reason": "boots_deferred_issue_181"
-    }
-  ],
+  "unsupported_equipment": [],
   "accessories": [
     {
       "item_id": 208,
@@ -3577,7 +3592,7 @@
     }
   ],
   "complete_selected_avatar_coverage": true,
-  "complete_avatar_coverage": false,
+  "complete_avatar_coverage": true,
   "missing_resource_issue": "https://github.com/cavazquez/ArgentumOnlineGodot/issues/180",
   "boots_issue": "https://github.com/cavazquez/ArgentumOnlineGodot/issues/181",
   "rings_issue": "https://github.com/cavazquez/pyao-server/issues/367"

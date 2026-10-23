@@ -6,6 +6,7 @@ var epoch := ""
 var sequence := 0
 var states: Dictionary = {}
 var revisions: Dictionary = {}
+var item_states: Dictionary = {}
 var _trades: Dictionary = {}
 var _active_trade := ""
 var _trade_revision := -1
@@ -14,6 +15,7 @@ func clear() -> void:
 	epoch = ""
 	sequence = 0
 	states.clear()
+	item_states.clear()
 	revisions.clear()
 	_trades.clear()
 	_active_trade = ""
@@ -34,6 +36,10 @@ func accept(value: Dictionary) -> bool:
 		return false
 	if value.kind == "result":
 		payload["id"] = value.id
+	if value.kind == "items":
+		if not item_states.has(payload.scope): item_states[payload.scope] = {}
+		for row in payload.rows:
+			item_states[payload.scope][int(row[0])] = row[1].duplicate(true)
 	states[value.kind] = payload
 	revisions[value.kind] = value.revision
 	changed.emit(value.kind, payload.duplicate(true), value.revision)
@@ -57,3 +63,5 @@ func observe_trade(value: Dictionary) -> void:
 		_active_trade = value.id
 		_trade_revision = int(value.revision)
 		states.erase("trade")
+		item_states.erase("trade_mine")
+		item_states.erase("trade_other")

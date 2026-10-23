@@ -37,6 +37,11 @@ _shieldAnimatedSprite = NodePath("Shield")
 sprite_frames = ExtResource("3_rhvfg")
 animation = &"idle_north"
 
+[node name="Boots" type="AnimatedSprite2D" parent="Renderer"]
+visible = false
+sprite_frames = ExtResource("3_rhvfg")
+animation = &"idle_north"
+
 [node name="Head" type="AnimatedSprite2D" parent="Renderer"]
 position = Vector2(0, -5)
 sprite_frames = ExtResource("3_rhvfg")

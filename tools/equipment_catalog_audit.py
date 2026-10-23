@@ -12,6 +12,7 @@ LAYERS = {
     3: ("armor", "Bodies", "body", "NumRopaje"),
     16: ("shield", "Shields", "shield", "Anim"),
     17: ("helmet", "Helmets", "helmet", "Anim"),
+    36: ("boots", "Boots", "boots", "Anim"),
 }
 
 
@@ -45,6 +46,7 @@ def audit(server, client):
             variants.append(("small_race", int(item["RazaEnanaAnim"])))
         for variant, graphic in variants:
             relative = f"Resources/Character/{folder}/{prefix}_{graphic}.tres"
+            if kind == 36: relative = "engine/character/boot_frames.gd"
             exists = graphic > 0 and (client / relative).is_file()
             row = {
                 "item_id": item_id,

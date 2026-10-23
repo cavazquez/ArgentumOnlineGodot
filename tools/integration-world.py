@@ -43,6 +43,7 @@ SCENARIO_TIMEOUT_SECONDS = {
     "economy-ui": 600,
     "visual-sync": 600,
     "equipment": 1800,
+    "durable-items": 1800,
     "accessories": 1200,
     "npcs": 600,
     "platform": 600,
@@ -328,6 +329,8 @@ def worker(args):
         from npc_loot_world import NPCLootWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "accessories":
         from accessory_world import AccessoryWorld as R10World, acceptance, prepare_fixture
+    elif args.scenario == "durable-items":
+        from durable_world import DurableWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "equipment":
         from equipment_world import EquipmentWorld as R10World, acceptance, prepare_fixture
     elif args.scenario == "visual-sync":

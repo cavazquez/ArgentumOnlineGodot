@@ -11,6 +11,18 @@ signal slotActivated(index:int)
 var _inventory:Inventory
 var _selectedSlot:int = -1
 
+func _ready() -> void:
+	ClientInterface.world_state.changed.connect(_OnConditionState)
+
+func _OnConditionState(kind: String, data: Dictionary, _revision: String) -> void:
+	if kind != "items" or _inventory == null or data.scope != _inventory.scope: return
+	for row in data.rows:
+		var index := int(row[0]) - 1
+		var stack := _inventory.GetSlot(index)
+		if stack == null: continue
+		stack.instance_state = row[1].duplicate(true) if not row[1].is_empty() and stack.item != null and int(row[1].item) == stack.item.index else {}
+		_OnSlotChanged(index, stack)
+
 func GetSelectedSlot() -> int:
 	return _selectedSlot
 

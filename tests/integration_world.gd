@@ -201,6 +201,7 @@ func _ready() -> void:
 		"spells": expected_spells, "hunger_before": hunger_before, "hunger_after": hunger_after,
 		"capabilities": ClientInterface.capabilities.enabled,
 		"exact_inventory_and_spell_order": true}))
+	AudioManager.Shutdown()
 	ClientInterface.DisconnectFromHost()
 	# Completar queue_free de la pantalla y la retirada del playback en el mixer.
 	await get_tree().process_frame

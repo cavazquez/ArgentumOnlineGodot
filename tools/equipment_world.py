@@ -5,7 +5,8 @@ from r10_world import R10World, prepare_fixture
 SAMPLES = ((30, "armor"), (15, "weapon"), (563, "weapon"), (561, "weapon"),
            (562, "weapon"), (564, "weapon"), (128, "shield"), (132, "helmet"),
            (2, "weapon"), (31, "armor"), (659, "weapon"),
-           (1058, "helmet"), (401, "weapon"), (543, "weapon"))
+           (1058, "helmet"), (401, "weapon"), (543, "weapon"),
+           (1055, "boots"), (1059, "boots"), (1063, "boots"), (1067, "boots"), (1071, "boots"))
 FOLDERS = {"body": ("Bodies", "body"), "weapon": ("Weapons", "weapon"),
            "shield": ("Shields", "shield"), "helmet": ("Helmets", "helmet")}
 
@@ -23,6 +24,9 @@ def rendered_as(view, actor, expected):
         if layer.get("id") != graphic:
             return False
         if graphic > 0:
+            if key == "boots":
+                if not layer.get("visible") or layer.get("frame_count", 0) < 1: return False
+                continue
             folder, prefix = FOLDERS[key]
             if not layer.get("visible") or layer.get("frame_count", 0) < 1 or layer.get("resource") != f"res://Resources/Character/{folder}/{prefix}_{graphic}.tres":
                 return False
@@ -46,23 +50,24 @@ class EquipmentWorld(R10World):
         self.wait(lambda: all("INTEGRATION_WORLD: READY" in (self.output / f"godot-{i}.log").read_text() for i in (1, 2)), "alta de ambos clientes", 60)
         with self.fixture.client() as store:
             self.ids = {i: int(store.hget(f"account:{self.names[i-1]}:data", "user_id")) for i in (1, 2)}
+            self.data["player"]["class_id"] = 3
             self.data["items"] = {str(slot): [item, 1] for slot, (item, _kind) in enumerate(SAMPLES, 1)}
             x, y = locations["base"]
-            self.relocate(store, {1: (1, x, y), 2: (1, x+1, y)}, reset=True, accounts={2: {"char_race": 4, "char_body": 4, "char_head": 3}})
+            self.relocate(store, {1: (1, x, y), 2: (1, x+1, y)}, reset=True, accounts={1: {"char_job": 3}, 2: {"char_job": 3, "char_race": 4, "char_body": 4, "char_head": 3}})
             expected = {}
             bases = {}
             for actor in (1, 2):
                 account = store.hgetall(f"account:{self.names[actor-1]}:data")
                 baseline = int(account.get("char_body", account.get("char_race", 1))) or 1
                 bases[actor] = baseline
-                visual = {"body": baseline, "weapon": 0, "shield": 0, "helmet": 0}
+                visual = {"body": baseline, "weapon": 0, "shield": 0, "helmet": 0, "boots": 0}
                 for slot, (item_id, kind) in enumerate(SAMPLES, 1):
                     item = ITEMS_CATALOG[item_id]
                     self.command(actor, "equip", slot=slot)
                     self.wait(lambda: store.hget(f"player:{self.ids[actor]}:equipment", kind) == str(slot), "equipo confirmado en Redis")
                     visual["body" if kind == "armor" else kind] = item.body_animation if kind == "armor" else (item.dwarf_animation or item.animation) if kind == "weapon" and actor == 2 else item.animation
                     self.see(actor, visual)
-                    if kind in ("armor", "helmet", "shield") or item_id in (15, 563, 401, 543):
+                    if kind in ("armor", "helmet", "shield", "boots") or item_id in (15, 563, 401, 543):
                         for viewer in (1, 2): self.command(viewer, "capture", label=f"equip-{actor}-{item_id}")
                 origin = (x+actor-1, y)
                 actions = ("ui_down", "ui_left", "ui_up", "ui_right") if actor == 1 else ("ui_right", "ui_down", "ui_left", "ui_up")
@@ -101,9 +106,10 @@ class EquipmentWorld(R10World):
                 equipped = store.hgetall(f"player:{self.ids[actor]}:equipment")
                 for kind, slot in equipped.items():
                     self.command(actor, "equip", slot=int(slot))
-                    self.wait(lambda: not store.hget(f"player:{self.ids[actor]}:equipment", kind), "desequipado confirmado")
+                    self.wait(lambda: store.hget(f"player:{self.ids[actor]}:equipment", kind) in (None, "0"), "desequipado confirmado")
                     expected[actor]["body" if kind == "armor" else kind] = bases[actor] if kind == "armor" else 0
                     self.see(actor, expected[actor])
             self.passed("equipment-remove", "Retirar equipo se ve en ambas ventanas", removed=True)
+            if hasattr(self, "extra_checks"): self.extra_checks(store, locations)
         for viewer in (1, 2): self.command(viewer, "soak")
         return self.steps
