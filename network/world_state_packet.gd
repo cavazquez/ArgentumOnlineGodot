@@ -2,7 +2,7 @@ extends RefCounted
 class_name WorldStatePacket
 
 const MAX_SAFE_INTEGER := 9007199254740991
-const KINDS := ["tax", "party", "clan", "pets", "weather", "commands", "trade", "result", "chat", "finder", "diplomacy", "depot", "faction", "quests"]
+const KINDS := ["tax", "party", "clan", "pets", "weather", "commands", "trade", "result", "chat", "finder", "diplomacy", "depot", "faction", "quests", "lottery", "lottery_open"]
 var valid := false
 var data: Dictionary = {}
 
@@ -42,6 +42,10 @@ static func _permissions(value: Variant) -> bool:
 
 static func _payload(kind: String, value: Dictionary) -> bool:
 	match kind:
+		"lottery_open":
+			return value.get("npc") == "lottery-ullathorpe"
+		"lottery":
+			return _lottery(value)
 		"finder", "diplomacy", "depot", "faction", "quests":
 			return _expansion(kind, value)
 		"result":
@@ -90,6 +94,20 @@ static func _payload(kind: String, value: Dictionary) -> bool:
 					if not _number(component, 255): return false
 			return value.get("channel") in ["system", "public", "whisper", "party", "clan"] and _number(value.get("sender_id")) and _text(value.get("sender"), 20) and _text(value.get("text"), 512) and _text(value.get("context"), 80) and _number(value.get("font"), 255) and _number(value.get("recipient", 0)) and _text(value.get("recipient_name", ""), 20)
 	return false
+
+static func _lottery(value: Dictionary) -> bool:
+	if not _text(value.get("round"), 32) or not _text(value.get("commitment"), 64) or value.get("npc") != "lottery-ullathorpe": return false
+	if not value.get("status") in ["open", "pending", "cancelling", "paid", "cancelled"]: return false
+	if not value.get("can_bet") is bool or not value.get("claim_pending") is bool: return false
+	for field in ["pool", "fees", "gross", "fee", "net", "participants", "minimum", "maximum", "closes_at", "server_time", "round_seconds", "devalued"]:
+		if not _number(value.get(field), MAX_SAFE_INTEGER): return false
+	var winner: Variant = value.get("last_winner")
+	if not winner is Dictionary: return false
+	if winner.is_empty(): return true
+	if not _text(winner.get("name"), 20) or not _text(winner.get("round"), 32) or not _text(winner.get("seed"), 64) or not _text(winner.get("snapshot_hash"), 64) or not _text(winner.get("commitment"), 64): return false
+	for field in ["user", "prize", "at", "draw_pool", "fees", "gross", "devalued"]:
+		if not _number(winner.get(field), MAX_SAFE_INTEGER): return false
+	return TradeSnapshot.integer(winner.get("number"), -1, 2147483647)
 
 static func _expansion(kind: String, value: Dictionary) -> bool:
 	if value.get("enabled", true) == false:

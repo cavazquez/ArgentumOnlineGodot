@@ -908,8 +908,8 @@ func _install_world_buttons() -> void:
 	more.tooltip_text = "Devaluación, mascotas, grupos, clanes, facciones y misiones."
 	more.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	more.add_theme_font_size_override("font_size", 12)
-	var topics := ["tax", "pets", "finder", "diplomacy", "depot", "faction", "quests"]
-	for topic in topics: more.get_popup().add_item({"tax": "Devaluación", "pets": "Mascotas"}.get(topic, ExpansionWindow.TITLES.get(topic, "Mundo")))
+	var topics := ["tax", "pets", "lottery", "finder", "diplomacy", "depot", "faction", "quests"]
+	for topic in topics: more.get_popup().add_item({"tax": "Devaluación", "pets": "Mascotas", "lottery": "Lotería"}.get(topic, ExpansionWindow.TITLES.get(topic, "Mundo")))
 	more.get_popup().id_pressed.connect(func(index: int): OpenWorldTopic(topics[index]))
 	row.add_child(more)
 	_world_buttons.append(more)
@@ -920,7 +920,7 @@ func _update_world_buttons() -> void:
 	for control in _world_buttons:
 		control.disabled = not ClientInterface.capabilities.has_feature(int(control.get_meta("capability", ClientCapabilities.WORLD_STATE)))
 		if control is MenuButton:
-			for index in range(2, control.get_popup().item_count):
+			for index in range(3, control.get_popup().item_count):
 				control.get_popup().set_item_disabled(index, not ClientInterface.capabilities.has_feature(ClientCapabilities.EXPANSION))
 
 func OpenWorldTopic(topic: String) -> void:
@@ -941,6 +941,7 @@ func OpenWorldTopic(topic: String) -> void:
 		match topic:
 			"tax": window = TaxWindow.new()
 			"pets": window = PetsWindow.new()
+			"lottery": window = LotteryWindow.new()
 			"finder", "diplomacy", "depot", "faction", "quests": window = ExpansionWindow.new(topic)
 			_: window = SocialWindow.new(topic)
 		_world_windows[topic] = window
@@ -949,5 +950,11 @@ func OpenWorldTopic(topic: String) -> void:
 	_world_windows[topic].Open()
 
 func ApplyWorldState(value: Dictionary) -> void:
+	if value.kind == "lottery_open": OpenWorldTopic("lottery")
+	if value.kind == "lottery":
+		var winner: Dictionary = value.data.get("last_winner", {})
+		if not winner.is_empty() and get_meta("lottery_announced", "") != winner.round:
+			set_meta("lottery_announced", winner.round)
+			ShowConsoleMessage("Lotería: %s ganó %d oro. Consultá al Lotero de Ullathorpe para participar." % [winner.name, int(winner.prize)])
 	if value.kind == "trade" and is_instance_valid(_currentPanel) and _currentPanel is PlayerTradePanel:
 		_currentPanel.ApplyMetadata(value.data)
