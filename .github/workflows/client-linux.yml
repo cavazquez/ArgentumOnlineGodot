@@ -126,6 +126,8 @@ jobs:
         run: ./tools/prepare-windows-audio.ps1
       - name: Motor y templates oficiales con SHA256
         run: python tools/install-godot.py --all-templates --destination "$RUNNER_TEMP/pyao-godot"
+      - name: Lectura de órdenes con bloqueos reales y JSON inválido
+        run: python tools/check-control-io.py --godot "$GODOT_BIN" --output build/control-io
       - name: Compilar sólo Redis de la fixture
         run: python tools/build-test-redis.py --destination "$RUNNER_TEMP/pyao-redis"
       - name: Importar y construir candidato portable
@@ -175,6 +177,7 @@ jobs:
         with:
           name: portable-${{ matrix.target }}-${{ matrix.runner }}-${{ github.sha }}
           path: |
+            build/control-io/
             build/pyao-client-*.zip
             build/pyao-client-*.json
             build/portable-candidate/candidate-manifest.json
@@ -241,6 +244,8 @@ jobs:
         run: sh tools/install-ci-deps.sh xvfb libgl1-mesa-dri libvulkan1
       - name: Descargar Godot oficial verificado (sin exportar)
         run: python3 tools/install-godot.py --destination "$RUNNER_TEMP/pyao-godot"
+      - name: Regresión de lectura de órdenes del controlador
+        run: python3 tools/check-control-io.py --godot "$GODOT_BIN" --output build/control-io
       - name: Comprobar importación, scripts, escenas, protocolo y privacidad
         run: |
           tools/smoke-godot.sh
