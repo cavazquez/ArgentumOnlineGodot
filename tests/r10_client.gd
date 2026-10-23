@@ -1,7 +1,6 @@
 extends RefCounted
 
-# El controlador sólo opera pantallas, formularios y acciones del cliente real.
-# Las expectativas persistidas se comprueban independientemente en el runner.
+# Controlador de UI real; el runner comprueba por separado las expectativas persistidas.
 var host: Node
 var last_chat_tick := 0
 
@@ -13,7 +12,8 @@ func run(owner: Node) -> bool:
 		var request := root.path_join("%04d.request.json" % sequence)
 		while not FileAccess.file_exists(request):
 			await host.get_tree().create_timer(0.05).timeout
-		var command: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(request))
+		var command: Dictionary = await _read_control_request(request)
+		if command.is_empty(): return false
 		var ok := await execute(command)
 		var response := {"ok": ok, "sequence": sequence, "operation": command.op, "view": snapshot()}
 		var response_path := root.path_join("%04d.response.json" % sequence)
@@ -496,3 +496,18 @@ func execute(command: Dictionary) -> bool:
 			return false
 	await host.get_tree().process_frame
 	return true
+
+
+func _read_control_request(path: String) -> Dictionary:
+	var reader := preload("res://tests/control_request_reader.gd").new()
+	var result: Dictionary = await reader.read_request(path, host.get_tree())
+	if not result.ok:
+		print("R10_CONTROL_READ: ", JSON.stringify(result))
+		push_error("R10: orden de control rechazada; tipo=%s error=%d bytes=%d" % [result.kind, result.io_error, result.byte_count])
+		host.get_tree().quit(1)
+		return {}
+	var command: Dictionary = result.command
+	result.erase("command")
+	if result.attempts > 1:
+		print("R10_CONTROL_READ: ", JSON.stringify(result))
+	return command
