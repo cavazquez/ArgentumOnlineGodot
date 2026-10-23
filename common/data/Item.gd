@@ -9,7 +9,7 @@ const EquippableTypes = \
 	Enums.eOBJType.eOBJType_otCASCO,
 	Enums.eOBJType.eOBJType_otFlechas,
 	Enums.eOBJType.eOBJType_otAnillo,
-	36
+	Enums.eOBJType.eOBJType_otBotas
 ]
 
 const UsableTypes = \
@@ -47,4 +47,4 @@ func IsWeapon() -> bool:
 func IsArmour() -> bool:
 	return type in [Enums.eOBJType.eOBJType_otArmadura,\
 					Enums.eOBJType.eOBJType_otESCUDO,\
-					Enums.eOBJType.eOBJType_otCASCO, 36]
+					Enums.eOBJType.eOBJType_otCASCO, Enums.eOBJType.eOBJType_otBotas]

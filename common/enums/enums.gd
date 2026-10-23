@@ -111,10 +111,10 @@ enum eOBJType {
 	eOBJType_otFlechas = 32,
 	eOBJType_otBotellaVacia = 33,
 	eOBJType_otBotellaLlena = 34,
+	eOBJType_otBotas = 36,
 	
 	#No se usa 
 	eOBJType_otManchas = 35,
-	eOBJType_otArbolElfico = 36,
 	eOBJType_otMochilas = 37,
 	eOBJType_otYacimientoPez = 38,
 	eOBJType_otCualquiera = 1000
