@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import subprocess
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, call, patch
@@ -15,6 +16,26 @@ method = next(n for n in klass.body if isinstance(n, ast.FunctionDef) and n.name
 
 
 class OwnedRedisCleanupTests(unittest.TestCase):
+    def test_lost_shutdown_ack_requires_normal_process_exit(self):
+        class RedisTimeoutError(Exception): pass
+        method = next(n for n in klass.body if isinstance(n, ast.FunctionDef) and n.name == "stop_for_restart")
+        namespace = {}
+        exec(compile(ast.Module(body=[method], type_ignores=[]), str(source), "exec"), namespace)
+        for result in (0, 1, "alive"):
+            with self.subTest(result=result):
+                client = SimpleNamespace(shutdown=Mock(side_effect=RedisTimeoutError()))
+                process = SimpleNamespace(wait=Mock(return_value=result))
+                if result == "alive": process.wait.side_effect = subprocess.TimeoutExpired("owned Redis", 15)
+                fixture = SimpleNamespace(process=process, client=lambda: contextlib.nullcontext(client))
+                with patch.dict(sys.modules, {"redis.exceptions": SimpleNamespace(TimeoutError=RedisTimeoutError)}):
+                    if result == 0:
+                        namespace["stop_for_restart"](fixture)
+                    else:
+                        with self.assertRaises((RuntimeError, subprocess.TimeoutExpired)):
+                            namespace["stop_for_restart"](fixture)
+                client.shutdown.assert_called_once_with(save=True)
+                process.wait.assert_called_once_with(timeout=15)
+
     def test_failed_snapshot_uses_nosave_only_on_the_owned_client(self):
         class ResponseError(Exception): pass
         namespace = {"contextlib": contextlib, "json": json, "stop": Mock()}

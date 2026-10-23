@@ -280,8 +280,7 @@ class NativeRedis:
             checked = subprocess.run(["wsl", "--exec", checker, self.wsl_data_dir + "/dump.rdb"], check=True, capture_output=True, text=True, timeout=90)
             if "Checksum OK" not in checked.stdout or "RDB looks OK" not in checked.stdout:
                 raise RuntimeError("La instantánea grande no pasó redis-check-rdb")
-            client.shutdown(save=True)
-        stop(self.process)
+        self.stop_for_restart()
         self.process = subprocess.Popen(invocation, stdout=self.log, stderr=subprocess.STDOUT, **child_process_options())
         with self.client(socket_limit=60) as client:
             restored = client.get(key)
@@ -293,8 +292,23 @@ class NativeRedis:
         if self.evidence is not None:
             (self.evidence / "native-redis-persistence.json").write_text(json.dumps({"passed": True, "payload_bytes": len(payload), "payload_sha256": expected, "rdb_saved": True, "rdb_checksum_verified": True, "aof_restarted": True, "payload_preserved": True, "appendfsync": "always", "production_data_used": False}, indent=2) + "\n")
 
+    def stop_for_restart(self):
+        from redis.exceptions import TimeoutError as RedisTimeoutError
+
+        try:
+            with self.client() as client:
+                client.shutdown(save=True)
+        except RedisTimeoutError:
+            # WSL puede perder el cierre TCP; sólo se acepta si el proceso
+            # propio terminó normalmente. Después se verifican bytes tras AOF.
+            pass
+        if self.process.wait(timeout=15) != 0:
+            raise RuntimeError("Redis no terminó normalmente antes de su reinicio")
+
     def client(self, *, socket_limit=5):
-        from redis import Redis, ConnectionError
+        from redis import Redis, ConnectionError, TimeoutError as RedisTimeoutError
+        from redis.backoff import NoBackoff
+        from redis.retry import Retry
 
         client = Redis(
             host="127.0.0.1",
@@ -303,13 +317,14 @@ class NativeRedis:
             decode_responses=True,
             socket_timeout=socket_limit,
             socket_connect_timeout=1,
+            retry=Retry(NoBackoff(), 0),
         )
         deadline = time.monotonic() + 15
         while time.monotonic() < deadline:
             try:
                 client.ping()
                 return client
-            except ConnectionError:
+            except (ConnectionError, RedisTimeoutError):
                 if self.process.poll() is not None:
                     break
                 time.sleep(0.1)

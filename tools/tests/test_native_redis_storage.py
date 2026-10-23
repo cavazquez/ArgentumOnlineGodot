@@ -69,6 +69,7 @@ class NativeRedisStorageTests(unittest.TestCase):
         fixture.wsl_data_dir = "/tmp/pyao-redis-fixture-abcdefghij"
         fixture.log = object()
         fixture.process = object()
+        fixture.stop_for_restart = Mock()
         client = SimpleNamespace(dbsize=Mock(return_value=0), config_get=Mock(return_value={"appendonly": "yes", "appendfsync": fsync, "stop-writes-on-bgsave-error": "yes"}), set=Mock(), save=Mock(), shutdown=Mock(), get=Mock(return_value=restored), info=Mock(return_value={"aof_enabled": 1}), delete=Mock())
         fixture.client = Mock(side_effect=lambda **kwargs: nullcontext(client))
         return fixture, client
@@ -76,11 +77,10 @@ class NativeRedisStorageTests(unittest.TestCase):
     def test_large_snapshot_is_checked_and_payload_survives_aof_restart(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name);fixture, client = self.persistence_probe(root)
-            with patch.object(module.secrets, "token_urlsafe", return_value="synthetic-payload") as payload, patch.object(module.subprocess, "run", return_value=SimpleNamespace(stdout="Checksum OK\nRDB looks OK!")) as checker, patch.object(module.subprocess, "Popen") as start, patch.object(module, "stop") as stop:
-                original = fixture.process
+            with patch.object(module.secrets, "token_urlsafe", return_value="synthetic-payload") as payload, patch.object(module.subprocess, "run", return_value=SimpleNamespace(stdout="Checksum OK\nRDB looks OK!")) as checker, patch.object(module.subprocess, "Popen") as start:
                 fixture.verify_wsl_persistence(["owned-launcher"], "/owned/redis-check-rdb")
             payload.assert_called_once_with(32 * 1024 * 1024)
-            stop.assert_called_once_with(original)
+            fixture.stop_for_restart.assert_called_once_with()
             self.assertEqual(start.call_args.args[0], ["owned-launcher"])
             self.assertEqual(checker.call_args.args[0], ["wsl", "--exec", "/owned/redis-check-rdb", fixture.wsl_data_dir + "/dump.rdb"])
             proof = json.loads((root / "native-redis-persistence.json").read_text())
