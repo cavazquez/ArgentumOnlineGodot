@@ -62,12 +62,19 @@ def run(godot, output):
                 stdout, stderr = process.communicate(timeout=15)
             except subprocess.TimeoutExpired:
                 process.kill()
-                process.communicate()
+                stdout, stderr = process.communicate()
+                (output / (name + ".log")).write_bytes(stdout + stderr)
+                (output / (name + "-timeout.json")).write_text(json.dumps({
+                    "phase": "process-timeout", "process_returncode": process.returncode,
+                    "files": [{"file": str(p.relative_to(project)), "bytes": p.stat().st_size}
+                              for p in project.rglob('*') if p.is_file()],
+                }, indent=2) + "\n", encoding="utf-8")
                 raise
             log = stdout + stderr
             (output / (name + ".log")).write_bytes(log)
             assert process.returncode == 0 and b"ERROR:" not in log, name
             value = json.loads(result.read_text(encoding="utf-8"))
+            (output / (name + ".json")).write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
             records.append({"case": name, **value})
             return value
 

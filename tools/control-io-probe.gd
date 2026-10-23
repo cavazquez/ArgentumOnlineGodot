@@ -6,9 +6,17 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _observed(code: int, path: String) -> void:
-	var file := FileAccess.open(path, FileAccess.WRITE)
+	print("CONTROL_IO_PHASE: observer-open ", path)
+	var file := FileAccess.open(path + ".pending", FileAccess.WRITE)
+	if file == null:
+		print("CONTROL_IO_PHASE: observer-open-error ", FileAccess.get_open_error())
+		quit(2)
+		return
 	file.store_string(JSON.stringify({"io_error": code}))
 	file.close()
+	var error := DirAccess.rename_absolute(path + ".pending", path)
+	print("CONTROL_IO_PHASE: observer-published error=", error, " exists=", FileAccess.file_exists(path))
+	assert(error == OK)
 
 func _run() -> void:
 	var arguments := OS.get_cmdline_user_args()
@@ -16,11 +24,15 @@ func _run() -> void:
 	for index in range(0, arguments.size(), 2):
 		options[arguments[index]] = arguments[index + 1]
 	var result: Dictionary
+	print("CONTROL_IO_PHASE: mode=", options["--mode"])
 	if options["--mode"] == "legacy":
+		print("CONTROL_IO_PHASE: before-existence-check")
 		var exists := FileAccess.file_exists(options["--request"])
+		print("CONTROL_IO_PHASE: existence=", exists)
 		_observed(OK, options["--observed"])
 		while not FileAccess.file_exists(options["--observed"] + ".continue"):
 			await create_timer(0.01).timeout
+		print("CONTROL_IO_PHASE: legacy-read-after-lock")
 		var text := FileAccess.get_file_as_string(options["--request"])
 		var error := FileAccess.get_open_error()
 		result = {"file_exists": exists, "byte_count": text.to_utf8_buffer().size(), "io_error": error}
