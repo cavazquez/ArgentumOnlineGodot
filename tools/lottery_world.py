@@ -94,4 +94,6 @@ class LotteryWorld(R10World):
                 self.state(i, lambda s: s.get("last_winner") == winner)
                 assert store.hget(f"player:{self.ids[i]}:user_stats", "gold") == paid_gold[self.ids[i]]
             self.passed("lottery-restart", "Reinicio conserva ganador, pago único y un solo NPC", source_godot=True, native_export=False)
+            for i in (1, 2):
+                self.command(i, "soak")
         return self.steps
